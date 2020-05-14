@@ -144,4 +144,5 @@ void QGLVideoWidget::displayCall(void *data, int width, int height)
 void QGLVideoWidget::endCall()
 {
     qDebug() << "play end.";
+    emit playOver();
 }

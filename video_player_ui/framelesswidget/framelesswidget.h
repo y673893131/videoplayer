@@ -34,8 +34,9 @@ protected:
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result);
     void mouseDoubleClickEvent(QMouseEvent *event);
     void resizeEvent(QResizeEvent *event);
-
+    void keyPressEvent(QKeyEvent *event);
     void setBackgroundColor(QColor);
+    virtual bool isValid();
 private:
     QColor m_bkColor;
     QImage m_bkImg;

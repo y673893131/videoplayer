@@ -53,6 +53,13 @@ void QFrameLessWidget::resizeBackground(int w, int h, int round, int margin, QCo
 
 void QFrameLessWidget::region(const QPoint &cursorGlobalPoint, bool &activeFlag)
 {
+    if(isValid()){
+        m_dir = -1;
+        this->setCursor(QCursor(Qt::ArrowCursor));
+        activeFlag = false;
+        return;
+    }
+
     QRect rect = this->rect();
     QPoint tl = mapToGlobal(rect.topLeft());
     QPoint rb = mapToGlobal(rect.bottomRight());
@@ -244,14 +251,25 @@ void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
     Q_UNUSED(event)
     if(event->button() == Qt::LeftButton)
     {
-        auto desktopsize = qApp->desktop()->availableGeometry().size();
-        if(size() != desktopsize && m_drag == DragMove_None){
-            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
+//        auto desktopsize = qApp->desktop()->availableGeometry().size();
+//        if(size() != desktopsize && m_drag == DragMove_None){
+
+//            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
+//            m_doubleClickPos = pos();
+//            m_drag = DragMove_Top;
+//        }
+//        else{
+//            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
+//            m_drag = DragMove_None;
+//        }
+
+        if(!isFullScreen()){
+            showFullScreen();
             m_doubleClickPos = pos();
             m_drag = DragMove_Top;
-        }
-        else{
-            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
+        }else
+        {
+            showNormal();
             m_drag = DragMove_None;
         }
     }
@@ -268,4 +286,21 @@ void QFrameLessWidget::resizeEvent(QResizeEvent *event)
 void QFrameLessWidget::setBackgroundColor(QColor c)
 {
     m_bkColor = c;
+}
+
+bool QFrameLessWidget::isValid()
+{
+    return false;
+}
+
+void QFrameLessWidget::keyPressEvent(QKeyEvent *event)
+{
+    switch (event->key()) {
+    case Qt::Key_Escape:
+        if(isFullScreen()){
+            showNormal();
+            m_drag = DragMove_None;
+        }
+        break;
+    }
 }

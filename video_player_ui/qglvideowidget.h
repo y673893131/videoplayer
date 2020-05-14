@@ -50,6 +50,7 @@ public:
     // QOpenGLWidget interface
 signals:
     void appendFrame(void*);
+    void playOver();
 protected:
     void initializeGL();
     void resizeGL(int w, int h);

@@ -320,8 +320,8 @@ struct _sdl_op_
         auto num = SDL_GetNumAudioDevices(0);
         for(int i = 0; i < num; ++i){
             auto name = SDL_GetAudioDeviceName(i, 0);
-            Log(Log_Info, "audio device %d=%s!", i, name);
             nAudioId = SDL_OpenAudioDevice(name, false, &target, &spec, 0);
+            Log(Log_Info, "audio device id=%d name%d=%s!", nAudioId, i, name);
             if(nAudioId > 0) return nAudioId;
         }
 

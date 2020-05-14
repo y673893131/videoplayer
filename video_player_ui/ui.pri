@@ -1,6 +1,10 @@
 CONFIG += c++11
 
 SOURCES += \
+    $$PWD/qfilelistdelegate.cpp \
+    $$PWD/qfilelistview.cpp \
+    $$PWD/qplayfilelistmodel.cpp \
+    $$PWD/qtoolwidgets.cpp \
     framelesswidget/framelesswidget.cpp \
     main.cpp \
     qglvideowidget.cpp \
@@ -8,10 +12,16 @@ SOURCES += \
     qlabelvideowidget.cpp
 
 HEADERS += \
+    $$PWD/qfilelistdelegate.h \
+    $$PWD/qfilelistview.h \
+    $$PWD/qplayfilelistmodel.h \
+    $$PWD/qtoolwidgets.h \
     framelesswidget/framelesswidget.h \
     qglvideowidget.h \
     widget.h \
-    qlabelvideowidget.h
+    qlabelvideowidget.h \
+    $$PWD/glvdieodefine.h \
+    $$PWD/videoframe.h
 
 INCLUDEPATH += $$PWD/../vidoe_player_log
 DEPENDPATH += $$PWD/../vidoe_player_log
@@ -23,6 +33,5 @@ win32{
     DESTDIR = $$PWD/../bin
 }
 
-HEADERS += \
-    $$PWD/glvdieodefine.h \
-    $$PWD/videoframe.h
+RESOURCES += \
+    $$PWD/res.qrc

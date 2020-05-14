@@ -1,0 +1,26 @@
+<RCC>
+    <qresource prefix="/res">
+        <file alias="qss.qss">Resources/res.qss</file>
+        <file alias="pause">Resources/pause.png</file>
+        <file alias="play">Resources/play.png</file>
+        <file alias="close_normal1">Resources/close_hover.png</file>
+        <file alias="close_black">Resources/close_normal.png</file>
+        <file alias="play_normal">Resources/Icons/Dark/transport.pause.png</file>
+        <file alias="pause_normal">Resources/Icons/Dark/transport.play.png</file>
+        <file alias="play_black">Resources/Icons/Light/transport.pause.png</file>
+        <file alias="pause_black">Resources/Icons/Light/transport.play.png</file>
+        <file alias="next_black">Resources/Icons/Light/transport.ff.png</file>
+        <file alias="prev_black">Resources/Icons/Light/transport.rew.png</file>
+        <file alias="next_normal">Resources/Icons/Dark/transport.ff.png</file>
+        <file alias="prev_normal">Resources/Icons/Dark/transport.rew.png</file>
+        <file alias="close_hover">Resources/close_hover1.png</file>
+        <file alias="close_normal">Resources/sysclose00.png</file>
+        <file alias="max_normal">Resources/sysmax0.png</file>
+        <file alias="max_hover">Resources/sysmax1.png</file>
+        <file alias="min_normal">Resources/sysmin111.png</file>
+        <file alias="min_hover">Resources/sysmin222.png</file>
+        <file alias="full_screen">Resources/fullscreen1.png</file>
+        <file alias="unfull_screen">Resources/unfullscreen.png</file>
+        <file alias="file_list">Resources/filelist.png</file>
+    </qresource>
+</RCC>
