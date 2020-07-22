@@ -1,10 +1,22 @@
 #pragma once
 
+#include <memory.h>
 #include <stdio.h>
-#include <windows.h>
+#include <stdarg.h>
 #include <time.h>
+#ifdef unix
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <string>
+#define MAX_PATH 256
+#else
+#include <windows.h>
+#endif
+#include <mutex>
 
 #define MAX_BUFFER 1024 * 60
+
 #define MAX_ATTR 64
 #define SAVE_DAY 7
 
@@ -30,17 +42,17 @@ private:
 	void write(char* str, int nlength);
 	void AutoDeleteFile();
 private:
-	static CLog* m_log;
+//	static CLog* m_log;
 	FILE* m_file;
 	char m_sText[MAX_BUFFER];
 	char m_attrDir[MAX_ATTR];
 	char m_attrTempName[MAX_ATTR];
 	char m_attr[MAX_ATTR];
-	char m_absDir[MAX_PATH];
+    char m_absDir[MAX_PATH];
 	char m_absFile[MAX_PATH];
-	BOOL m_bIsOpen;
-	CRITICAL_SECTION m_Lock;
+    bool m_bIsOpen;
+    std::mutex m_lock;
 };
 
 #define InitLogInstance(x, y) CLog::Instanse(x, y)
-#define Log(l,x,...) CLog::Instanse()->AddLog(l,x,__VA_ARGS__)
+#define Log(l, x, ...) CLog::Instanse()->AddLog(l, x, ##__VA_ARGS__)

@@ -3,6 +3,10 @@
 
 #include <QWidget>
 #include <QAbstractNativeEventFilter>
+#ifdef WIN32
+#include <windows.h>
+#endif
+class QDragBorder;
 class QFrameLessWidget : public QWidget, public QAbstractNativeEventFilter
 {
     Q_OBJECT
@@ -16,6 +20,7 @@ class QFrameLessWidget : public QWidget, public QAbstractNativeEventFilter
         DragMove_Top,
         DragMove_Restore
     };
+
 public:
     QFrameLessWidget(QWidget *parent = nullptr);
     ~QFrameLessWidget();
@@ -45,5 +50,11 @@ private:
     QSize m_normalSize,m_minSize;
     QRect m_dragRc;
     QPoint m_dragLastPos,m_doubleClickPos;
+    QDragBorder* m_dragBorder;
+
+    // QWidget interface
+protected:
+    void mouseReleaseEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
 };
 #endif // QFrameLessWidget_H

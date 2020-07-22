@@ -10,6 +10,7 @@ class QWorker : public QThread
     Q_OBJECT
 public:
     QWorker(QObject* parnet, QNetworkReply* response);
+    virtual ~QWorker();
 signals:
     void finish();
     // QThread interface
@@ -26,6 +27,7 @@ public:
     enum user_role
     {
         role_play_mode = Qt::UserRole + 1,
+        role_url
     };
 
     enum play_mode
@@ -37,6 +39,7 @@ signals:
     void urlflush();
 public slots:
     void setMode(int);
+    void setLocaleFiles(const QVector<QStringList>&);
 public:
     explicit QPlayFileListModel(QObject *parent = nullptr);
 

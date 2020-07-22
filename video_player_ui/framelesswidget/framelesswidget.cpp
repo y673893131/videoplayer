@@ -1,22 +1,25 @@
 #include "framelesswidget.h"
 #include <QPainter>
-#include <Windows.h>
-#include <windowsx.h>
 #include <QMouseEvent>
 #include <QDesktopWidget>
 #include <QApplication>
 #include <QTimer>
 #include <QDebug>
+#include "qdragborder.h"
 QFrameLessWidget::QFrameLessWidget(QWidget *parent)
     : QWidget(parent), m_drag(DragMove_None),m_bkColor("#80C7ED")
 {
-    setWindowFlag(Qt::FramelessWindowHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     resize(800, 600);
     m_normalSize = size();
     m_minSize = QSize(600, 400);
     auto deskCenter = qApp->desktop()->rect().center();
     m_doubleClickPos = QPoint(deskCenter.x() - width() / 2, deskCenter.y() - height() / 2);
+#ifdef unix
+    m_dragBorder = new QDragBorder(this);
+#endif
+    move(m_doubleClickPos);
 }
 
 QFrameLessWidget::~QFrameLessWidget()
@@ -53,7 +56,8 @@ void QFrameLessWidget::resizeBackground(int w, int h, int round, int margin, QCo
 
 void QFrameLessWidget::region(const QPoint &cursorGlobalPoint, bool &activeFlag)
 {
-    if(isValid()){
+    if(isValid())
+    {
         m_dir = -1;
         this->setCursor(QCursor(Qt::ArrowCursor));
         activeFlag = false;
@@ -107,23 +111,25 @@ bool QFrameLessWidget::checkLButtonPressRegion()
 {
     bool activeFlag;
     region(cursor().pos(), activeFlag);
-    if (activeFlag && ReleaseCapture() && m_dir > 0) {
+#ifdef WIN32
+    if (activeFlag && ReleaseCapture() && m_dir > 0)
+    {
         SendMessage(reinterpret_cast<HWND>(this->winId()), WM_SYSCOMMAND, SC_SIZE | m_dir, 0);
         return true;
     }
-
+#endif
     return false;
 }
 
 void QFrameLessWidget::checkSize(void *arg)
 {
+#ifdef WIN32
     auto rc = reinterpret_cast<RECT*>(arg);
     if(rc->bottom - rc->top >= m_minSize.height() && rc->right - rc->left >= m_minSize.width()) return;
     switch (m_dir) {
     case WMSZ_TOPLEFT:
         if(rc->bottom - rc->top < m_minSize.height()) rc->top = rc->bottom - m_minSize.height();
         if(rc->right - rc->left < m_minSize.width()) rc->left = rc->right - m_minSize.width();
-//        qDebug() << rc->bottom - rc->top << m_minSize.height();
         break;
     case WMSZ_BOTTOMRIGHT:
         if(rc->bottom - rc->top < m_minSize.height()) rc->bottom = rc->top + m_minSize.height();
@@ -150,10 +156,12 @@ void QFrameLessWidget::checkSize(void *arg)
         rc->bottom = rc->top + m_minSize.height();
         break;
     }
+#endif
 }
 
 void QFrameLessWidget::checkDragMove(void *arg)
 {
+#ifdef WIN32
     QPoint pos = cursor().pos();
     auto rc = reinterpret_cast<RECT*>(arg);
     if(pos.x() < PADDING){//DragMove_Left
@@ -200,11 +208,18 @@ void QFrameLessWidget::checkDragMove(void *arg)
         rc->bottom = m_dragRc.bottom();
         rc->right = m_dragRc.right();
     }
+#endif
 }
 
 void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
 {
-    if(event->button() == Qt::LeftButton){
+    QWidget::mousePressEvent(event);
+
+    if(event->button() == Qt::LeftButton)
+    {
+#ifdef unix
+        m_dragBorder->setStartPos(pos(), event->globalPos());
+#else
         if(::ReleaseCapture()){
             ::SendMessage(HWND(this->winId()), WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
             QTimer::singleShot(0, [&]() {
@@ -212,9 +227,9 @@ void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
                     m_doubleClickPos = pos();
             });
         }
+#endif
     }
 
-    QWidget::mousePressEvent(event);
 }
 
 void QFrameLessWidget::paintEvent(QPaintEvent *event)
@@ -228,6 +243,7 @@ void QFrameLessWidget::paintEvent(QPaintEvent *event)
 bool QFrameLessWidget::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
 {
     Q_UNUSED(result)
+#ifdef WIN32
     auto msg = reinterpret_cast<MSG*>(message);
 //    qDebug() << msg->message << msg->wParam << msg->lParam;
     if (eventType == "windows_generic_MSG" || eventType == "windows_dispatcher_MSG")
@@ -243,6 +259,7 @@ bool QFrameLessWidget::nativeEventFilter(const QByteArray &eventType, void *mess
         else if (msg->message == WM_MOVING)
             checkDragMove(reinterpret_cast<void*>(msg->lParam));
     }
+#endif
     return false;
 }
 
@@ -251,19 +268,22 @@ void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
     Q_UNUSED(event)
     if(event->button() == Qt::LeftButton)
     {
-//        auto desktopsize = qApp->desktop()->availableGeometry().size();
-//        if(size() != desktopsize && m_drag == DragMove_None){
-
+#ifdef WIN32
+        auto desktopsize = qApp->desktop()->availableGeometry().size();
+        if(size() != desktopsize && m_drag == DragMove_None){
+            showFullScreen();
 //            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
-//            m_doubleClickPos = pos();
-//            m_drag = DragMove_Top;
-//        }
-//        else{
+            m_doubleClickPos = pos();
+            m_drag = DragMove_Top;
+        }
+        else{
+            showNormal();
 //            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
-//            m_drag = DragMove_None;
-//        }
-
-        if(!isFullScreen()){
+            m_drag = DragMove_None;
+        }
+#else
+        if(!isFullScreen())
+        {
             showFullScreen();
             m_doubleClickPos = pos();
             m_drag = DragMove_Top;
@@ -272,12 +292,18 @@ void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
             showNormal();
             m_drag = DragMove_None;
         }
+#endif
     }
 }
 
 void QFrameLessWidget::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event)
+
+    qDebug() << "resize:" << size();
+#ifdef unix
+    m_dragBorder->setFixedSize(size());
+#endif
     if(height() != qApp->desktop()->availableGeometry().height())
         m_normalSize = size();
     resizeBackground(width(), height(), 5, 5, m_bkColor);//set your like
@@ -293,11 +319,37 @@ bool QFrameLessWidget::isValid()
     return false;
 }
 
+void QFrameLessWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    QWidget::mouseReleaseEvent(event);
+#ifdef unix
+    if(m_dragBorder->isVisible())
+    {
+        m_dragBorder->hide();
+        move(m_dragBorder->pos());
+    }
+#endif
+}
+
+void QFrameLessWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    QWidget::mouseMoveEvent(event);
+#ifdef unix
+    if(event->buttons() == Qt::LeftButton)
+    {
+        m_dragBorder->show();
+        m_dragBorder->setMovePos(event->globalPos());
+    }
+#endif
+}
+
 void QFrameLessWidget::keyPressEvent(QKeyEvent *event)
 {
-    switch (event->key()) {
+    switch (event->key())
+    {
     case Qt::Key_Escape:
-        if(isFullScreen()){
+        if(isFullScreen())
+        {
             showNormal();
             m_drag = DragMove_None;
         }

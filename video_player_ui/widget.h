@@ -2,8 +2,8 @@
 #define WIDGET_H
 
 #include <QWidget>
+#include <framelesswidget/framelesswidget.h>
 #include <QDateTime>
-#include "framelesswidget/framelesswidget.h"
 class QGLVideoWidget;
 class video_player_core;
 class QToolWidgets;
@@ -25,10 +25,17 @@ private:
     // QWidget interface
 protected:
     void resizeEvent(QResizeEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    bool eventFilter(QObject *watched, QEvent *event);
     virtual bool isValid();
 private slots:
     void flushSheetStyle();
 private:
     QDateTime m_last;
+
+    // QWidget interface
+protected:
+    void dragEnterEvent(QDragEnterEvent *event);
+    void dropEvent(QDropEvent *event);
 };
 #endif // WIDGET_H

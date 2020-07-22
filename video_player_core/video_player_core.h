@@ -15,28 +15,28 @@
 #  define VIDEO_PLAYER_CORE_EXPORT Q_DECL_IMPORT
 #endif
 
-//#include "video_player_core_global.h"
+
+#ifdef WIN32
+typedef _int64 int64_t;
+#endif
 #include <functional>
+
+//#define FRAME_RGB
+
 struct _video_info_;
 class VIDEO_PLAYER_CORE_EXPORT video_interface
 {
 public:
-    virtual void totalTime(const _int64 t) = 0;
+    virtual void totalTime(const int64_t t) = 0;
+    virtual void posChange(const int64_t t) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
-    virtual void endCall() = 0;
+    virtual void startCall(int) = 0;
+    virtual void endCall(int) = 0;
 };
 
 class VIDEO_PLAYER_CORE_EXPORT video_player_core
 {
 public:
-    enum enum_operator
-    {
-        opr_stop,
-        opr_start,
-        opr_pause,
-        opr_continue
-    };
-
     enum enum_state
     {
         state_uninit,
@@ -53,11 +53,14 @@ public:
     int _setCallBack(video_interface*);
     int _setSrc(const std::string& src);
     int _play();
-    int _pause();
-    int _continue();
-    int _stop();
-    int _seek(_int64);
+    int _pause(int);
+    int _continue(int);
+    int _stop(int);
+    int _seek(int, int64_t);
+    int _setVol(int, int);
+    int _setMute(int, bool bMute);
     int _setsize(int w, int h);
+    int _state(int);
     bool _cov(void *indata, void* outdata, int w, int h, int outsize);
     enum_state _getState();
 private:

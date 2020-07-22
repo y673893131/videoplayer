@@ -8,80 +8,128 @@
 #include <QFileInfo>
 #include <QDateTime>
 #include <QApplication>
+#include <math.h>
+#include <QMessageBox>
+#include <QKeyEvent>
 #include "video_player_core.h"
-#include "QGLVideoWidget.h"
-#include "QToolWidgets.h"
+#include "qglvideowidget.h"
+#include "qtoolwidgets.h"
+#include "Log/Log.h"
+#ifdef unix
+#include <unistd.h>
+#endif
 
 Widget::Widget(QWidget *parent)
     : QFrameLessWidget(parent)
 {
-    resize(1024, 765);
-    setBackgroundColor("#2E2F30");
-    QStringList files;
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\1.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\2.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\3.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\4.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\1.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\2.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\3.mp4";
-//    files << "C:\\Users\\Administrator\\Desktop\\test\\mp4\\4.mp4";
-    files << "http://ivi.bupt.edu.cn/hls/cctv1hd.m3u8";//CCTV 高清
-//    files << "http://ivi.bupt.edu.cn/hls/zjhd.m3u8";//浙江 高清
-//    files << "rtmp://172.16.62.127:1935/live/room";
-//    files << "rtmp://58.200.131.2:1935/livetv/hunantv";//湖南卫视
-//    files << "http://ivi.bupt.edu.cn/hls/hunanhd.m3u8";//湖南卫视 高清
-    int count = files.count();
-    int colcount = sqrt(count);
-    for (int n = 0;n < count; ++n) {
-#define _OPENGL_
-#ifdef _OPENGL_
+    qApp->setApplicationName("vPlay");
+    InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_");
+    qApp->installEventFilter(this);
+    setAcceptDrops(true);
+    for (int n = 0;n < 1; ++n)
+    {
         m_video = new QGLVideoWidget(this);
-#else
-        m_video = new QLabel(this);
-#endif
         m_toolbar = new QToolWidgets(this);
         m_video->setAutoFillBackground(true);
 
-        auto core = new video_player_core();
+        static video_player_core* core = nullptr;
+        core = new video_player_core();
         core->_init();
         core->_setCallBack(m_video);
-        auto file = files[n];
-        connect(m_toolbar, &QToolWidgets::play, [file, core, this](const QString& filename){
-            QString playfile = file;
-            if(!filename.isEmpty()){
-                playfile = filename;
-            }else
+
+        auto funcStop = [this]
+        {
+            int index = m_toolbar->index();
+            core->_stop(index);
+            int state = core->_state(index);
+            qDebug() << "index: " << index << " state: " << state;
+            while(state != video_player_core::state_uninit
+                   && state != video_player_core::state_stopped)
             {
-                if(core->_getState() == video_player_core::state_paused){
+#ifdef unix
+                usleep(100 * 1000);
+#else
+                Sleep(100);
+#endif
+                state = core->_state(index);
+            }
+        };
+        connect(m_toolbar, &QToolWidgets::play, [this, funcStop](const QString& filename)
+        {
+            if(filename.isEmpty())
+            {
+                emit m_toolbar->loadFile();
+                return ;
+            }
+
+            if(core)
+            {
+                if(core->_getState() == video_player_core::state_paused)
+                {
                     qDebug() << "countinue play.";
-                    core->_continue();
+                    core->_continue(m_toolbar->index());
                     return;
                 }
             }
 
-            core->_stop();
-            core->_setSrc(playfile.toStdString().c_str());
+            funcStop();
 
-            qDebug() << "==>>start play:" << playfile;
+            core->_setSrc(filename.toUtf8().toStdString());
+
+            qDebug() << "==>>start play:" << filename;
             qDebug() << m_video->size();
-//            core->_setsize(m_video->width(), m_video->height());
             core->_play();
         });
 
-        connect(m_toolbar, &QToolWidgets::pause, [core]{
-            if(core->_getState() == video_player_core::state_paused)
-            {
-                core->_continue();
-                qDebug() << "countinue play.";
-            }else{
-                core->_pause();
-                qDebug() << "pause play.";
-            }
+        connect(m_toolbar, &QToolWidgets::exit, [funcStop]
+        {
+            Log(Log_Opt, "quit begin.");
+            funcStop();
+            Log(Log_Opt, "quit end.");
+            qApp->quit();
         });
 
-        connect(m_toolbar, &QToolWidgets::stop, [core]{
-            core->_stop();
+        connect(m_video, &QGLVideoWidget::start, m_toolbar, &QToolWidgets::start);
+        connect(m_video, &QGLVideoWidget::playOver, [this](int index)
+        {
+            emit m_toolbar->stop();
+        });
+        connect(m_video, &QGLVideoWidget::setpos, m_toolbar, &QToolWidgets::setPosSeconds);
+        connect(m_video, &QGLVideoWidget::total, m_toolbar, &QToolWidgets::setTotalSeconds);
+        connect(m_toolbar, &QToolWidgets::pause, [this]
+        {
+            if(!core)return;
+            core->_pause(m_toolbar->index());
+            qDebug() << "pause play." << m_toolbar->index();
+        });
+
+        connect(m_toolbar, &QToolWidgets::continuePlay, [this]
+        {
+            if(!core)return;
+            core->_continue(m_toolbar->index());
+            qDebug() << "continue play." << m_toolbar->index();
+        });
+
+        connect(m_toolbar, &QToolWidgets::stop, [this]
+        {
+            if(!core)return;
+            core->_stop(m_toolbar->index());
+        });
+        connect(m_toolbar, &QToolWidgets::setSeekPos, [this](int value)
+        {
+            if(!core)return;
+            core->_seek(m_toolbar->index(), value);
+        });
+
+        connect(m_toolbar, &QToolWidgets::setVol, [this](int value)
+        {
+            if(!core)return;
+            core->_setVol(m_toolbar->index(), value);
+        });
+        connect(m_toolbar, &QToolWidgets::mute, [this](bool bMute)
+        {
+            if(!core)return;
+            core->_setMute(m_toolbar->index(), bMute);
         });
     }
 
@@ -98,12 +146,14 @@ Widget::~Widget()
 
 void Widget::flushSheetStyle()
 {
-    QFileInfo fi(":/res/qss.qss");
+#define QSS_FILE ":/res/qss.qss"
+//#define QSS_FILE qApp->applicationDirPath() + "/Resources/res.qss"
+    QFileInfo fi(QSS_FILE);
     QDateTime lastMdTime = fi.lastModified();
     if (m_last != lastMdTime)
     {
         m_last = lastMdTime;
-        QFile qss(":/res/qss.qss");
+        QFile qss(QSS_FILE);
         qss.open(QFile::ReadOnly);
         qApp->setStyleSheet(qss.readAll());
         qss.close();
@@ -113,11 +163,80 @@ void Widget::flushSheetStyle()
 
 void Widget::resizeEvent(QResizeEvent *event)
 {
-    __super::resizeEvent(event);
+    QFrameLessWidget::resizeEvent(event);
     m_video->resize(size());
+}
+
+void Widget::mouseMoveEvent(QMouseEvent *event)
+{
+    QFrameLessWidget::mouseMoveEvent(event);
+    emit m_toolbar->hideOrShow(false);
+}
+
+bool Widget::eventFilter(QObject *watched, QEvent *event)
+{
+    if(/*watched == this && */event->type() == QEvent::MouseMove)
+    {
+        emit m_toolbar->move();
+    }
+    else if(watched == this && event->type() == QEvent::KeyPress)
+    {
+        auto keyEvent = (QKeyEvent*)(event);
+        if(keyEvent->key() == Qt::Key_Escape)
+        {
+            if(isFullScreen())
+            {
+                showNormal();
+            }
+            else
+            {
+                auto btn = QMessageBox::information(this, tr("tips"),tr("quit") + " " + qApp->applicationName() + "?"
+                                                    , QMessageBox::Ok | QMessageBox::Cancel);
+                if(btn == QMessageBox::Ok)
+                    emit m_toolbar->exit();
+            }
+        }
+
+        return true;
+    }
+
+    return QFrameLessWidget::eventFilter(watched, event);
 }
 
 bool Widget::isValid()
 {
     return m_toolbar->isUnderValid();
+}
+
+#include <QMimeData>
+#include <QDragEnterEvent>
+inline bool checkFile(const QString& file, const QStringList& types)
+{
+    for(auto type : types)
+    {
+        if(type.length() > file.length()) continue;
+        if(file.lastIndexOf(type, file.length() - type.length(), Qt::CaseInsensitive) > 0)
+            return true;
+    }
+
+    return false;
+}
+
+void Widget::dragEnterEvent(QDragEnterEvent *event)
+{
+    qDebug() << "QDragEnterEvent";
+    auto urls = event->mimeData()->urls();
+    if(!urls.empty())
+    {
+        auto file = urls.begin()->toLocalFile();
+        QStringList types;
+        types << ".mp4" << ".flv" << ".avi" << ".mkv";
+        if(checkFile(file, types))
+            event->accept();
+    }
+}
+
+void Widget::dropEvent(QDropEvent *event)
+{
+    emit m_toolbar->play(event->mimeData()->urls().begin()->toLocalFile());
 }

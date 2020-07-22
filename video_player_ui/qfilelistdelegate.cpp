@@ -12,5 +12,5 @@ void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     painter->setRenderHint(QPainter::Antialiasing, true);
 
 //    qDebug() << index << (option.state);
-    __super::paint(painter, option, index);
+    QStyledItemDelegate::paint(painter, option, index);
 }

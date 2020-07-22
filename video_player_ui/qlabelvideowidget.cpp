@@ -7,7 +7,7 @@ QLabelVideoWidget::QLabelVideoWidget(QWidget *parent)
 }
 
 
-void QLabelVideoWidget::totalTime(const _int64 t)
+void QLabelVideoWidget::totalTime(const int64_t t)
 {
     qDebug() << "label total: " << t;
 }

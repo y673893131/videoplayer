@@ -9,7 +9,8 @@
 #include "video_player_core.h"
 
 struct _texture_obj_{
-    void init(){
+    void init()
+    {
         texture = new QOpenGLTexture(QOpenGLTexture::Target2D);
         texture->create();
         id = texture->textureId();
@@ -38,6 +39,7 @@ class QGLVideoWidget : public QOpenGLWidget, public QOpenGLFunctions, public vid
         TEXTURE_Y = 0,
         TEXTURE_U,
         TEXTURE_V,
+        TEXTURE_IMG,
 
         TEXTURE_MAX
     };
@@ -50,15 +52,21 @@ public:
     // QOpenGLWidget interface
 signals:
     void appendFrame(void*);
-    void playOver();
+    void playOver(int);
+    void start(int);
+    void pause(int);
+    void total(int);
+    void setpos(int);
 protected:
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL();
 
-    void totalTime(const _int64 t);
+    void totalTime(const int64_t t);
+    void posChange(const int64_t t);
     void displayCall(void *data, int width, int height);
-    void endCall();
+    void startCall(int);
+    void endCall(int);
 private:
     QOpenGLShader* m_vShader,* m_fShader;
     QOpenGLShaderProgram* m_program;

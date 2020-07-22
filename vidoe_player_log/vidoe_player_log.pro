@@ -19,13 +19,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 include(log.pri)
 
 # Default rules for deployment.
-win32{
-    DESTDIR = $$PWD/../bin
-}
-
-unix {
-    target.path = $$[QT_INSTALL_PLUGINS]/generic
-}
+DESTDIR = $$PWD/../bin
+#unix {
+#    target.path = $$[QT_INSTALL_PLUGINS]/generic
+#}
 !isEmpty(target.path): INSTALLS += target
 
 DISTFILES += \

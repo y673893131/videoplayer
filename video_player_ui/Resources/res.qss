@@ -1,0 +1,397 @@
+QWidget#widget0,
+QWidget#widget1
+{
+        background: black;
+        min-width: 800px;
+        min-height:600px;
+        border: 0px solid blue;
+}
+
+QWidget#wd_video
+{
+        min-width: 600px;
+        min-height: 400px;
+        background: red;
+        border: 0px solid blue;
+}
+
+QWidget#title
+{
+        min-height: 26px;
+        max-height: 26px;
+        background: red;
+}
+
+
+QWidget#file_list_wd
+{
+    background: transparent;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+QWidget#list_file_indicator
+{
+    min-width: 10px;
+    background: transparent;
+}
+
+QWidget#wd_title
+{
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(128,128,128,128), stop:1 rgba(128,128,128,0));
+}
+
+QWidget#wd_toolbar
+{
+    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(128,128,128,0), stop:1 rgba(128,128,128,128));
+}
+
+QLabel#label_title
+{
+    background: transparent;
+    color: lightgray;
+    font: bold 13px "Microsoft Yahei";
+}
+
+QPushButton#btn_min{border-image:url(:/res/min_normal); border-radius:3px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;}QPushButton#btn_min::hover{border-image:url(:/res/min_hover);background: none;border-radius:10px; }
+
+QPushButton#btn_max{border-image:url(:/res/max_normal); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;}QPushButton#btn_max::hover{border-image:url(:/res/max_hover);background: none;border-radius:10px; }
+
+QPushButton#btn_close{border-image:url(:/res/close_normal); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;margin-right:5px;}QPushButton#btn_close::hover{border-image:url(:/res/close_hover);background: none;border-radius:10px; }
+
+QListView#list_file
+{
+    min-width: 200px;
+    max-width: 200px;
+    background: rgba(23, 26, 29, 128);
+    color: #454545;
+    border: 0px;
+    outline: none;
+    border-top-left-radius: 5px;
+}
+
+QListView#list_file:item
+{
+    font-family: "Microsoft YaHei";
+    height: 20px;
+    font: 15px;
+    color: #d5d5d5;
+    border: 0px;
+    padding-left: 10px;
+}
+
+QListView#list_file:item:selected
+{
+    font-weight: bold;
+    color: #FF5C38;
+    background: transparent;
+    padding-left: 20px;
+}
+
+QListView#list_file:item:hover
+{
+    color: #FF5C38;
+    background: rgba(128,128,128,128);
+    padding-left: 20px;
+}
+
+QPushButton#btn_stop
+{
+        outline: none;
+        border-radius:0px;
+        max-width: 20px;
+        max-height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+        margin:15px;
+        background: white;
+}
+QPushButton#btn_stop::hover
+{
+    background: #FF5C38;
+        border:none;
+}
+QPushButton#btn_play
+{
+        background-color:transparent;
+        image:url(:/res/play_normal);
+        outline: none;
+        border-radius: 25px;
+        max-width: 50px;
+        min-width: 50px;
+        max-height: 50px;
+        min-height: 50px;
+}
+QPushButton#btn_play::hover
+{
+        image:url(:/res/play_black);
+        background: white;
+}
+QPushButton#btn_pause
+{
+        background-color:transparent;
+        border-image:url(:/res/pause_normal);
+        outline: none;
+        border-radius: 25px;
+        max-width: 50px;
+        max-height: 50px;
+        min-width: 50px;
+        min-height: 50px;
+}
+QPushButton#btn_pause::hover
+{
+        image:url(:/res/pause_black);
+        background: white;
+}
+
+QPushButton#btn_prev
+{
+        background-color:transparent;
+        image:url(:/res/prev_normal);
+        outline: none;
+        border-radius:20px;
+        max-width: 40px;
+        max-height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+}
+QPushButton#btn_prev::hover
+{
+        image:url(:/res/prev_black);
+        background: white;
+}
+QPushButton#btn_next
+{
+        background-color:transparent;
+        image:url(:/res/next_normal);
+        outline: none;
+        border-radius:20px;
+        max-width: 40px;
+        max-height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+}
+QPushButton#btn_next::hover
+{
+        image:url(:/res/next_black);
+        background: white;
+}
+
+QPushButton#btn_volume
+{
+        outline: none;
+        border-radius:15px;
+        max-width: 30px;
+        max-height: 30px;
+        min-width: 30px;
+        min-height: 30px;
+}
+QPushButton#btn_volume::hover
+{
+        background: white;
+}
+
+QPushButton#btn_fullscreen
+{
+        background-color: transparent;
+        image:url(:/res/next_normal);
+        outline: none;
+        padding: 2px;
+        max-width: 20px;
+        max-height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+}
+
+QPushButton#btn_fullscreen::checked
+{
+        image:url(:/res/unfull_screen);
+}
+
+QPushButton#btn_fullscreen::hover
+{
+        padding: 1px;
+}
+
+QPushButton#btn_openfile
+{
+        min-height: 40px;
+        max-height: 40px;
+        border-radius: 5px;
+        background: rgba(46,47,48,100);
+        font-family: "Microsoft YaHei";
+        font: 16px;
+        color: white;
+        padding: 10px 30px;
+}
+
+QPushButton#btn_openfile:hover
+{
+    background: #525253;
+}
+
+QPushButton#file_list
+{
+        background-color: transparent;
+        border-image:url(:/res/file_list);
+        outline: none;
+        padding: 2px;
+        margin-right: 10px;
+        max-width: 20px;
+        max-height: 20px;
+        min-width: 20px;
+        min-height: 20px;
+}
+
+QPushButton#file_list::hover
+{
+        margin: 1px 10px 1px 1px;
+}
+
+QPushButton#btn_mode
+{
+        background: rgba(23, 26, 29, 128);
+        font: 15px "Microsoft YaHei";
+        border: 0px;
+        color: #858585;
+}
+
+QPushButton#btn_mode:checked
+{
+    color: #E0E0E0;
+}
+
+QPushButton#btn_mode::hover
+{
+        padding: 1px;
+        color: #E0E0E0;
+}
+
+QPushButton#btn_file_indicator
+{
+    background: #202326;
+    font: 15px "Microsoft YaHei";
+    color: white;
+    min-height: 100px;
+    min-width: 10px;
+    max-width: 10px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+QPushButton#btn_file_indicator::hover
+{
+    padding: 1px;
+    color: white;
+    background: #525354;
+}
+
+
+QSlider#slider_voice
+{
+        background-color: transparent;
+        max-width: 100px;
+}
+QSlider#slider_voice::add-page:Horizontal
+{
+        background-color: rgb(87, 97, 106);
+        height:4px;
+}
+QSlider#slider_voice::sub-page:Horizontal
+{
+        background-color:rgb(37, 168, 198);
+        height:4px;
+}
+QSlider#slider_voice::groove:Horizontal
+{
+        background:transparent;
+        height: 6px;
+        margin: 0px 2px;
+}
+QSlider#slider_voice::handle:Horizontal
+{
+        height: 8px;
+        width:8px;
+        background: white;
+        border-radius:4px;
+        margin: -2px;
+}
+
+QSlider#slider_pro
+{
+   background-color: transparent;
+}
+
+QSlider#slider_pro::add-page:Horizontal
+{
+   background-color: rgba(240,240,240, 100);
+   border-radius: 2px;
+   height:4px;
+}
+QSlider#slider_pro::sub-page:Horizontal
+{
+   background-color: rgba(214, 132, 58, 100);
+   border-radius: 2px;
+   height:4px;
+}
+QSlider#slider_pro::groove:Horizontal
+{
+   background: rgba(240,240,240,128);
+   border-radius: 2px;
+   height: 4px;
+   margin: 0px 2px;
+}
+QSlider#slider_pro::groove:Horizontal:hover
+{
+   background: rgba(240, 240, 240, 128);
+   border-radius: 4px;
+   height:8px;
+}
+
+QSlider#slider_pro::handle:Horizontal
+{
+    height: 8px;
+    width: 8px;
+    /*background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0.6 #D6843A,stop:0.778409 #FFFFFF);*/
+    background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 #FF4F4A, stop:1 rgba(255,79,74,0));
+    /*background: #FF4F4A;*/
+    border-radius: 4px;
+    margin: -2px 0px;
+}
+
+QSlider#slider_pro::handle:Horizontal:disabled
+{
+   height: 0px;
+   width: 0px;
+   border-radius:0px;
+   background:transparent;
+   margin: 0px;
+}
+
+QScrollBar#scroll1:vertical
+{
+    background: rgba(23, 26, 29, 128);
+    border: 0px solid red;
+    padding: 0px 5px;
+}
+
+QScrollBar#scroll1:add-line:vertical,
+QScrollBar#scroll1:sub-line:vertical,
+QScrollBar#scroll1:add-page:vertical,
+QScrollBar#scroll1:sub-page:vertical
+{
+     background: transparent;
+}
+
+QScrollBar#scroll1:handle:vertical
+{
+    background: #4E4E4F;
+    min-height: 100px;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+QScrollBar#scroll1:handle:vertical:hover
+{
+    background: #727273;
+}

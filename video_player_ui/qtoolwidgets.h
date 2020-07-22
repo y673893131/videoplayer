@@ -4,8 +4,10 @@
 #include <QWidget>
 
 class QBoxLayout;
-class QListView;
+class QFileListView;
 class QPushButton;
+class QProgressSlider;
+class QDataModel;
 class QToolWidgets : public QWidget
 {
     Q_OBJECT
@@ -13,23 +15,40 @@ public:
     explicit QToolWidgets(QWidget *parent = nullptr);
 
     bool isUnderValid();
+    int index();
 signals:
+    void exit();
     void play(const QString& = QString());
     void pause();
+    void continuePlay();
     void stop();
+    void setVol(int);
     void mute(bool);
-public slots:
+    void loadFile();
+    void start(int);
+    void move();
+    void hideOrShow(bool);
+    void setTotalSeconds(int);
+    void setPosSeconds(int);
+    void setSeekPos(int);
     void selectMode(int);
+public slots:
+    void onLoadFile();
+    void onSelectMode(int);
 private:
-    QBoxLayout* CreateTitle(QWidget*);
+    QWidget* CreateTitle(QWidget*);
     QBoxLayout* CreateCenterToolbar(QWidget*);
     QBoxLayout* CreateProcessbar(QWidget*);
-    QBoxLayout* CreateToolbar(QWidget*);
+    QWidget* CreateToolbar(QWidget*);
     QWidget* CreateFilelist(QWidget*);
 private:
+    QProgressSlider* m_process;
     QWidget* m_filelistWd;
-    QListView* m_filelist;
-    QPushButton *m_openfile,* m_filelistIndicator;
+    QFileListView* m_filelist;
+    QPushButton *m_openfile/*,* m_filelistIndicator*/;
+    bool m_bPlaying;
+    int m_index, m_playMode;
+    QDataModel* m_data;
 };
 
 #endif // QTOOLWIDGETS_H

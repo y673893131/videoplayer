@@ -1,17 +1,39 @@
 #include "Log.h"
+#ifdef unix
+#include <unistd.h>
+#endif
+
 #pragma warning(disable: 4996)
 
-CLog* CLog::m_log = NULL;
+#ifdef unix
+int GetModuleFileNameA(char* name, int size)
+{
+    if(readlink("/proc/self/exe", name, size) !=-1 )
+    {
+        return -1;
+    }
+    return strlen(name);
+}
+#endif
+
+#pragma data_seg("video_log")
+void* g_log = nullptr;
+#pragma data_seg()
+#pragma comment(linker, "/SECTION:video_log,RWS")
+
+//CLog* CLog::m_log = NULL;
 CLog::CLog(const char* sDir, const char* sPrifix)
 {
 	m_file = NULL;
-	m_bIsOpen = FALSE;
-	InitializeCriticalSection(&m_Lock);
-
+    m_bIsOpen = false;
 	memset(m_absDir, 0x00, sizeof(m_absDir));
 	if (!sDir)
 	{
-		::GetModuleFileNameA(NULL, m_absDir, MAX_PATH);
+#ifdef unix
+        ::GetModuleFileNameA(m_absDir, MAX_PATH);
+#else
+        ::GetModuleFileNameA(nullptr, m_absDir, MAX_PATH);
+#endif
 		char *pos = strrchr(m_absDir, '\\');
 		if (pos) *pos = 0;
 	}
@@ -40,22 +62,21 @@ CLog::CLog(const CLog&)
 
 CLog::~CLog()
 {
-	DeleteCriticalSection(&m_Lock);
 	if (m_file) fclose(m_file);
 }
 
 CLog* CLog::Instanse(const char* sDir, const char* sPrifix)
 {
-	if (!m_log)
-		m_log = new CLog(sDir, sPrifix);
-
-	return m_log;
+    if (!g_log)
+        g_log = new CLog(sDir, sPrifix);
+    return (CLog*)g_log;
 }
 
 bool CLog::AddLog(Log_Level level, const char* sFormat, ...)
 {
 	if (!m_bIsOpen) return true;
-	EnterCriticalSection(&m_Lock);
+    std::lock_guard<std::mutex> lock(m_lock);
+
 	struct tm tm1;
 	char sDate[32] = {};
 	bool bret = true;
@@ -86,12 +107,10 @@ bool CLog::AddLog(Log_Level level, const char* sFormat, ...)
 	char* pNext = m_sText + n;
 	va_list args;
 	va_start(args, sFormat);
-	vsprintf_s(pNext, sizeof(m_sText) - n, sFormat, args);
+    vsprintf(pNext, sFormat, args);
 	va_end(args);
 
 	write(m_sText, strlen(m_sText));
-	LeaveCriticalSection(&m_Lock);
-
 	return bret;
 }
 
@@ -110,19 +129,22 @@ char* CLog::CurTime(char* buff, struct tm* time1, time_t subSecond)
 	buff[n] = 0;
 	return buff;
 }
-
+#include <thread>
 void CLog::Open(const char* sDate)
 {
 	if (m_file)	fclose(m_file);
 	memset(m_absFile, 0x00, sizeof(m_absFile));
 	int n = sprintf(m_absFile, "%s/%s", m_absDir, m_attrDir);
+#ifdef WIN32
 	CreateDirectoryA(m_absFile, NULL);
+#else
+    mkdir(m_absFile, S_IRWXU);
+#endif
 	sprintf(m_absFile + n, "/%s%s%s", m_attrTempName, sDate, m_attr);
 	m_file = fopen(m_absFile, "a+");
 	m_bIsOpen = m_file != NULL;
 	if (!m_bIsOpen) return;
-	char buff[100] = "===============================START=================================";
-	write(buff, strlen(buff));
+    AddLog(Log_Info, "===============================START=================================");
 	AutoDeleteFile();
 }
 
@@ -130,10 +152,66 @@ void CLog::write(char* str, int nlength)
 {
 	if (!m_file) return;
 	strcat(str, "\n");
-        fwrite(str, nlength + 1, 1, m_file);
-        fflush(m_file);
+    int n = fwrite(str, nlength + 1, 1, m_file);
+    printf("n:%d",n);
+    if(n < 0)
+    {
+        ++n;
+    }
+    fflush(m_file);
 }
 
+#ifdef unix
+bool is_dir(const char* path)
+{
+    struct stat S_stat;
+    //取得文件状态
+    if (lstat(path, &S_stat) < 0)
+        return false;
+
+    if (S_ISDIR(S_stat.st_mode))
+        return true;
+    else
+        return false;
+}
+
+void CLog::AutoDeleteFile()
+{
+    char srcPath[MAX_PATH] = {};
+    sprintf(srcPath, "%s/%s", m_absDir, m_attrDir);
+    auto pDir = opendir(srcPath);
+    if (pDir == NULL)
+        return;
+
+    struct tm tm1;
+    char sDate[32] = {};
+    CurTime(sDate, &tm1, SAVE_DAY * 24 * 3600);
+    strcat(sDate, m_attr);
+
+    struct dirent* pDirent = nullptr;
+    while ((pDirent = readdir(pDir)) != NULL)
+    {
+        if (strcmp(pDirent->d_name, ".") == 0 || strcmp(pDirent->d_name, "..") == 0 || pDirent->d_type != DT_REG)
+            continue;
+        char szTmpPath[1024] = {0};
+        sprintf(szTmpPath, "%s/%s", srcPath, pDirent->d_name);
+        if(is_dir(szTmpPath))
+            continue;
+
+        std::string sTmp(pDirent->d_name);
+
+        int pos = sTmp.find_last_of(m_attrTempName);
+        if(pos > 0)
+        {
+            char* pDest = &pDirent->d_name[pos + 1];
+            if (strcmp(sDate, pDest) >= 0)
+                remove(szTmpPath);
+        }
+    }
+
+    closedir(pDir);
+}
+#else
 void CLog::AutoDeleteFile()
 {
 	char findFile[MAX_PATH] = {};
@@ -166,3 +244,4 @@ void CLog::AutoDeleteFile()
 
 	FindClose(hFind);
 }
+#endif

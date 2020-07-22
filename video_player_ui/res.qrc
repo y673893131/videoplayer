@@ -23,4 +23,11 @@
         <file alias="unfull_screen">Resources/unfullscreen.png</file>
         <file alias="file_list">Resources/filelist.png</file>
     </qresource>
+    <qresource prefix="/translate">
+        <file alias="zh">vPlayTranslate.qm</file>
+    </qresource>
+    <qresource prefix="/shader">
+        <file alias="img_fsh">Resources/shader/img.fsh</file>
+        <file alias="img_vsh">Resources/shader/img.vsh</file>
+    </qresource>
 </RCC>

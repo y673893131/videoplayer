@@ -30,6 +30,9 @@ const char* fragmentSrc =
                             rgb.x = yuv.x + 1.596023559570*yuv.z;\
                             rgb.y = yuv.x - 0.3917694091796875*yuv.y - 0.8129730224609375*yuv.z;\
                             rgb.z = yuv.x + 2.017227172851563*yuv.y;\
+                            if(rgb.x < 0.0) rgb.x = 0.0;\
+                            if(rgb.y < 0.0) rgb.y = 0.0;\
+                            if(rgb.z < 0.0) rgb.z = 0.0;\
                             gl_FragColor = vec4(rgb, 1);\
                            }";
 

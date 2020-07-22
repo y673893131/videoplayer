@@ -7,15 +7,13 @@
 video_player_core::video_player_core()
 {
     m_info = new _video_info_();
+    m_info->init();
     setBit(m_info->_flag, flag_bit_Stop);
 }
 
 video_player_core::~video_player_core()
 {
-    if(m_info){
-        delete m_info;
-        m_info = nullptr;
-    }
+    SAFE_RELEASE_PTR(&m_info);
 }
 
 int video_player_core::_init()
@@ -30,8 +28,9 @@ int video_player_core::_init()
 int video_player_core::_uninit()
 {
     Log(Log_Info, "%s", __FUNCTION__);
-    if(_getState() != state_running)
-        _stop();
+
+//    if(_getState() != state_running)
+//        _stop();
 
     return 0;
 }
@@ -56,55 +55,86 @@ int video_player_core::_play()
     setBit(m_info->_flag, flag_bit_Stop, false);
     setBit(m_info->_flag, flag_bit_pause, false);
     setBit(m_info->_flag, flag_bit_need_pause, false);
-    video_thread::start(m_info);
+    video_thread::start(*m_info);
     return 0;
 }
 
-int video_player_core::_pause()
+int video_player_core::_pause(int index)
 {
     Log(Log_Opt, "%s call.", __FUNCTION__);
-    if(!isSetBit(m_info->_flag, flag_bit_pause)){
-        setBit(m_info->_flag, flag_bit_need_pause);
-    }
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->setPause();
     return 0;
 }
 
-int video_player_core::_continue()
+int video_player_core::_continue(int index)
 {
     Log(Log_Opt, "%s call.", __FUNCTION__);
-    if(isSetBit(m_info->_flag, flag_bit_pause)){
-        setBit(m_info->_flag, flag_bit_need_pause, false);
-        setBit(m_info->_flag, flag_bit_pause, false);
-    }
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->continuePlay();
     return 0;
 }
 
-int video_player_core::_stop()
+int video_player_core::_stop(int index)
 {
     Log(Log_Opt, "%s call.", __FUNCTION__);
-    setBit(m_info->_flag, flag_bit_Stop);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->setStop();
     return 0;
 }
 
-int video_player_core::_seek(_int64 ms)
+int video_player_core::_seek(int index, int64_t ms)
 {
-    Log(Log_Opt, "%s=%I64d", __FUNCTION__, ms);
-    if(!isSetBit(m_info->_flag, flag_bit_seek))
+    Log(Log_Opt, "%s=%lld", __FUNCTION__, ms);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->seekPos(ms);
+    return 0;
+}
+
+int video_player_core::_setVol(int index, int nVol)
+{
+    Log(Log_Opt, "%s=%d", __FUNCTION__, nVol);
+    if(m_info && m_info->audio)
     {
-        m_info->_seek_pos = ms;
-        setBit(m_info->_flag, flag_bit_seek);
+        nVol = nVol / 100.0 * SDL_MIX_MAXVOLUME;
+        m_info->audio->sdl->nVol = nVol;
     }
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->setVol(nVol);
+    return 0;
+}
+
+int video_player_core::_setMute(int index, bool bMute)
+{
+    Log(Log_Opt, "%s=%d", __FUNCTION__, bMute);
+    setBit(m_info->_flag, flag_bit_mute, bMute);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->setMute(bMute);
     return 0;
 }
 
 int video_player_core::_setsize(int w, int h)
 {
-    // 16pix align
-    w = (w >> 4) << 4;
-    h = (h >> 4) << 4;
+
     Log(Log_Opt, "%s(%d,%d)", __FUNCTION__, w, h);
-    m_info->yuv.setSize(w, h);
+    if(m_info->yuv)
+        m_info->yuv->setSize(w, h);
     return 0;
+}
+
+int video_player_core::_state(int index)
+{
+    Log(Log_Opt, "%s=%d", __FUNCTION__, index);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        return pIndex->state();
+    return state_uninit;
 }
 
 video_player_core::enum_state video_player_core::_getState()

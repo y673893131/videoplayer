@@ -4,24 +4,111 @@
 #include <video_player_core.h>
 #include <thread>
 #include <memory>
-
-video_thread::video_thread(std::shared_ptr<_video_info_> info)
+#ifdef unix
+#include <pthread.h>
+#endif
+std::vector<video_thread*> video_thread::m_threads;
+video_thread::video_thread(const _video_info_& info)
 {
-    m_info = info;
+    m_info = new _video_info_(info);
+    m_threads.push_back(this);
+    m_index = m_threads.size() - 1;
+    Log(Log_Info, "thread begin.%d",std::this_thread::get_id());
+}
+
+video_thread::video_thread(const video_thread &)
+{
 }
 
 video_thread::~video_thread()
 {
-
+    Log(Log_Info, "thread exit.");
+    SAFE_RELEASE_PTR(&m_info);
 }
 
-void video_thread::start(_video_info_ *arg)
+void video_thread::start(const _video_info_& arg)
 {
-    std::thread([&arg](){
-        //auto vthread = std::make_shared<video_thread>();
-        auto vthread = new video_thread(std::shared_ptr<_video_info_>(arg));
+    std::thread([arg]()
+    {
+        auto vthread = new video_thread(arg);
         vthread->startPlay();
     }).detach();
+}
+
+video_thread *video_thread::index(int index)
+{
+    if(m_threads.size() > index)
+        return m_threads[index];
+    Log(Log_Warning, "index %d is not exist. size is %d", index, m_threads.size());
+    return nullptr;
+}
+
+void video_thread::play()
+{
+    setBit(m_info->_flag, flag_bit_Stop, false);
+    setBit(m_info->_flag, flag_bit_pause, false);
+    setBit(m_info->_flag, flag_bit_need_pause, false);
+}
+
+void video_thread::setPause()
+{
+    Log(Log_Info, "pause: start_time(%.2f)", m_info->_start_time/1000000);
+    if(!getPause())
+        setBit(m_info->_flag, flag_bit_need_pause);
+}
+
+bool video_thread::getPause()
+{
+    return isSetBit(m_info->_flag, flag_bit_pause);
+}
+
+void video_thread::continuePlay()
+{
+    if(getPause())
+    {
+        auto t = m_info->_start_time;
+        m_info->_start_time += av_gettime() - m_info->_pause_time;
+        Log(Log_Info, "continue: start_time(%.2f -> %.2f)", t/1000000, m_info->_pause_time/1000000);
+        setBit(m_info->_flag, flag_bit_need_pause, false);
+        setBit(m_info->_flag, flag_bit_pause, false);
+        m_info->state = video_player_core::state_running;
+    }
+}
+
+void video_thread::setStop()
+{
+    setBit(m_info->_flag, flag_bit_Stop);
+}
+
+bool video_thread::getStop()
+{
+    return isSetBit(m_info->_flag, flag_bit_tvideo_finish)
+            && isSetBit(m_info->_flag, flag_bit_taudio_finish);
+}
+
+void video_thread::seekPos(int64_t ms)
+{
+    if(!isSetBit(m_info->_flag, flag_bit_seek))
+    {
+        m_info->_seek_pos = ms * 1000;
+        setBit(m_info->_flag, flag_bit_seek);
+    }
+}
+
+void video_thread::setVol(int nVol)
+{
+    m_info->audio->sdl->nVol = nVol;
+    m_info->audio->sdl->fVolPercent = nVol;
+}
+
+void video_thread::setMute(bool bMute)
+{
+    setBit(m_info->_flag, flag_bit_mute, bMute);
+}
+
+int video_thread::state()
+{
+    return m_info->state;
 }
 
 void av_log_call(void* ptr, int level, const char* fmt, va_list vl)
@@ -37,29 +124,28 @@ void av_log_call(void* ptr, int level, const char* fmt, va_list vl)
 void video_thread::startPlay()
 {
     av_log_set_callback(&av_log_call);
-    // define
-    auto& info = m_info;
-    Log(Log_Info, "video info:%p", m_info.get());
+    auto info = m_info;
+    Log(Log_Info, "video info:%p vol:%.2f mute:%d", info, info->audio->sdl->fVolPercent, isSetBit(info->_flag, flag_bit_mute));
     int ret = 0, videoIndex = -1, audioIndex = -1;
-
+    if(info->_cb)
+        ((video_interface*)info->_cb)->startCall(m_index);
     // allocate context
-//    info->_format_ctx = avformat_alloc_context();
+    info->_format_ctx = avformat_alloc_context();
     auto& pFormatCtx = info->_format_ctx;
-//    if(!pFormatCtx){
-//        Log(Log_Err, "alloc context failed, %s(%d)",__FUNCTION__, __LINE__);
-//        goto video_thread_startPlay_end;
-//    }
-
-    Log(Log_Info, "start open input.");
+    Log(Log_Info, "start open input. thread:%d", std::this_thread::get_id());
     // open file
-    if((ret = avformat_open_input(&pFormatCtx, info->src.c_str(), nullptr, nullptr)) < 0){
-        Log(Log_Err, "open file failed, %s(%d)=%d",__FUNCTION__, __LINE__, ret);
+    if((ret = avformat_open_input(&pFormatCtx, info->src.c_str(), nullptr, nullptr)) < 0)
+    {
+        char buf[1024] = {};
+        av_strerror(ret, buf, 1024);
+        Log(Log_Err, "open file failed, %s(%d)=%d,%s",__FUNCTION__, __LINE__, ret, buf);
         goto video_thread_startPlay_end;
     }
 
     Log(Log_Info, "start find stream info.name[%s]",pFormatCtx->iformat->name);
     // find stream info
-    if((ret = avformat_find_stream_info(pFormatCtx, nullptr)) < 0){
+    if((ret = avformat_find_stream_info(pFormatCtx, nullptr)) < 0)
+    {
         Log(Log_Err, "find stream info failed, %s(%d)=%d",__FUNCTION__, __LINE__, ret);
         goto video_thread_startPlay_end;
     }
@@ -67,7 +153,8 @@ void video_thread::startPlay()
     Log(Log_Info, "find stream info over.");
 
     // find video/audio stream index
-    for(size_t i = 0; i < pFormatCtx->nb_streams; ++i){
+    for(size_t i = 0; i < pFormatCtx->nb_streams; ++i)
+    {
         if(pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
             videoIndex = i;
         if(pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO && audioIndex < 0)
@@ -77,23 +164,25 @@ void video_thread::startPlay()
     if(info->_cb)
         ((video_interface*)info->_cb)->totalTime(pFormatCtx->duration);
 
-    info->video.nStreamIndex = videoIndex;
-    info->audio.nStreamIndex = audioIndex;
+    info->video->nStreamIndex = videoIndex;
+    info->audio->nStreamIndex = audioIndex;
     if(videoIndex < 0 && audioIndex < 0) {
         Log(Log_Err, "find video/audio index is valid!", videoIndex, audioIndex);
         goto video_thread_startPlay_end;
     }
 
     Log(Log_Info, "video_index(%d),audio_index(%d)", videoIndex, audioIndex);
-    Log(Log_Info, "this video total time is:%I64d", pFormatCtx->duration);
+    Log(Log_Info, "this video total time is:%lld", pFormatCtx->duration);
 
     // video decode
-    if(videoIndex >= 0){
+    if(videoIndex >= 0)
+    {
         std::thread([&]{ this->video_decode(); }).detach();
     }
 
     // audio decode
-    if(audioIndex >= 0){
+    if(audioIndex >= 0)
+    {
         if(!audio_decode_prepare()){}
 //            goto video_thread_startPlay_end;
     }
@@ -102,7 +191,14 @@ void video_thread::startPlay()
 video_thread_startPlay_end:
     Log(Log_Info, "%s finished", __FUNCTION__);
     if(info->_cb)
-        ((video_interface*)info->_cb)->endCall();
+    {
+        auto index = m_index;
+        auto cb = (video_interface*)info->_cb;
+        SAFE_RELEASE_PTR(&m_threads[index]);
+        cb->endCall(index);
+        OUT_PUT_LEAK();
+    }
+
     return;
 }
 
@@ -111,110 +207,141 @@ void video_thread::video_decode()
     auto& info = m_info;
     int nRet = 0;
     double pts_video = 0, pts_audio = 0;
-    auto& pks = info->video.pks;
-    auto& video = info->video;
-    auto& audio = info->audio;
-    auto& stream = info->_format_ctx->streams[info->video.nStreamIndex];
+    auto& pks = info->video->pks;
+    auto& video = *info->video;
+    auto& audio = *info->audio;
+    auto& stream = info->_format_ctx->streams[info->video->nStreamIndex];
     AVStream* astream = nullptr;
-    if(info->audio.nStreamIndex >= 0)
-        astream = info->_format_ctx->streams[info->audio.nStreamIndex];
+    if(info->audio->nStreamIndex >= 0)
+        astream = info->_format_ctx->streams[info->audio->nStreamIndex];
     auto ctx = stream->codec;
     auto pCodec = avcodec_find_decoder(ctx->codec_id);
-    if(!pCodec){
+    if(!pCodec)
+    {
         Log(Log_Err, "video find decoder failed!");
         setBit(info->_flag, flag_bit_tvideo_finish);
         return;
-//        goto video_decode_thread_end;
     }
 
-    if((nRet = avcodec_open2(ctx, pCodec, nullptr)) < 0){
+    if((nRet = avcodec_open2(ctx, pCodec, nullptr)) < 0)
+    {
         Log(Log_Err, "video open2 decoder failed(%d)!", nRet);
         setBit(info->_flag, flag_bit_tvideo_finish);
         return;
-//        goto video_decode_thread_end;
     }
 
     auto frame = av_frame_alloc();
-    auto& scale = info->yuv;
+    auto& scale = *info->yuv;
     scale.setsrcCodec(ctx);
     Log(Log_Info, "video src size (%d,%d)!", ctx->width, ctx->height);
 
-    for(;;){
-        if(isSetBit(info->_flag, flag_bit_Stop)){
+    m_info->state = video_player_core::state_running;
+    bool bStart = false;
+    double dStartBase = 0.0f;
+    AVPacket pk;
+    for(;;)
+    {
+        if(isSetBit(info->_flag, flag_bit_Stop))
+        {
             pks.clear();
             break;
         }
 
-        if(isSetBit(info->_flag, flag_bit_pause)){
-            Sleep(10);
+        if(isSetBit(info->_flag, flag_bit_pause))
+        {
+            msleep(10);
             continue;
         }
 
-        if(pks.empty()){
-            if(isSetBit(info->_flag, flag_bit_read_finish))
+        if(pks.empty(pk))
+        {
+            if(isSetBit(info->_flag, flag_bit_read_finish) && !isSetBit(info->_flag, flag_bit_seek))
+            {
+                Log(Log_Info, "video_thread break, pks is empty and read finish.");
                 break;
+            }
             else{
-                Sleep(1);
+                msleep(1);
                 continue;
             }
         }
 
-        auto pk = pks.pop_front();
-        if(!checkSeek(pk, stream))
-            continue;
-
-        if((nRet = avcodec_send_packet(ctx, &pk)) != 0){
+//        pk = pks.pop_front();
+        if(!pk.data) continue;
+        if(!checkSeek(pk, stream)) continue;
+        if((nRet = avcodec_send_packet(ctx, &pk)) != 0)
+        {
             Log(Log_Warning, "send packet failed[%d]!", nRet);
             av_packet_unref(&pk);
             continue;
         }
 
-        while(!(nRet = avcodec_receive_frame(ctx, frame))){
-            if(pk.dts != AV_NOPTS_VALUE)
+        while(!(nRet = avcodec_receive_frame(ctx, frame)))
+        {
+            if(pk.dts == AV_NOPTS_VALUE && frame->opaque && *(uint64_t*)frame->opaque != AV_NOPTS_VALUE)
+                pts_video = *(uint64_t*)frame->opaque;
+            else if(pk.dts != AV_NOPTS_VALUE)
                 pts_video = pk.dts;
-            else{
-                if(frame->opaque && *(uint64_t*)frame->opaque != AV_NOPTS_VALUE)
-                    pts_video = *(uint64_t*)frame->opaque;
-                else
-                    pts_video = 0;
-            }
+            else
+                pts_video = 0;
 
             pts_video *= av_q2d(stream->time_base);
             video._clock = pts_video;
-            if(isSetBit(info->_flag, flag_bit_vseek_finish)){
-                if(pts_video < info->_seek_time){
+            if(isSetBit(info->_flag, flag_bit_vseek_finish))
+            {
+                if(pts_video < info->_seek_time)
+                {
                     av_packet_unref(&pk);
                     continue;
                 }else
                     setBit(info->_flag, flag_bit_vseek_finish, false);
             }
 
+            if(!bStart)
+            {
+                bStart = true;
+                dStartBase = pts_video;
+            }
             // video/audio align
-            for(;;){
+            for(;;)
+            {
                 if(isSetBit(info->_flag, flag_bit_Stop)) break;
-                if(astream && !isSetBit(info->_flag, flag_bit_taudio_finish)){
+                if(astream && !isSetBit(info->_flag, flag_bit_taudio_finish))
+                {
                     if(isSetBit(info->_flag, flag_bit_read_finish) && audio.pks.empty())
                         break;
                     pts_audio = audio._clock;
                 }
-                else{
-                    pts_audio = CALC_PTS(av_gettime(), info->_start_time);
+                else
+                {
+                    pts_audio = CALC_PTS(av_gettime(), info->_start_time) + dStartBase;
                     audio._clock = pts_audio;
                 }
 
                 pts_video = video._clock;
                 if(pts_video <= pts_audio) break;
-                if(!isSetBit(info->_flag, flag_bit_need_pause)){
+                if(!isSetBit(info->_flag, flag_bit_need_pause))
+                {
                     auto delay = (pts_video - pts_audio) * 1000;
                     delay = delay > 5 ? 5 : delay;
-                    Sleep(delay);
+                    msleep(delay);
+                    if(isSetBit(info->_flag, flag_bit_vseek_finish))
+                        break;
+//                        Log(Log_Info, "sleep[%.2f][%.2f].",pts_video, pts_audio);
                 }
             }
 
-            scale.scale(frame, info->_cb);
-            if(isSetBit(info->_flag, flag_bit_need_pause)){
+            if(info->_cb)
+            {
+                ((video_interface*)info->_cb)->posChange(pts_video * 1000);
+                scale.scale(frame, info->_cb);
+            }
+            if(isSetBit(info->_flag, flag_bit_need_pause))
+            {
+                info->_pause_time = av_gettime();
                 setBit(info->_flag, flag_bit_pause, true);
                 setBit(info->_flag, flag_bit_need_pause, false);
+                m_info->state = video_player_core::state_paused;
             }
         }
 
@@ -230,64 +357,26 @@ video_decode_thread_end:
 bool video_thread::audio_decode_prepare()
 {
     int nRet = 0;
-
     auto& info = m_info;
-    auto ctx = info->_format_ctx->streams[info->audio.nStreamIndex]->codec;
+    auto ctx = info->_format_ctx->streams[info->audio->nStreamIndex]->codec;
     auto codec = avcodec_find_decoder(ctx->codec_id);
-    if(!codec){
-        info->audio.nStreamIndex = -1;
+    if(!codec)
+    {
+        info->audio->nStreamIndex = -1;
         Log(Log_Warning, "%s avcodec not find.", __FUNCTION__);
-        return true;
+        goto audio_decode_prepare_end;
     }
-
-    if((nRet = avcodec_open2(ctx, codec, nullptr)) < 0){
+    if((nRet = avcodec_open2(ctx, codec, nullptr)) < 0)
+    {
         Log(Log_Warning, "%s avcodec open2 failed[%d].", __FUNCTION__);
-        return false;
+        goto audio_decode_prepare_end;
     }
-
-    auto& audio = info->audio;
-    // resample: in->out
-
-    _audio_sample_ in(ctx);
-    _audio_sample_ out;
-    auto swrCtx = swr_alloc_set_opts(nullptr,
-                                     out.layout, out.fmt, out.rate,
-                                     in.layout, in.fmt, in.rate,
-                                     0, nullptr);
-    if((nRet = swr_init(swrCtx)) < 0){
-        char err[128] = {};
-        av_strerror(nRet, err, 128);
-        Log(Log_Warning, "open resample failed, %s", err);
-        swr_free(&swrCtx);
-        avcodec_close(ctx);
-        return false;
-    }
-
-    auto pStream = info->_format_ctx->streams[audio.nStreamIndex];
-
-    audio.sdl = new _sdl_op_(&out, sdl_audio_call, this);
-    auto& sdl = audio.sdl;
-    sdl->in = in;
-    sdl->out = out;
-    sdl->swrCtx = swrCtx;
-    if((nRet = sdl->init())){
-        Log(Log_Warning, "sdl init failed, %d", nRet);
-        goto audio_decode_end;
-    }
-
-    if(sdl->open() < 0){
-        Log(Log_Warning, "sdl open failed.");
-        goto audio_decode_end;
-    }
-
-    sdl->start();
+    if(!info->audio->sdl->init(ctx, sdl_audio_call, this))
+        goto audio_decode_prepare_end;
+    info->audio->sdl->startSDL();
     return true;
-audio_decode_end:
-    if(audio.sdl){
-        delete audio.sdl;
-        audio.sdl = nullptr;
-    }
-
+audio_decode_prepare_end:
+    SAFE_RELEASE_PTR(&info->audio->sdl);
     avcodec_close(ctx);
     setBit(info->_flag, flag_bit_taudio_finish);
     return false;
@@ -297,7 +386,7 @@ int video_thread::audio_decode()
 {
     int buffersize = 0;
     auto& info = m_info;
-    auto& audio = info->audio;
+    auto& audio = *info->audio;
     auto& pks = audio.pks;
     auto& clock = audio._clock;
     auto& stream = info->_format_ctx->streams[audio.nStreamIndex];
@@ -308,37 +397,55 @@ int video_thread::audio_decode()
     auto& swrCtx = sdl->swrCtx;
     if(!frame)
         frame = av_frame_alloc();
-    for(;;){
-        if(isSetBit(info->_flag, flag_bit_Stop)){
+    AVPacket pk;
+    for(;;)
+    {
+        if(isSetBit(info->_flag, flag_bit_Stop))
+        {
+            pks.clear();
+            Log(Log_Info, "audio_thread break, set stopped.");
             setBit(info->_flag, flag_bit_taudio_finish);
-            m_info->audio.pks.clear();
+            audio.sdl->pauseSDL();
             break;
         }
 
         if(isSetBit(info->_flag, flag_bit_pause))
             break;
-        if(pks.empty())
+        if(pks.empty(pk))
+        {
+            if(isSetBit(info->_flag, flag_bit_read_finish) && !isSetBit(info->_flag, flag_bit_seek))
+            {
+                Log(Log_Info, "audio_thread break, pks is empty and read finish.");
+                setBit(info->_flag, flag_bit_taudio_finish);
+            }
             break;
-        auto pk = pks.pop_front();
+        }
+
         if(pk.pts != AV_NOPTS_VALUE)
             clock = av_q2d(stream->time_base) * pk.pts;
         if(!checkSeek(pk, stream))
             continue;
-        if(isSetBit(info->_flag, flag_bit_aseek_finish)){
+        if(isSetBit(info->_flag, flag_bit_aseek_finish))
+        {
             if(clock < info->_seek_time)
+            {
+                av_packet_unref(&pk);
                 continue;
+            }
             setBit(info->_flag, flag_bit_aseek_finish, false);
         }
 
         int got_frame = 0;
         auto size = avcodec_decode_audio4(ctx, frame, &got_frame, &pk);
         av_packet_unref(&pk);
-        if(got_frame){
+        if(got_frame)
+        {
             // resample frame: 44100 2 AV_SAMPLE_FMT_S16
             if(!resample_frame)
                 resample_frame = av_frame_alloc();
 
-            if(resample_frame->nb_samples != frame->nb_samples){
+            if(resample_frame->nb_samples != frame->nb_samples)
+            {
                 auto delay = swr_get_delay(swrCtx, sdl->out.rate) + frame->nb_samples;
                 resample_frame->nb_samples = av_rescale_rnd(
                     delay, sdl->out.rate, sdl->in.rate, AV_ROUND_UP);
@@ -354,38 +461,45 @@ int video_thread::audio_decode()
         }
     }
 
+
     return buffersize;
 }
 
 void video_thread::decode_loop()
 {
     auto& info = m_info;
-    auto& aduio_pks = info->audio.pks;
-    auto& video_pks = info->video.pks;
+    auto& aduio_pks = info->audio->pks;
+    auto& video_pks = info->video->pks;
 
     info->_start_time = av_gettime();
-    for(;;){
+    for(;;)
+    {
         if(isSetBit(info->_flag, flag_bit_Stop))
             break;
         if(isSetBit(info->_flag, flag_bit_seek))
+        {
             seek();
-        if(aduio_pks.isMax() || video_pks.isMax() || isSetBit(info->_flag, flag_bit_pause)){
-            Sleep(10);
+            continue;
+        }
+        if(aduio_pks.isMax() || video_pks.isMax() || isSetBit(info->_flag, flag_bit_pause))
+        {
+            msleep(10);
             continue;
         }
 
+        msleep(1);
         if(!push_frame()) break;
     }
 
     while(!isSetBit(info->_flag, flag_bit_Stop))
-        Sleep(100);
+         msleep(100);
     aduio_pks.clear();
     video_pks.clear();
 
-    while(!isSetBit(info->_flag, flag_bit_tvideo_finish)
-          || !isSetBit(info->_flag, flag_bit_taudio_finish)){
-        Sleep(100);
-    }
+    while(!isSetBit(info->_flag, flag_bit_tvideo_finish) || !isSetBit(info->_flag, flag_bit_taudio_finish))
+         msleep(100);
+    if(info->audio->sdl)
+        info->audio->sdl->closeSDL();
 }
 
 void video_thread::sdl_audio_call(void *data, Uint8 *stream, int len){
@@ -396,15 +510,18 @@ void video_thread::sdl_audio_call(void *data, Uint8 *stream, int len){
 void video_thread::audio_call(Uint8 *stream, int len)
 {
     auto& info = m_info;
-    auto sdl = info->audio.sdl;
+    auto sdl = info->audio->sdl;
     auto& index = sdl->nBuffIndex;
     auto& size = sdl->nBuffSize;
     auto& buff = sdl->buff;
     int decodeSize = 0, lenTMP = 0;
-    while(len > 0){
-        if(index >= size){
+    while(len > 0)
+    {
+        if(index >= size)
+        {
             decodeSize = audio_decode();
-            if(decodeSize <= 0){
+            if(decodeSize <= 0)
+            {
                 size = sdl->target.samples;
                 memset(buff, 0, size);
             }else
@@ -415,11 +532,19 @@ void video_thread::audio_call(Uint8 *stream, int len)
         lenTMP = size - index;
         if(lenTMP > len) lenTMP = len;
         if(!buff) return;
+
         if(isSetBit(info->_flag, flag_bit_mute) || isSetBit(info->_flag, flag_bit_pause))
+        {
             memset(buff + index, 0, lenTMP);
+            memcpy(stream, (uint8_t*)buff + index, lenTMP);
+        }
         else
-            sdl->adjustVol(lenTMP);
-        memcpy(stream, (uint8_t*)buff + index, lenTMP);
+        {
+            memset(stream, 0, lenTMP);
+            SDL_MixAudioFormat(stream, (uint8_t*)buff + index, AUDIO_S16SYS, lenTMP, sdl->nVol);
+        }
+
+//        memcpy(stream, (uint8_t*)buff + index, lenTMP);
         len -= lenTMP;
         stream += lenTMP;
         index += lenTMP;
@@ -431,10 +556,10 @@ void video_thread::seek()
     auto& info = m_info;
     auto target = info->_seek_pos;
     int sIndex = -1;
-    if(info->video.nStreamIndex >= 0)
-       sIndex = info->video.nStreamIndex;
-    else if(info->audio.nStreamIndex >= 0)
-       sIndex = info->audio.nStreamIndex;
+    if(info->video->nStreamIndex >= 0)
+       sIndex = info->video->nStreamIndex;
+    else if(info->audio->nStreamIndex >= 0)
+       sIndex = info->audio->nStreamIndex;
 
     AVRational aVRational = {1, AV_TIME_BASE};
     if(sIndex >= 0)
@@ -442,25 +567,30 @@ void video_thread::seek()
     if(av_seek_frame(info->_format_ctx, sIndex, target, AVSEEK_FLAG_BACKWARD) < 0)
         Log(Log_Warning, "%s:seek failed!", info->_format_ctx->filename);
     else{
-        if(info->video.nStreamIndex >= 0){
-            info->video.pks.clear();
-            info->video.pks.push_back(FFMPEG_SEEK);
+        if(info->video->nStreamIndex >= 0)
+        {
+            info->video->pks.clear();
+            info->video->pks.push_back(FFMPEG_SEEK);
         }
-        if(info->audio.nStreamIndex >= 0){
-            info->audio.pks.clear();
-            info->audio.pks.push_back(FFMPEG_SEEK);
+        if(info->audio->nStreamIndex >= 0)
+        {
+            info->audio->pks.clear();
+            info->audio->pks.push_back(FFMPEG_SEEK);
         }
 
         info->_start_time = av_gettime() - info->_seek_pos;
+        setBit(info->_flag, flag_bit_read_finish, false);
     }
 
     setBit(info->_flag, flag_bit_seek, false);
     info->_seek_time = CALC_PTS(info->_seek_pos, 0);
     setBit(info->_flag, flag_bit_vseek_finish);
     setBit(info->_flag, flag_bit_aseek_finish);
-    if((isSetBit(info->_flag, flag_bit_pause))){
+    if((isSetBit(info->_flag, flag_bit_pause)))
+    {
         setBit(info->_flag, flag_bit_pause, false);
         setBit(info->_flag, flag_bit_need_pause);
+        info->_pause_time = av_gettime();
     }
 }
 
@@ -469,26 +599,34 @@ bool video_thread::push_frame()
     int nRet = 0;
     auto& info = m_info;
     auto& ctx = info->_format_ctx;
-    auto& vIndex = info->video.nStreamIndex;
-    auto& aIndex = info->audio.nStreamIndex;
+    auto& vIndex = info->video->nStreamIndex;
+    auto& aIndex = info->audio->nStreamIndex;
 
     AVPacket pk;
-    if((nRet = av_read_frame(ctx, &pk)) < 0){
+    if((nRet = av_read_frame(ctx, &pk)) < 0)
+    {
+        if(!isSetBit(info->_flag, flag_bit_read_finish))
+        {
+            char buf[1024] = {};
+            av_strerror(nRet, buf, 1024);
+            Log(Log_Warning, "read fram failed,%s, video_pks:%d", buf,info->video->pks.m_packets.size());
+        }
         setBit(info->_flag, flag_bit_read_finish);
         if(isSetBit(info->_flag, flag_bit_Stop))
             return false;
-        Sleep(10);
+        msleep(10);
         return true;
     }
 
     if(vIndex == pk.stream_index)
-        m_info->video.pks.push_back(pk);
-    else if(aIndex == pk.stream_index){
+        m_info->video->pks.push_back(pk);
+    else if(aIndex == pk.stream_index)
+    {
         if(isSetBit(info->_flag, flag_bit_taudio_finish))
             av_packet_unref(&pk);
         else
-            m_info->audio.pks.push_back(pk);
-    }else
+            m_info->audio->pks.push_back(pk);
+    } else
         av_packet_unref(&pk);
     return true;
 }
