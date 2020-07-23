@@ -15,14 +15,6 @@ QWidget#wd_video
         border: 0px solid blue;
 }
 
-QWidget#title
-{
-        min-height: 26px;
-        max-height: 26px;
-        background: red;
-}
-
-
 QWidget#file_list_wd
 {
     background: transparent;
@@ -50,6 +42,13 @@ QLabel#label_title
 {
     background: transparent;
     color: lightgray;
+    font: bold 13px "Microsoft Yahei";
+}
+
+QLabel#label_frame_rate
+{
+    background: transparent;
+    color: red;
     font: bold 13px "Microsoft Yahei";
 }
 
@@ -394,4 +393,34 @@ QScrollBar#scroll1:handle:vertical
 QScrollBar#scroll1:handle:vertical:hover
 {
     background: #727273;
+}
+
+QMenu#menu1
+{
+    background-color: white;
+    border: 0px solid lightgray;
+    margin: 5px;
+}
+
+QMenu#menu1::item
+{
+    background: none;
+    color: black;
+    font: 13px "Microsoft YaHei";
+    color: #454545;
+    padding: 5px 30px;
+    text-align: center;
+}
+
+QMenu#menu1::item:disabled
+{
+    color: lightgray;
+    background: transparent;
+}
+
+QMenu#menu1::item:selected
+{
+    background: #EEEEEE;
+    font-weight: bold;
+    color: #FF5C38;
 }

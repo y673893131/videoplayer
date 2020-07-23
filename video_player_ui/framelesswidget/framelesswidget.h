@@ -42,6 +42,10 @@ protected:
     void keyPressEvent(QKeyEvent *event);
     void setBackgroundColor(QColor);
     virtual bool isValid();
+    bool isFull();
+    void updateTopWindow();
+protected:
+    bool m_bTopWindow;
 private:
     QColor m_bkColor;
     QImage m_bkImg;

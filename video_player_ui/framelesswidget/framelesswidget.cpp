@@ -5,11 +5,16 @@
 #include <QApplication>
 #include <QTimer>
 #include <QDebug>
+#include <QAction>
 #include "qdragborder.h"
 QFrameLessWidget::QFrameLessWidget(QWidget *parent)
-    : QWidget(parent), m_drag(DragMove_None),m_bkColor("#80C7ED")
+    : QWidget(parent), m_drag(DragMove_None),m_bkColor("#80C7ED"),m_bTopWindow(false)
 {
+#ifdef unix
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+#else
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
+#endif
     setAttribute(Qt::WA_TranslucentBackground);
     resize(800, 600);
     m_normalSize = size();
@@ -56,14 +61,14 @@ void QFrameLessWidget::resizeBackground(int w, int h, int round, int margin, QCo
 
 void QFrameLessWidget::region(const QPoint &cursorGlobalPoint, bool &activeFlag)
 {
-    if(isValid())
+    if(isValid() || isFull())
     {
         m_dir = -1;
         this->setCursor(QCursor(Qt::ArrowCursor));
         activeFlag = false;
         return;
     }
-
+#ifdef WIN32
     QRect rect = this->rect();
     QPoint tl = mapToGlobal(rect.topLeft());
     QPoint rb = mapToGlobal(rect.bottomRight());
@@ -99,6 +104,7 @@ void QFrameLessWidget::region(const QPoint &cursorGlobalPoint, bool &activeFlag)
         this->setCursor(QCursor(Qt::ArrowCursor));
         activeFlag = false;
     }
+#endif
 }
 
 void QFrameLessWidget::checkMouseMoveRegion()
@@ -269,16 +275,16 @@ void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
     if(event->button() == Qt::LeftButton)
     {
 #ifdef WIN32
-        auto desktopsize = qApp->desktop()->availableGeometry().size();
-        if(size() != desktopsize && m_drag == DragMove_None){
-            showFullScreen();
-//            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
+        if(!isFull() && m_drag == DragMove_None){
+//            showFullScreen();
+            auto desktopsize = qApp->desktop()->screenGeometry().size() - QSize(0, 1);
+            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOPMOST, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
             m_doubleClickPos = pos();
             m_drag = DragMove_Top;
         }
         else{
-            showNormal();
-//            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOP, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
+//            showNormal();
+            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_NOTOPMOST, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
             m_drag = DragMove_None;
         }
 #else
@@ -304,8 +310,10 @@ void QFrameLessWidget::resizeEvent(QResizeEvent *event)
 #ifdef unix
     m_dragBorder->setFixedSize(size());
 #endif
-    if(height() != qApp->desktop()->availableGeometry().height())
+    if(!isFull())
         m_normalSize = size();
+
+    updateTopWindow();
     resizeBackground(width(), height(), 5, 5, m_bkColor);//set your like
 }
 
@@ -317,6 +325,32 @@ void QFrameLessWidget::setBackgroundColor(QColor c)
 bool QFrameLessWidget::isValid()
 {
     return false;
+}
+
+bool QFrameLessWidget::isFull()
+{
+    return size() == (qApp->desktop()->screenGeometry().size() - QSize(0, 1));
+}
+
+void QFrameLessWidget::updateTopWindow()
+{
+    if(!isFull())
+    {
+#ifdef WIN32
+        SetWindowPos(reinterpret_cast<HWND>(this->winId()), m_bTopWindow ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+#else
+        setWindowFlag(Qt::WindowStaysOnTopHint, m_bTopWindow);
+#endif
+    }
+    else
+    {
+#ifdef WIN32
+        SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+#else
+        setWindowFlag(Qt::WindowStaysOnTopHint, true);
+        show();
+#endif
+    }
 }
 
 void QFrameLessWidget::mouseReleaseEvent(QMouseEvent *event)
@@ -356,3 +390,4 @@ void QFrameLessWidget::keyPressEvent(QKeyEvent *event)
         break;
     }
 }
+

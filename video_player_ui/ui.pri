@@ -39,3 +39,8 @@ RESOURCES += \
     $$PWD/res.qrc
 
 TRANSLATIONS = vPlayTranslate.ts
+
+RC_FILE += \
+    $$PWD/res.rc
+
+TARGET = vPlay

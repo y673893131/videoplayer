@@ -78,6 +78,7 @@ Widget::Widget(QWidget *parent)
 
             qDebug() << "==>>start play:" << filename;
             qDebug() << m_video->size();
+            Log(Log_Info, "--->>play: %s", filename.toLocal8Bit().toStdString().c_str());
             core->_play();
         });
 
@@ -131,6 +132,15 @@ Widget::Widget(QWidget *parent)
             if(!core)return;
             core->_setMute(m_toolbar->index(), bMute);
         });
+
+        connect(m_toolbar, &QToolWidgets::viewAdjust, m_video, &QGLVideoWidget::onViewAdjust);
+        connect(m_toolbar, &QToolWidgets::topWindow, [this](bool bTop)
+        {
+            qDebug() << "topWindow:" << bTop;
+            m_bTopWindow = bTop;
+            updateTopWindow();
+        });
+        connect(m_video, &QGLVideoWidget::frameRate, m_toolbar, &QToolWidgets::frameRate);
     }
 
     flushSheetStyle();
@@ -147,7 +157,7 @@ Widget::~Widget()
 void Widget::flushSheetStyle()
 {
 #define QSS_FILE ":/res/qss.qss"
-//#define QSS_FILE qApp->applicationDirPath() + "/Resources/res.qss"
+//#define QSS_FILE "./Resources/res.qss"
     QFileInfo fi(QSS_FILE);
     QDateTime lastMdTime = fi.lastModified();
     if (m_last != lastMdTime)

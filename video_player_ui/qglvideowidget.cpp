@@ -6,14 +6,29 @@
 #include <QTimer>
 #include <QFile>
 QGLVideoWidget::QGLVideoWidget(QWidget *parent)
-    :QOpenGLWidget(parent), m_pFrame(nullptr)
+    :QOpenGLWidget(parent), m_pFrame(nullptr), m_bViewAdjust(false), m_frameCount(0)
 {
     connect(this, &QGLVideoWidget::appendFrame, this, [this](void* frame)
     {
         if(m_pFrame) delete m_pFrame;
         m_pFrame = (_video_frame_*)frame;
         update();
+        ++m_frameCount;
     }, Qt::ConnectionType::QueuedConnection);
+    auto timer = new QTimer(this);
+    timer->setInterval(1000);
+    connect(timer, &QTimer::timeout, this, [this]
+    {
+        emit frameRate(m_frameCount);
+        m_frameCount = 0;
+    }, Qt::ConnectionType::QueuedConnection);
+
+    connect(this, &QGLVideoWidget::start, this, [timer]
+    {
+        timer->start();
+    }, Qt::ConnectionType::QueuedConnection);
+
+    connect(this, &QGLVideoWidget::playOver, timer, &QTimer::stop, Qt::ConnectionType::QueuedConnection);
 }
 
 QGLVideoWidget::~QGLVideoWidget()
@@ -21,10 +36,12 @@ QGLVideoWidget::~QGLVideoWidget()
     qDebug() << "gl video widget quit.";
 }
 
-void QGLVideoWidget::setVideoSize(int w, int h)
+void QGLVideoWidget::setVideoSize(int width, int height)
 {
-    m_videoSize.setWidth(w);
-    m_videoSize.setHeight(h);
+    m_videoSize.setWidth(width);
+    m_videoSize.setHeight(height);
+    if(m_bViewAdjust)
+        scaleViewCalc(true);
 }
 
 void QGLVideoWidget::initializeGL()
@@ -80,8 +97,7 @@ void QGLVideoWidget::initializeGL()
     };
 
     memcpy(m_vertexVertices, vertexVertices, sizeof(vertexVertices));
-    glVertexAttribPointer(ATTR_VERTEX_IN, 2, GL_FLOAT, 0, 0, m_vertexVertices);
-    glEnableVertexAttribArray(ATTR_VERTEX_IN);
+    initViewScale();
 
     GLfloat textureVertices[] = {
         0.0f,  1.0f,
@@ -102,6 +118,8 @@ void QGLVideoWidget::initializeGL()
 void QGLVideoWidget::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
+    if(!m_videoSize.isEmpty())
+        onViewAdjust(m_bViewAdjust);
 }
 
 void QGLVideoWidget::paintGL()
@@ -125,18 +143,6 @@ void QGLVideoWidget::paintGL()
             glBindTexture(GL_TEXTURE_2D, m_texture[index].id);
             int w = 0, h = 0;
             auto data = frame->data(index, w, h);
-            auto p = &data[w*h - 1];
-//            int nn = p - data;
-//            if(index == 2)
-//            {
-//                QFile f("./a.yuv");
-//                if(f.open(QFile::WriteOnly))
-//                {
-//                    f.write((char*)frame->framebuffer, frame->w * frame->h * 3 / 2);
-//                    f.close();
-//                }
-//            }
-//            qDebug() << "index:" << index << "address:" << (char*)data << nn;
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
             glUniform1i(m_location[index], index);
         }
@@ -144,6 +150,72 @@ void QGLVideoWidget::paintGL()
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         m_program->release();
     }
+}
+
+void QGLVideoWidget::initViewScale()
+{
+    glVertexAttribPointer(ATTR_VERTEX_IN, 2, GL_FLOAT, 0, 0, m_vertexVertices);
+    glEnableVertexAttribArray(ATTR_VERTEX_IN);
+}
+
+void QGLVideoWidget::scaleViewCalc(bool bFlush)
+{
+    if(m_videoSize.width() != width() || m_videoSize.height() != height() || bFlush)
+    {
+        do {
+            static float fScaleX = 1.0;
+            static float fScaleY = 1.0;
+
+            float f0 = m_videoSize.width() * 1.0 / m_videoSize.height();
+            float f1 = width() * 1.0 / height();
+            float fX = 1.0;
+            float fY = 1.0;
+            if(f0 > f1)
+                fY = f1 / f0;
+            else if(f0 < f1)
+                fX = f0 / f1;
+
+            if(fScaleX == fX && fScaleY == fY && !bFlush)
+                break;
+            fScaleX = fX;
+            fScaleY = fY;
+            GLfloat vertexVertices[] = {
+                -1.0f * fX, -1.0f * fY,
+                 1.0f * fX, -1.0f * fY,
+                 -1.0f * fX, 1.0f * fY,
+                 1.0f * fX, 1.0f * fY,
+            };
+
+//            qDebug() << "scale:" << fX << fY << f0 << f1 << m_videoSize.width() << "/" << width() << m_videoSize.width() * 1.0 / width() << m_videoSize.height() << "/" << height() << m_videoSize.height() * 1.0 / height();
+            memcpy(m_vertexVertices, vertexVertices, sizeof(vertexVertices));
+            initViewScale();
+        }while(0);
+    }
+}
+
+void QGLVideoWidget::onViewAdjust(bool bViewAdjust)
+{
+    if(m_bViewAdjust != bViewAdjust)
+    {
+        m_bViewAdjust = bViewAdjust;
+        if(!m_bViewAdjust)
+        {
+            GLfloat vertexVertices[] = {
+                -1.0f, -1.0f,
+                1.0f, -1.0f,
+                -1.0f, 1.0f,
+                1.0f, 1.0f,
+            };
+
+            memcpy(m_vertexVertices, vertexVertices, sizeof(vertexVertices));
+            initViewScale();
+        }
+        else
+            scaleViewCalc(true);
+        return;
+    }
+
+    scaleViewCalc();
 }
 
 void QGLVideoWidget::totalTime(const int64_t t)
@@ -168,7 +240,6 @@ void QGLVideoWidget::displayCall(void *data, int width, int height)
 //    yuv420p_to_rgb24((unsigned char*)data, (unsigned char*)rgb, width, height);
 //    QImage img((uchar*)rgb, width, height, QImage::Format_RGB888);
 //    img.save("C:\\Users\\Administrator\\Desktop\\help\\test\\mp4\\a.jpg", "jpg");
-
     emit appendFrame(frame);
 }
 

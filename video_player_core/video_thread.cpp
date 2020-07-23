@@ -234,11 +234,14 @@ void video_thread::video_decode()
     auto& scale = *info->yuv;
     scale.setsrcCodec(ctx);
     Log(Log_Info, "video src size (%d,%d)!", ctx->width, ctx->height);
+    if(info->_cb)
+        ((video_interface*)info->_cb)->setVideoSize(scale.w, scale.h);
 
-    m_info->state = video_player_core::state_running;
+    info->state = video_player_core::state_running;
     bool bStart = false;
     double dStartBase = 0.0f;
     AVPacket pk;
+
     for(;;)
     {
         if(isSetBit(info->_flag, flag_bit_Stop))
@@ -411,6 +414,7 @@ int video_thread::audio_decode()
 
         if(isSetBit(info->_flag, flag_bit_pause))
             break;
+
         if(pks.empty(pk))
         {
             if(isSetBit(info->_flag, flag_bit_read_finish) && !isSetBit(info->_flag, flag_bit_seek))
@@ -471,6 +475,18 @@ void video_thread::decode_loop()
     auto& aduio_pks = info->audio->pks;
     auto& video_pks = info->video->pks;
 
+    std::thread([info]
+    {
+        for(;;)
+        {
+            msleep(1000);
+            if(isSetBit(info->_flag, flag_bit_Stop)) break;
+            if(info->_vRead < 10)
+                Log(Log_Info, "per video:%d/s audio:%d/s", info->_vRead, info->_aRead);
+            info->_vRead = info->_aRead = 0;
+        }
+    }).detach();
+
     info->_start_time = av_gettime();
     for(;;)
     {
@@ -487,7 +503,7 @@ void video_thread::decode_loop()
             continue;
         }
 
-        msleep(1);
+//        msleep(1);
         if(!push_frame()) break;
     }
 
@@ -611,6 +627,7 @@ bool video_thread::push_frame()
             av_strerror(nRet, buf, 1024);
             Log(Log_Warning, "read fram failed,%s, video_pks:%d", buf,info->video->pks.m_packets.size());
         }
+
         setBit(info->_flag, flag_bit_read_finish);
         if(isSetBit(info->_flag, flag_bit_Stop))
             return false;
@@ -619,15 +636,23 @@ bool video_thread::push_frame()
     }
 
     if(vIndex == pk.stream_index)
-        m_info->video->pks.push_back(pk);
+    {
+        ++info->_vRead;
+        info->video->pks.push_back(pk);
+    }
     else if(aIndex == pk.stream_index)
     {
         if(isSetBit(info->_flag, flag_bit_taudio_finish))
             av_packet_unref(&pk);
         else
-            m_info->audio->pks.push_back(pk);
+        {
+            ++info->_aRead;
+            info->audio->pks.push_back(pk);
+        }
     } else
         av_packet_unref(&pk);
+
+
     return true;
 }
 

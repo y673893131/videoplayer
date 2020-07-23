@@ -30,4 +30,7 @@
         <file alias="img_fsh">Resources/shader/img.fsh</file>
         <file alias="img_vsh">Resources/shader/img.vsh</file>
     </qresource>
+    <qresource prefix="/version">
+        <file>res.rc</file>
+    </qresource>
 </RCC>

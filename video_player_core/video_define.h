@@ -83,6 +83,12 @@ struct _ffmpeg_packets_
         clear();
     }
 
+    int size()
+    {
+        LOCK(mutex)
+        return m_packets.size();
+    }
+
     bool empty()
     {
         return m_packets.empty();
@@ -97,6 +103,7 @@ struct _ffmpeg_packets_
             pk = m_packets.front();
             m_packets.pop_front();
         }
+
         return bEmpty;
     }
 
@@ -528,6 +535,8 @@ struct _video_info_
         ,yuv(nullptr)
         ,video(nullptr)
         ,audio(nullptr)
+        ,_vRead(0)
+        ,_aRead(0)
     {
 
     }
@@ -545,6 +554,8 @@ struct _video_info_
         ,yuv(nullptr)
         ,video(nullptr)
         ,audio(nullptr)
+        ,_vRead(src._vRead)
+        ,_aRead(src._aRead)
     {
         init();
         audio->sdl->fVolPercent = src.audio->sdl->fVolPercent;
@@ -579,6 +590,8 @@ struct _video_info_
     _ffmpeg_out_frame_* yuv;
     _ffmpeg_video_info_* video;
     _ffmpeg_audio_info_* audio;
+
+    int _vRead, _aRead;
 };
 
 #endif // VIDEO_DEFINE_H

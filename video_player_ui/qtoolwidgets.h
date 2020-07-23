@@ -32,6 +32,10 @@ signals:
     void setPosSeconds(int);
     void setSeekPos(int);
     void selectMode(int);
+    void showMenu();
+    void viewAdjust(bool);
+    void topWindow(bool);
+    void frameRate(int video);
 public slots:
     void onLoadFile();
     void onSelectMode(int);
@@ -41,6 +45,8 @@ private:
     QBoxLayout* CreateProcessbar(QWidget*);
     QWidget* CreateToolbar(QWidget*);
     QWidget* CreateFilelist(QWidget*);
+    void CreateMenu();
+    void mousePressEvent(QMouseEvent *event);
 private:
     QProgressSlider* m_process;
     QWidget* m_filelistWd;

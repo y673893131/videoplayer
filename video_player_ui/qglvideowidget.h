@@ -47,8 +47,6 @@ class QGLVideoWidget : public QOpenGLWidget, public QOpenGLFunctions, public vid
 public:
     QGLVideoWidget(QWidget *parent = nullptr);
     virtual ~QGLVideoWidget();
-
-    void setVideoSize(int w, int h);
     // QOpenGLWidget interface
 signals:
     void appendFrame(void*);
@@ -57,13 +55,20 @@ signals:
     void pause(int);
     void total(int);
     void setpos(int);
+    void frameRate(int);
+public slots:
+    void onViewAdjust(bool = false);
 protected:
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL();
 
+    void initViewScale();
+    void scaleViewCalc(bool bFlush = false);
+
     void totalTime(const int64_t t);
     void posChange(const int64_t t);
+    void setVideoSize(int width, int height);
     void displayCall(void *data, int width, int height);
     void startCall(int);
     void endCall(int);
@@ -75,8 +80,8 @@ private:
     _texture_obj_ m_texture[TEXTURE_MAX];
     QSize m_videoSize;
     /*_VideoFramePtr*/_video_frame_* m_pFrame;
-
-    video_player_core* m_core;
+    bool m_bViewAdjust;
+    int m_frameCount;
 };
 
 #endif // QGLVIDEOWIDGET_H

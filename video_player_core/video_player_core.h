@@ -15,7 +15,6 @@
 #  define VIDEO_PLAYER_CORE_EXPORT Q_DECL_IMPORT
 #endif
 
-
 #ifdef WIN32
 typedef _int64 int64_t;
 #endif
@@ -29,6 +28,7 @@ class VIDEO_PLAYER_CORE_EXPORT video_interface
 public:
     virtual void totalTime(const int64_t t) = 0;
     virtual void posChange(const int64_t t) = 0;
+    virtual void setVideoSize(int width, int hight) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
     virtual void startCall(int) = 0;
     virtual void endCall(int) = 0;

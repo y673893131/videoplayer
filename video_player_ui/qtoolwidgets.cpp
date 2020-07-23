@@ -15,6 +15,8 @@
 #include <QDesktopWidget>
 #include <QTimer>
 #include <QMouseEvent>
+#include <QMenu>
+#include <QAction>
 #include "qplayfilelistmodel.h"
 #include "qfilelistview.h"
 #include "qprogressslider.h"
@@ -23,6 +25,7 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     : QWidget(parent), m_bPlaying(false)
     , m_index(0),m_playMode(QPlayFileListModel::play_mode_local)
 {
+    CreateMenu();
     auto title = CreateTitle(parent);
     auto center = CreateCenterToolbar(parent);
     auto process = CreateProcessbar(parent);
@@ -240,6 +243,7 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     auto volMute = new QPushButton(widget);
     auto volNum = new QSlider(Qt::Orientation::Horizontal, widget);
     auto fileList = new QPushButton(widget);
+    auto framRate = new QLabel(widget);
 
     widget->setObjectName("wd_toolbar");
     stop->setObjectName("btn_stop");
@@ -250,8 +254,8 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     volMute->setIcon(parent->style()->standardIcon(QStyle::SP_MediaVolume));
     volNum->setObjectName("slider_voice");
     fileList->setObjectName("file_list");
-
     fileList->setToolTip(tr("play list"));
+    framRate->setObjectName("label_frame_rate");
 
     auto layout = new QHBoxLayout(widget);
     layout->setSpacing(0);
@@ -263,6 +267,8 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     layout->addWidget(volMute);
     layout->addWidget(volNum);
     layout->addStretch();
+    layout->addWidget(framRate);
+    layout->addSpacing(10);
     layout->addWidget(fileList);
 
     volNum->setRange(0, 100);
@@ -392,6 +398,11 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
             emit this->play(url);
         }
     });
+
+    connect(this, &QToolWidgets::frameRate, [framRate](int video)
+    {
+       framRate->setText(QString("%1: %2/s").arg(tr("video")).arg(video));
+    });
     return widget;
 }
 
@@ -443,4 +454,25 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
 
     connect(this, &QToolWidgets::play, m_filelist, &QFileListView::addLocalUrl);
     return m_filelistWd;
+}
+
+void QToolWidgets::CreateMenu()
+{
+    auto menu = new QMenu(this);
+    menu->setObjectName("menu1");
+    auto actionAdjust = menu->addAction(tr("adjust"));
+    auto topAdjust = menu->addAction(tr("topWindow"));
+    actionAdjust->setCheckable(true);
+    topAdjust->setCheckable(true);
+
+    connect(this, &QToolWidgets::showMenu, [menu]{ menu->popup(QCursor::pos());});
+    connect(actionAdjust, &QAction::triggered, this, &QToolWidgets::viewAdjust);
+    connect(topAdjust, &QAction::triggered, this, &QToolWidgets::topWindow);
+}
+
+void QToolWidgets::mousePressEvent(QMouseEvent *event)
+{
+    QWidget::mousePressEvent(event);
+    if(event->buttons() & Qt::RightButton)
+        emit showMenu();
 }
