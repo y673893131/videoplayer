@@ -5,51 +5,78 @@
 #include <QDebug>
 #include <QThread>
 #include <QHeaderView>
-QWorker::QWorker(QObject* parent, QNetworkReply* response)
-    :QThread(parent), m_response(response)
+#include <QTimer>
+QWorker::QWorker(QObject* parent)
+    :QObject()
 {
-
+    m_thread = new QThread();
+    moveToThread(m_thread);
+    m_thread->start();
 }
 
 QWorker::~QWorker()
 {
-    m_response = nullptr;
+    m_thread->exit();
+    m_thread->wait();
 }
 
 void QWorker::run()
 {
-    auto obj = qobject_cast<QPlayFileListModel*>(parent());
-    obj->m_urlNames.clear();
-    obj->m_urls.clear();
-    qDebug() << "recv: "<< m_response->error();
-    qDebug() << "code: "<< m_response->attribute(QNetworkRequest::Attribute::HttpStatusCodeAttribute).toInt();
-    auto data = QString(m_response->readAll());
-    int start = 0;
-    int pos = 0;
-    while(1)
+    auto net = new QNetworkAccessManager();
+    connect(net, &QNetworkAccessManager::finished, [this, net](QNetworkReply* response)
     {
-        pos = data.indexOf("<p>", start);
-        if(pos < 0) break;
-        pos += 3;
-        auto pos1 = data.indexOf("</p>", pos);
-        auto name = data.mid(pos, pos1 - pos);
-        pos = data.indexOf("href=\"", pos1);
-        if(pos < 0) break;
-        pos = data.indexOf("href=\"", pos + 1);
-        if(pos < 0) break;
-        pos += 6;
-        pos1 = data.indexOf("\"", pos);
-        if(pos1 < 0) break;
-        auto url = "http://ivi.bupt.edu.cn" + data.mid(pos, pos1 - pos);
-        obj->m_urlNames.push_back(name);
-        obj->m_urls.push_back(url);
-        pos = pos1;
-        start = pos1;
-    }
+        QStringList names,urls;
+        qDebug() << "recv: "<< response->error();
+        qDebug() << "code: "<< response->attribute(QNetworkRequest::Attribute::HttpStatusCodeAttribute).toInt();
+        auto data = QString(response->readAll());
+        int start = 0;
+        int pos = 0;
+        while(1)
+        {
+            pos = data.indexOf("<p>", start);
+            if(pos < 0) break;
+            pos += 3;
+            auto pos1 = data.indexOf("</p>", pos);
+            auto name = data.mid(pos, pos1 - pos);
+            pos = data.indexOf("href=\"", pos1);
+            if(pos < 0) break;
+            pos = data.indexOf("href=\"", pos + 1);
+            if(pos < 0) break;
+            pos += 6;
+            pos1 = data.indexOf("\"", pos);
+            if(pos1 < 0) break;
+            auto url = "http://ivi.bupt.edu.cn" + data.mid(pos, pos1 - pos);
+            names.push_back(name);
+            urls.push_back(url);
+            pos = pos1;
+            start = pos1;
+        }
 
-    m_response->close();
-    emit finish();
-//    this->deleteLater();
+        response->close();
+        net->deleteLater();
+        emit finishWork(names, urls);
+    });
+    qDebug() << net->supportedSchemes() << QThread::currentThreadId();
+    QNetworkRequest request;
+    request.setUrl(QUrl("http://ivi.bupt.edu.cn/"));
+    request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36");
+    net->get(request);
+}
+
+bool QPlayFileListModel::isSelected(const QModelIndex &index) const
+{
+    return index.data(role_url).toString() == m_playFile;
+}
+
+QModelIndex QPlayFileListModel::findIndex(const QString &url)
+{
+    auto row = m_urls.indexOf(url);
+    if(row >= 0)
+        return index(row, 0);
+    row = m_locals.indexOf(url);
+    if(row >= 0)
+        return index(row, 0);
+    return QModelIndex();
 }
 
 void QPlayFileListModel::setMode(int mode)
@@ -74,9 +101,47 @@ void QPlayFileListModel::setLocaleFiles(const QVector<QStringList> &file)
     emit layoutChanged();
 }
 
+void QPlayFileListModel::play(const QString &sFile)
+{
+    m_playFile = sFile;
+}
+
+void QPlayFileListModel::removeIndex(const QModelIndex &index)
+{
+    auto name = index.data().toString();
+    auto url = index.data(role_url).toString();
+    auto pos = m_urls.indexOf(url);
+    emit removeUrl(url);
+    if(pos >= 0)
+    {
+        m_urls.removeAt(pos);
+        m_urlNames.removeAt(pos);
+        emit layoutChanged();
+        return;
+    }
+
+    pos = m_locals.indexOf(url);
+    if(pos >= 0)
+    {
+        m_locals.removeAt(pos);
+        m_localNames.removeAt(pos);
+        emit layoutChanged();
+    }
+}
+
 QPlayFileListModel::QPlayFileListModel(QObject *parent)
     : QAbstractListModel(parent), m_nPlayMode(play_mode_local)
 {
+    m_worker = new QWorker(this);
+    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
+    connect(m_worker, &QWorker::finishWork, this, [this](const QStringList& names, const QStringList& urls)
+    {
+        m_urlNames = names;
+        m_urls = urls;
+       emit layoutChanged();
+    }, Qt::ConnectionType::QueuedConnection);
+
+    QTimer::singleShot(0, [this]{ liveflush();});
 }
 
 QVariant QPlayFileListModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -119,25 +184,14 @@ QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
             return m_locals[index.row()];
     }
 
-    // FIXME: Implement me!
     return QVariant();
 }
 
-void QPlayFileListModel::flush()
+
+Qt::ItemFlags QPlayFileListModel::flags(const QModelIndex &index) const
 {
-    static auto manager = new QNetworkAccessManager(this);
-    qDebug() << manager->supportedSchemes();
-    QNetworkRequest request;
-    request.setUrl(QUrl("http://ivi.bupt.edu.cn/"));
-    request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36");
-    auto response = manager->get(request);
-    connect(manager,&QNetworkAccessManager::finished, [response, this]{
-        QWorker* worker = new QWorker(this, response);
-        worker->start();
-        connect(worker, &QWorker::finished, this, [this,worker]
-        {
-           emit layoutChanged();
-           worker->deleteLater();
-        }, Qt::ConnectionType::QueuedConnection);
-    });
+    if(isSelected(index))
+        return QAbstractListModel::flags(index) | Qt::ItemIsSelectable;
+    else
+        return QAbstractListModel::flags(index) & ~Qt::ItemIsSelectable;
 }

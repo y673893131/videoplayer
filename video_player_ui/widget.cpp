@@ -54,6 +54,7 @@ Widget::Widget(QWidget *parent)
                 state = core->_state(index);
             }
         };
+
         connect(m_toolbar, &QToolWidgets::play, [this, funcStop](const QString& filename)
         {
             if(filename.isEmpty())

@@ -2,11 +2,12 @@
 #include "glvdieodefine.h"
 #include "Log/Log.h"
 #include "videoframe.h"
+#include "config.h"
 #include <QDebug>
 #include <QTimer>
 #include <QFile>
 QGLVideoWidget::QGLVideoWidget(QWidget *parent)
-    :QOpenGLWidget(parent), m_pFrame(nullptr), m_bViewAdjust(false), m_frameCount(0)
+    :QOpenGLWidget(parent), m_pFrame(nullptr), m_bViewAdjust(GET_CONFIG_DATA(Config::Data_Adjust).toBool()), m_frameCount(0)
 {
     connect(this, &QGLVideoWidget::appendFrame, this, [this](void* frame)
     {
@@ -14,21 +15,25 @@ QGLVideoWidget::QGLVideoWidget(QWidget *parent)
         m_pFrame = (_video_frame_*)frame;
         update();
         ++m_frameCount;
-    }, Qt::ConnectionType::QueuedConnection);
+    }, Qt::QueuedConnection);
     auto timer = new QTimer(this);
     timer->setInterval(1000);
     connect(timer, &QTimer::timeout, this, [this]
     {
         emit frameRate(m_frameCount);
         m_frameCount = 0;
-    }, Qt::ConnectionType::QueuedConnection);
+    }, Qt::QueuedConnection);
 
     connect(this, &QGLVideoWidget::start, this, [timer]
     {
         timer->start();
-    }, Qt::ConnectionType::QueuedConnection);
+    }, Qt::QueuedConnection);
 
     connect(this, &QGLVideoWidget::playOver, timer, &QTimer::stop, Qt::ConnectionType::QueuedConnection);
+    connect(Config::instance(), &Config::loadConfig, [this]{
+        m_bViewAdjust = GET_CONFIG_DATA(Config::Data_Adjust).toBool();
+        qDebug() << "m_bViewAdjust" << m_bViewAdjust;
+    });
 }
 
 QGLVideoWidget::~QGLVideoWidget()
@@ -212,6 +217,7 @@ void QGLVideoWidget::onViewAdjust(bool bViewAdjust)
         }
         else
             scaleViewCalc(true);
+        update();
         return;
     }
 

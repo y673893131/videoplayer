@@ -5,16 +5,30 @@
 #include <QSqlError>
 #include <QSqlRecord>
 #include <QFileInfo>
-QDataModel::QDataModel(QObject *parent) : QObject(parent), m_nVol(50)
+#include <QTimer>
+#include "qplayfilelistmodel.h"
+#include "config.h"
+QDataModel::QDataModel(QObject *parent) : QObject(parent)
 {
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName("./data.tmp");
+    connect(Config::instance(), &Config::setConfig, [this](const QString& config)
+    {
+        auto sql = QString("replace into config ('id', 'config') values (1, '%1');").arg(config);
+        onExecSql(sql);
+    });
+
     if(!m_db.open())
     {
         QMessageBox::warning(nullptr, tr("error"), tr("cannot load data."));
     }
     else
         initConfig();
+    QTimer::singleShot(0, [this]
+    {
+        loadConfig();
+        init();
+    });
 }
 
 void QDataModel::init()
@@ -39,16 +53,6 @@ void QDataModel::init()
     emit loadsuccessed(data);
 }
 
-const QString &QDataModel::configPath()
-{
-    return m_sPath;
-}
-
-int QDataModel::configVol()
-{
-    return m_nVol;
-}
-
 void QDataModel::onAddUrl(const QString &file)
 {
     if(!QFileInfo::exists(file)) return;
@@ -56,28 +60,42 @@ void QDataModel::onAddUrl(const QString &file)
     QSqlQuery query;
     auto sql = QString("insert into file_info ('name', 'url') values ('%1', '%2');").arg(name).arg(file);
     auto bquery = query.exec(sql);
-    if(!bquery) {
-        init();
-        return;
+    if(bquery)
+    {
+        query.clear();
+        bquery = query.exec(QString("delete from file_info where url not in (select url from file_info order by access_time desc limit 0, 30);"));
+        if(!bquery) reportError(query);
     }
 
-    bquery = query.exec(QString("delete from file_info where url not in (select url from file_info order by access_time desc limit 0, 30);"));
-    if(!bquery) reportError(query);
     init();
+    query.clear();
+    emit addUrlSuccess(file);
+}
+
+void QDataModel::removeUrl(const QString &url)
+{
+    onExecSql(QString("delete from file_info where url='%1';").arg(url));
+}
+
+void QDataModel::onExecSql(const QString &sql)
+{
+    QSqlQuery query;
+    if(!query.exec(sql))
+        reportError(query);
     query.clear();
 }
 
 void QDataModel::initConfig()
 {
     initTable("CREATE TABLE file_info ( \
-              name VARCHAR(40) NOT NULL, \
-              url VARCHAR(256) NOT NULL, \
-              times int NOT NULL DEFAULT(''), \
-              access_time TimeStamp NOT NULL DEFAULT(datetime('now','localtime')), PRIMARY KEY (name, url)) ");
+            name VARCHAR(40) NOT NULL, \
+            url VARCHAR(256) NOT NULL, \
+            times int NOT NULL DEFAULT(''), \
+            access_time TimeStamp NOT NULL DEFAULT(datetime('now','localtime')), PRIMARY KEY (name, url)) ");
     initTable("CREATE TABLE config (\
-              path VARCHAR(255) NOT NULL,\
-              vol int NOT NULL,\
-              access_time TimeStamp NOT NULL DEFAULT(datetime('now','localtime')));");
+            id int NOT NULL DEFAULT(1),\
+            config VARCHAR(1024) NOT NULL,\
+            access_time TimeStamp NOT NULL DEFAULT(datetime('now','localtime')), PRIMARY KEY (id));");
 }
 
 void QDataModel::initTable(const QString &sql)
@@ -97,15 +115,15 @@ void QDataModel::initTable(const QString &sql)
 void QDataModel::loadConfig()
 {
     QSqlQuery query;
-    auto bCreate = query.exec("select path,vol from config limit 0, 1;");
+    auto bCreate = query.exec("select config from config limit 0, 1;");
     if(bCreate)
     {
-        auto record = query.record();
         while(query.next())
         {
-            m_sPath = query.value(0).toString();
-            m_nVol = query.value(1).toInt();
+            Config::instance()->init(query.value(0));
         }
+
+        query.clear();
     }
     query.clear();
 }

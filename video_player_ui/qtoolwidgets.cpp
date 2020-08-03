@@ -20,12 +20,13 @@
 #include "qplayfilelistmodel.h"
 #include "qfilelistview.h"
 #include "qprogressslider.h"
+#include "config.h"
 
 QToolWidgets::QToolWidgets(QWidget *parent)
     : QWidget(parent), m_bPlaying(false)
-    , m_index(0),m_playMode(QPlayFileListModel::play_mode_local)
+    , m_index(0), m_playMode(QPlayFileListModel::play_mode_local)
 {
-    CreateMenu();
+    CreateMenu(parent);
     auto title = CreateTitle(parent);
     auto center = CreateCenterToolbar(parent);
     auto process = CreateProcessbar(parent);
@@ -95,18 +96,29 @@ int QToolWidgets::index()
 
 void QToolWidgets::onLoadFile()
 {
+    auto path = GET_CONFIG_DATA(Config::Data_Path).toString();
+    if(path.isEmpty())
+        path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QFileDialog dialog(
-        this,
+        nullptr,
         QString(),
-        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+        path,
         "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv)");
     dialog.setFileMode(QFileDialog::ExistingFiles);
+    dialog.show();
+    auto desktopSize = qApp->desktop()->size();
+    dialog.move((desktopSize.width() - dialog.width()) / 2, (desktopSize.height() - dialog.height()) / 2);
     QStringList fileNames;
     if (dialog.exec())
         fileNames = dialog.selectedFiles();
     qDebug() << fileNames;
     if(!fileNames.isEmpty())
+    {
+        auto curPath = dialog.directory().path();
+        if(path != curPath)
+            SET_CONFIG_DATA(curPath, Config::Data_Path);
         emit play(fileNames.at(0));
+    }
 }
 
 void QToolWidgets::onSelectMode(int index)
@@ -162,7 +174,21 @@ QWidget *QToolWidgets::CreateTitle(QWidget * parent)
         min->setHidden(bHide);
         max->setHidden(bHide);
         close->setHidden(bHide);
+        if(bHide)
+        {
+            if(cursor().shape() != Qt::BlankCursor)
+                setCursor(Qt::BlankCursor);
+        }
+        else if(cursor().shape() == Qt::BlankCursor)
+            setCursor(Qt::ArrowCursor);
     });
+
+    connect(this, &QToolWidgets::play, [name](const QString& sUrl)
+    {
+        auto sName = sUrl.mid(sUrl.lastIndexOf('/') + 1);
+        name->setText(sName);
+    });
+
     return widget;
 }
 
@@ -314,13 +340,14 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
 
     connect(stop, &QPushButton::clicked, this, &QToolWidgets::stop);
     connect(volNum, &QSlider::valueChanged, this, &QToolWidgets::setVol);
-    connect(volMute, &QPushButton::clicked, [volMute, this]
+    connect(volMute, &QPushButton::toggled, [volMute, this](bool bChecked)
     {
-        if(!volMute->isChecked())
+        if(!bChecked)
             volMute->setIcon(volMute->style()->standardIcon(QStyle::SP_MediaVolume));
         else
             volMute->setIcon(volMute->style()->standardIcon(QStyle::SP_MediaVolumeMuted));
-        emit mute(volMute->isChecked());
+        SET_CONFIG_DATA(bChecked, Config::Data_Mute);
+        emit mute(bChecked);
     });
 
     connect(fileList, &QPushButton::clicked, [this]
@@ -403,6 +430,27 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     {
        framRate->setText(QString("%1: %2/s").arg(tr("video")).arg(video));
     });
+
+    connect(Config::instance(), &Config::loadConfig, [volNum, volMute]
+    {
+        volNum->setValue(GET_CONFIG_DATA(Config::Data_Vol).toInt());
+        volMute->setChecked(GET_CONFIG_DATA(Config::Data_Mute).toBool());
+    });
+
+    auto timer = new QTimer(this);
+    timer->setInterval(500);
+    timer->setSingleShot(true);
+    connect(volNum, &QSlider::valueChanged, [timer]
+    {
+        timer->stop();
+        timer->start();
+    });
+
+    connect(timer, &QTimer::timeout, [volNum]
+    {
+        SET_CONFIG_DATA(volNum->value(), Config::Data_Vol);
+    });
+
     return widget;
 }
 
@@ -448,26 +496,41 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
         emit play(url);
     });
 
-    connect (this, &QToolWidgets::play, [this](const QString& sFile)
-    {
-    });
-
+    connect(m_filelist, &QFileListView::loadFile, this, &QToolWidgets::onLoadFile);
     connect(this, &QToolWidgets::play, m_filelist, &QFileListView::addLocalUrl);
+
     return m_filelistWd;
 }
 
-void QToolWidgets::CreateMenu()
+void QToolWidgets::CreateMenu(QWidget *parent)
 {
-    auto menu = new QMenu(this);
-    menu->setObjectName("menu1");
+    auto menu = new QMenu(parent);
     auto actionAdjust = menu->addAction(tr("adjust"));
-    auto topAdjust = menu->addAction(tr("topWindow"));
+    auto topWindow = menu->addAction(tr("topWindow"));
     actionAdjust->setCheckable(true);
-    topAdjust->setCheckable(true);
+    topWindow->setCheckable(true);
 
+    menu->setObjectName("menu1");
+    actionAdjust->setChecked(GET_CONFIG_DATA(Config::Data_Adjust).toBool());
+    topWindow->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
     connect(this, &QToolWidgets::showMenu, [menu]{ menu->popup(QCursor::pos());});
     connect(actionAdjust, &QAction::triggered, this, &QToolWidgets::viewAdjust);
-    connect(topAdjust, &QAction::triggered, this, &QToolWidgets::topWindow);
+    connect(topWindow, &QAction::triggered, this, &QToolWidgets::topWindow);
+    connect(Config::instance(), &Config::loadConfig, [actionAdjust, topWindow]
+    {
+        actionAdjust->setChecked(GET_CONFIG_DATA(Config::Data_Adjust).toBool());
+        topWindow->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
+    });
+
+    connect(actionAdjust, &QAction::triggered, [](bool bCheck)
+    {
+       SET_CONFIG_DATA(bCheck, Config::Data_Adjust);
+    });
+
+    connect(topWindow, &QAction::triggered, [](bool bCheck)
+    {
+       SET_CONFIG_DATA(bCheck, Config::Data_TopWindow);
+    });
 }
 
 void QToolWidgets::mousePressEvent(QMouseEvent *event)

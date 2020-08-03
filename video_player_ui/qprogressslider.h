@@ -13,6 +13,7 @@ public:
 protected:
     void mouseReleaseEvent(QMouseEvent *event);
     void enterEvent(QEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
 };
 
 #endif // QPROGRESSSLIDER_H

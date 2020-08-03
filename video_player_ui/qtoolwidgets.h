@@ -45,7 +45,7 @@ private:
     QBoxLayout* CreateProcessbar(QWidget*);
     QWidget* CreateToolbar(QWidget*);
     QWidget* CreateFilelist(QWidget*);
-    void CreateMenu();
+    void CreateMenu(QWidget *parent);
     void mousePressEvent(QMouseEvent *event);
 private:
     QProgressSlider* m_process;

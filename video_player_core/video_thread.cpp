@@ -18,11 +18,12 @@ video_thread::video_thread(const _video_info_& info)
 
 video_thread::video_thread(const video_thread &)
 {
+    Log(Log_Info, "thread over.%d",std::this_thread::get_id());
 }
 
 video_thread::~video_thread()
 {
-    Log(Log_Info, "thread exit.");
+    Log(Log_Info, "thread exit.%d", std::this_thread::get_id());
     SAFE_RELEASE_PTR(&m_info);
 }
 
@@ -182,10 +183,9 @@ void video_thread::startPlay()
 
     // audio decode
     if(audioIndex >= 0)
-    {
-        if(!audio_decode_prepare()){}
-//            goto video_thread_startPlay_end;
-    }
+        audio_decode_prepare();
+    else
+        setBit(info->_flag, flag_bit_taudio_finish);
 
     decode_loop();
 video_thread_startPlay_end:
@@ -475,17 +475,17 @@ void video_thread::decode_loop()
     auto& aduio_pks = info->audio->pks;
     auto& video_pks = info->video->pks;
 
-    std::thread([info]
-    {
-        for(;;)
-        {
-            msleep(1000);
-            if(isSetBit(info->_flag, flag_bit_Stop)) break;
-            if(info->_vRead < 10)
-                Log(Log_Info, "per video:%d/s audio:%d/s", info->_vRead, info->_aRead);
-            info->_vRead = info->_aRead = 0;
-        }
-    }).detach();
+//    std::thread([info]
+//    {
+//        for(;;)
+//        {
+//            msleep(1000);
+//            if(isSetBit(info->_flag, flag_bit_Stop)) break;
+//            if(info->_vRead < 10)
+//                Log(Log_Info, "per video:%d/s audio:%d/s", info->_vRead, info->_aRead);
+//            info->_vRead = info->_aRead = 0;
+//        }
+//    }).detach();
 
     info->_start_time = av_gettime();
     for(;;)

@@ -22,3 +22,7 @@ void QProgressSlider::enterEvent(QEvent *event)
     setCursor(Qt::PointingHandCursor);
     QSlider::enterEvent(event);
 }
+
+void QProgressSlider::mouseMoveEvent(QMouseEvent *event)
+{
+}

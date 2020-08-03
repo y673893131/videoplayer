@@ -73,6 +73,8 @@ QListView#list_file:item
 {
     font-family: "Microsoft YaHei";
     height: 20px;
+    min-width: 170px;
+    max-width: 170px;
     font: 15px;
     color: #d5d5d5;
     border: 0px;
@@ -87,7 +89,8 @@ QListView#list_file:item:selected
     padding-left: 20px;
 }
 
-QListView#list_file:item:hover
+QListView#list_file:item:hover,
+QListView#list_file:item:hover:!active
 {
     color: #FF5C38;
     background: rgba(128,128,128,128);
@@ -303,7 +306,7 @@ QSlider#slider_voice::sub-page:Horizontal
 }
 QSlider#slider_voice::groove:Horizontal
 {
-        background:transparent;
+        background: white;
         height: 6px;
         margin: 0px 2px;
 }
@@ -374,15 +377,27 @@ QScrollBar#scroll1:vertical
     padding: 0px 5px;
 }
 
+QScrollBar#scroll1:horizontal
+{
+    background: rgba(23, 26, 29, 128);
+    border: 0px solid red;
+    padding: 5px 0px;
+}
+
 QScrollBar#scroll1:add-line:vertical,
 QScrollBar#scroll1:sub-line:vertical,
 QScrollBar#scroll1:add-page:vertical,
-QScrollBar#scroll1:sub-page:vertical
+QScrollBar#scroll1:sub-page:vertical,
+QScrollBar#scroll1:add-line:horizontal,
+QScrollBar#scroll1:sub-line:horizontal,
+QScrollBar#scroll1:add-page:horizontal,
+QScrollBar#scroll1:sub-page:horizontal
 {
      background: transparent;
 }
 
-QScrollBar#scroll1:handle:vertical
+QScrollBar#scroll1:handle:vertical,
+QScrollBar#scroll1:handle:horizontal
 {
     background: #4E4E4F;
     min-height: 100px;
@@ -390,16 +405,17 @@ QScrollBar#scroll1:handle:vertical
     border-radius: 3px;
 }
 
-QScrollBar#scroll1:handle:vertical:hover
+QScrollBar#scroll1:handle:vertical:hover,
+QScrollBar#scroll1:handle:horizontal:hover
 {
     background: #727273;
 }
 
 QMenu#menu1
 {
-    background-color: white;
-    border: 0px solid lightgray;
-    margin: 5px;
+    background: white;
+    border: 1px solid lightgray;
+    margin: 0px;
 }
 
 QMenu#menu1::item
@@ -423,4 +439,11 @@ QMenu#menu1::item:selected
     background: #EEEEEE;
     font-weight: bold;
     color: #FF5C38;
+}
+
+QMenu#menu1::indicator:checked
+{
+    subcontrol-position: left center;
+    subcontrol-origin: padding;
+    left: 5px;
 }

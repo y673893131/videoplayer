@@ -10,13 +10,17 @@ public:
 
     bool isVerticalUnder();
 signals:
+    void loadFile();
     void select(const QString&);
     void addLocalUrl(const QString&);
-public slots:
-
+    void remove(const QModelIndex&);
+    void rightClick(const QPoint&);
     // QWidget interface
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void mousePressEvent(QMouseEvent *event);
+    void currentChanged(const QModelIndex &current, const QModelIndex &previous);
 };
 
 #endif // QFILELISTVIEW_H

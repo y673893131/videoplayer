@@ -4,20 +4,19 @@
 #include <QAbstractListModel>
 #include <QThread>
 
-class QNetworkReply;
-class QWorker : public QThread
+class QWorker : public QObject
 {
     Q_OBJECT
 public:
-    QWorker(QObject* parnet, QNetworkReply* response);
+    QWorker(QObject* parnet);
     virtual ~QWorker();
 signals:
-    void finish();
+    void finishWork(const QStringList&, const QStringList&);
     // QThread interface
-protected:
+public slots:
     void run();
 private:
-    QNetworkReply* m_response;
+    QThread* m_thread;
 };
 
 class QPlayFileListModel : public QAbstractListModel
@@ -35,11 +34,18 @@ public:
         play_mode_local,
         play_mode_live
     };
+public:
+    bool isSelected(const QModelIndex& index) const;
+    QModelIndex findIndex(const QString&);
 signals:
     void urlflush();
+    void liveflush();
+    void removeUrl(const QString&);
 public slots:
     void setMode(int);
     void setLocaleFiles(const QVector<QStringList>&);
+    void play(const QString&);
+    void removeIndex(const QModelIndex&);
 public:
     explicit QPlayFileListModel(QObject *parent = nullptr);
 
@@ -50,11 +56,13 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-
-    void flush();
+private:
+    Qt::ItemFlags flags(const QModelIndex &index) const;
 private:
     play_mode m_nPlayMode;
     QStringList m_urlNames, m_urls, m_localNames, m_locals;
+    QWorker* m_worker;
+    QString m_playFile;
     friend class QWorker;
 };
 

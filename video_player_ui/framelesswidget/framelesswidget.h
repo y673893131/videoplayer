@@ -32,6 +32,7 @@ private:
     bool checkLButtonPressRegion();
     void checkSize(void*);
     void checkDragMove(void*);
+
     // QWidget interface
 protected:
     void mousePressEvent(QMouseEvent *event);
@@ -42,7 +43,9 @@ protected:
     void keyPressEvent(QKeyEvent *event);
     void setBackgroundColor(QColor);
     virtual bool isValid();
-    bool isFull();
+    bool isFullScreen();
+    void showFullScreen();
+    void showNormal();
     void updateTopWindow();
 protected:
     bool m_bTopWindow;

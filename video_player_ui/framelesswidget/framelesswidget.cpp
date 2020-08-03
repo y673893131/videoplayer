@@ -61,10 +61,10 @@ void QFrameLessWidget::resizeBackground(int w, int h, int round, int margin, QCo
 
 void QFrameLessWidget::region(const QPoint &cursorGlobalPoint, bool &activeFlag)
 {
-    if(isValid() || isFull())
+    if(isValid() || isFullScreen())
     {
         m_dir = -1;
-        this->setCursor(QCursor(Qt::ArrowCursor));
+        setCursor(Qt::ArrowCursor);
         activeFlag = false;
         return;
     }
@@ -77,31 +77,31 @@ void QFrameLessWidget::region(const QPoint &cursorGlobalPoint, bool &activeFlag)
     activeFlag = true;
     if (tl.x() + PADDING + 2 >= x && tl.x() <= x && tl.y() + PADDING + 2 >= y && tl.y() <= y) {
         m_dir = WMSZ_TOPLEFT;
-        this->setCursor(QCursor(Qt::SizeFDiagCursor));
+        setCursor(Qt::SizeFDiagCursor);
     } else if (x >= rb.x() - PADDING - 2 && x <= rb.x() && y >= rb.y() - PADDING - 2 && y <= rb.y()) {
         m_dir = WMSZ_BOTTOMRIGHT;
-        this->setCursor(QCursor(Qt::SizeFDiagCursor));
+        setCursor(Qt::SizeFDiagCursor);
     } else if (x <= tl.x() + PADDING + 2 && x >= tl.x() && y >= rb.y() - PADDING - 2 && y <= rb.y()) {
         m_dir = WMSZ_BOTTOMLEFT;
-        this->setCursor(QCursor(Qt::SizeBDiagCursor));
+        setCursor(Qt::SizeBDiagCursor);
     } else if (x <= rb.x() && x >= rb.x() - PADDING - 2 && y >= tl.y() && y <= tl.y() + PADDING + 2) {
         m_dir = WMSZ_TOPRIGHT;
-        this->setCursor(QCursor(Qt::SizeBDiagCursor));
+        setCursor(Qt::SizeBDiagCursor);
     } else if (x <= tl.x() + PADDING && x >= tl.x()) {
         m_dir = WMSZ_LEFT;
-        this->setCursor(QCursor(Qt::SizeHorCursor));
+        setCursor(Qt::SizeHorCursor);
     } else if (x <= rb.x() && x >= rb.x() - PADDING) {
         m_dir = WMSZ_RIGHT;
-        this->setCursor(QCursor(Qt::SizeHorCursor));
+        setCursor(Qt::SizeHorCursor);
     } else if (y >= tl.y() && y <= tl.y() + PADDING){
         m_dir = WMSZ_TOP;
-        this->setCursor(QCursor(Qt::SizeVerCursor));
+        setCursor(Qt::SizeVerCursor);
     } else if (y <= rb.y() && y >= rb.y() - PADDING) {
         m_dir = WMSZ_BOTTOM;
-        this->setCursor(QCursor(Qt::SizeVerCursor));
+        setCursor(Qt::SizeVerCursor);
     } else {
         m_dir = -1;
-        this->setCursor(QCursor(Qt::ArrowCursor));
+        setCursor(Qt::ArrowCursor);
         activeFlag = false;
     }
 #endif
@@ -217,6 +217,25 @@ void QFrameLessWidget::checkDragMove(void *arg)
 #endif
 }
 
+void QFrameLessWidget::showFullScreen()
+{
+#ifdef WIN32
+    auto desktopsize = qApp->desktop()->screenGeometry().size() + QSize(0, 1);
+    SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOPMOST, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
+#else
+    QWidget::showFullScreen();
+#endif
+}
+
+void QFrameLessWidget::showNormal()
+{
+#ifdef WIN32
+    SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_NOTOPMOST, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
+#else
+    QWidget::showNormal();
+#endif
+}
+
 void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
 {
     QWidget::mousePressEvent(event);
@@ -274,31 +293,15 @@ void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
     Q_UNUSED(event)
     if(event->button() == Qt::LeftButton)
     {
-#ifdef WIN32
-        if(!isFull() && m_drag == DragMove_None){
-//            showFullScreen();
-            auto desktopsize = qApp->desktop()->screenGeometry().size() - QSize(0, 1);
-            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_TOPMOST, 0,0, desktopsize.width(),desktopsize.height(), SWP_SHOWWINDOW);
+        if(!isFullScreen() && m_drag == DragMove_None){
+            showFullScreen();
             m_doubleClickPos = pos();
             m_drag = DragMove_Top;
         }
         else{
-//            showNormal();
-            SetWindowPos(reinterpret_cast<HWND>(this->winId()), HWND_NOTOPMOST, m_doubleClickPos.x(),m_doubleClickPos.y(), m_normalSize.width(),m_normalSize.height(), SWP_SHOWWINDOW);
-            m_drag = DragMove_None;
-        }
-#else
-        if(!isFullScreen())
-        {
-            showFullScreen();
-            m_doubleClickPos = pos();
-            m_drag = DragMove_Top;
-        }else
-        {
             showNormal();
             m_drag = DragMove_None;
         }
-#endif
     }
 }
 
@@ -310,7 +313,7 @@ void QFrameLessWidget::resizeEvent(QResizeEvent *event)
 #ifdef unix
     m_dragBorder->setFixedSize(size());
 #endif
-    if(!isFull())
+    if(!isFullScreen())
         m_normalSize = size();
 
     updateTopWindow();
@@ -327,14 +330,18 @@ bool QFrameLessWidget::isValid()
     return false;
 }
 
-bool QFrameLessWidget::isFull()
+bool QFrameLessWidget::isFullScreen()
 {
-    return size() == (qApp->desktop()->screenGeometry().size() - QSize(0, 1));
+#ifdef WIN32
+    return size() == (qApp->desktop()->screenGeometry().size() + QSize(0, 1));
+#else
+    return QWidget::isFullScreen();
+#endif
 }
 
 void QFrameLessWidget::updateTopWindow()
 {
-    if(!isFull())
+    if(!isFullScreen())
     {
 #ifdef WIN32
         SetWindowPos(reinterpret_cast<HWND>(this->winId()), m_bTopWindow ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);

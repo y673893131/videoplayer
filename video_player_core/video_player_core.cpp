@@ -14,6 +14,7 @@ video_player_core::video_player_core()
 video_player_core::~video_player_core()
 {
     SAFE_RELEASE_PTR(&m_info);
+    avformat_network_deinit();
 }
 
 int video_player_core::_init()

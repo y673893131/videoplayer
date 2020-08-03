@@ -1,6 +1,7 @@
 CONFIG += c++11
 
 SOURCES += \
+    $$PWD/config.cpp \
     $$PWD/main.cpp \
     $$PWD/qfilelistdelegate.cpp \
     $$PWD/qfilelistview.cpp \
@@ -15,6 +16,7 @@ SOURCES += \
     $$PWD/qdatamodel.cpp
 
 HEADERS += \
+    $$PWD/config.h \
     $$PWD/qfilelistdelegate.h \
     $$PWD/qfilelistview.h \
     $$PWD/qglvideowidget.h \
