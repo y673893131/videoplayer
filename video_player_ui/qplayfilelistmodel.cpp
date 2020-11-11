@@ -250,14 +250,28 @@ QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
         return m_nPlayMode;
     case Qt::DisplayRole:
         if(m_nPlayMode == play_mode_live)
-            return m_filterNames[index.row()];
+        {
+            if(index.row() < m_filterNames.size())
+                return m_filterNames[index.row()];
+        }
         else
-            return m_filterLocalNames[index.row()];
+        {
+            if(index.row() < m_filterLocalNames.size())
+                return m_filterLocalNames[index.row()];
+        }
+        break;
     case role_url:
         if(m_nPlayMode == play_mode_live)
-            return m_filterUrls[index.row()];
+        {
+            if(index.row() < m_filterUrls.size())
+                return m_filterUrls[index.row()];
+        }
         else
-            return m_filterLocalUrls[index.row()];
+        {
+            if(index.row() < m_filterLocalUrls.size())
+                return m_filterLocalUrls[index.row()];
+        }
+        break;
     }
 
     return QVariant();
