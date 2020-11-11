@@ -15,6 +15,8 @@ signals:
     void addLocalUrl(const QString&);
     void remove(const QModelIndex&);
     void rightClick(const QPoint&);
+    void inputUrlFile(const QString&);
+    void filter(const QString&);
     // QWidget interface
 protected:
     void mouseDoubleClickEvent(QMouseEvent *event);

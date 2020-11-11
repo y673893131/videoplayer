@@ -250,6 +250,26 @@ QPushButton#file_list::hover
         margin: 1px 10px 1px 1px;
 }
 
+QLineEdit#file_search_edit
+{
+    color: gray;
+    min-height: 26px;
+    max-height: 26px;
+    font: bold 14px "Microsoft YaHei";
+    padding-left: 13px;
+    margin: 5px;
+/*    border: 1px solid lightgray;*/
+    border-radius: 13px;
+    background: rgba(74, 74, 74, 128);
+}
+
+QLineEdit#file_search_edit:hover
+{
+/*    border: 1px solid #D6A447;*/
+    color: #2E2F30;
+    background: #A5A5A5;
+}
+
 QPushButton#btn_mode
 {
         background: rgba(23, 26, 29, 128);
@@ -446,4 +466,53 @@ QMenu#menu1::indicator:checked
     subcontrol-position: left center;
     subcontrol-origin: padding;
     left: 5px;
+}
+
+#input_url_widget
+{
+    min-width: 300px;
+    max-width: 300px;
+    min-height: 150px;
+    max-height: 150px;
+    background: white;
+}
+
+#input_url_title_widget
+{
+    min-width: 300px;
+    max-width: 300px;
+    min-height: 40px;
+    max-height: 40px;
+    background: #257ABF;
+}
+
+#input_url_title_label
+{
+    font: bold 12px "Microsoft YaHei";
+    color: white;
+}
+
+#input_url_edit
+{
+    font: bold 14px "Microsoft YaHei";
+    color: #5A5A5A;
+    margin: 0px 10px;
+    padding: 5px 0px;
+    border: 1px solid lightgray;
+}
+
+#input_url_btn
+{
+    min-width: 100px;
+    max-width: 100px;
+    font: bold 14px "Microsoft YaHei";
+    padding: 5px 0px;
+    background: #505151;
+    color: white;
+    border-radius: 5px;
+}
+
+#input_url_btn:hover
+{
+    background: #2E2F30;
 }

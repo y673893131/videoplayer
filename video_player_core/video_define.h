@@ -5,6 +5,7 @@
 #include <functional>
 #include <list>
 #include <thread>
+#include <vector>
 #include "video_player_core.h"
 #include "Log/Log.h"
 #if defined(WIN32)
@@ -30,7 +31,7 @@ extern "C"
     #include <SDL_config.h>
 }
 #include <map>
-
+//#define CHECK_MEM_LEAK
 #ifdef CHECK_MEM_LEAK
 static int newCount = 0;
 static int deleteCount = 0;
@@ -157,6 +158,8 @@ struct _ffmpeg_out_frame_
         ,size(0)
         ,w(0)
         ,h(0)
+        ,srcWidth(0)
+        ,srcHeight(0)
     {
 
     }
@@ -192,20 +195,16 @@ struct _ffmpeg_out_frame_
         if(!srcCodec)
             return;
 
-        if(!w) w = srcCodec->width;
-        if(!h) h = srcCodec->height;
-        // 16pix align
-        w = (w >> 4) << 4;
-        h = (h >> 4) << 4;
-
-        frame = av_frame_alloc();
-        swsCov = sws_getContext(srcCodec->width, srcCodec->height, srcCodec->pix_fmt
-                       , w, h, SELECT_PIX_FMT
-                       , SWS_BICUBIC, nullptr, nullptr, nullptr);
-        size = avpicture_get_size(SELECT_PIX_FMT, w, h);
-        buffer = (uint8_t*)av_malloc(size * sizeof(uint8_t));
-        avpicture_fill((AVPicture*)frame, buffer,SELECT_PIX_FMT, w, h);
-        Log(Log_Info, "buffer1:%p, size=%d, w=%d, h=%d", buffer, size, w, h);
+        initFrame();
+//        srcWidth = srcCodec->width;
+//        srcHeight = srcCodec->height;
+//        frame = av_frame_alloc();
+//        swsCov = sws_getContext(srcCodec->width, srcCodec->height, srcCodec->pix_fmt
+//                       , w, h, SELECT_PIX_FMT
+//                       , SWS_BICUBIC, nullptr, nullptr, nullptr);
+//        size = avpicture_get_size(SELECT_PIX_FMT, w, h);
+//        buffer = (uint8_t*)av_malloc(size * sizeof(uint8_t));
+//        avpicture_fill((AVPicture*)frame, buffer,SELECT_PIX_FMT, w, h);
     }
 
     void uninit()
@@ -229,9 +228,31 @@ struct _ffmpeg_out_frame_
         }
     }
 
+    void initFrame()
+    {
+        uninit();
+        if(!w) w = srcCodec->width;
+        if(!h) h = srcCodec->height;
+        // 16pix align
+        w = (w >> 4) << 4;
+        h = (h >> 4) << 4;
+        srcWidth = srcCodec->width;
+        srcHeight = srcCodec->height;
+        frame = av_frame_alloc();
+        swsCov = sws_getContext(srcCodec->width, srcCodec->height, srcCodec->pix_fmt
+                       , w, h, SELECT_PIX_FMT
+                       , SWS_BICUBIC, nullptr, nullptr, nullptr);
+        size = avpicture_get_size(SELECT_PIX_FMT, w, h);
+        buffer = (uint8_t*)av_malloc(size * sizeof(uint8_t));
+        avpicture_fill((AVPicture*)frame, buffer,SELECT_PIX_FMT, w, h);
+        Log(Log_Info, "srcWidth=%d, srcHeight=%d size=%d, w=%d, h=%d", srcWidth, srcHeight, size, w, h);
+    }
+
     void scale(AVFrame* src, void* cb)
     {
         if(!cb) return;
+        if(srcWidth != srcCodec->width || srcHeight != srcCodec->height)
+            initFrame();
         int nRet = sws_scale(swsCov, (const uint8_t *const *)src->data
                   ,src->linesize, 0, srcCodec->height, frame->data
                   ,frame->linesize);
@@ -246,6 +267,8 @@ struct _ffmpeg_out_frame_
     int size;
     int w;
     int h;
+    int srcWidth;
+    int srcHeight;
 };
 
 struct _ffmpeg_video_info_
@@ -310,13 +333,12 @@ struct _sdl_op_
     {
     }
 
-    bool init(AVCodecContext* ctx, cb callback, void* userdata)
+    bool initResample(AVCodecContext* ctx)
     {
-        int nRet = 0;
-        if((nRet = initSDL()))
+        if(swrCtx)
         {
-            Log(Log_Warning, "sdl init failed, %d", nRet);
-            return false;
+            swr_free(&swrCtx);
+            swrCtx = nullptr;
         }
 
         // resample: in->out
@@ -325,6 +347,7 @@ struct _sdl_op_
                                          out.layout, out.fmt, out.rate,
                                          in.layout, in.fmt, in.rate,
                                          0, nullptr);
+        int nRet = 0;
         if((nRet = swr_init(swrCtx)) < 0)
         {
             char err[128] = {};
@@ -332,6 +355,23 @@ struct _sdl_op_
             Log(Log_Warning, "open resample failed, %s", err);
             swr_free(&swrCtx);
             swrCtx = nullptr;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool init(cb callback, void* userdata)
+    {
+        int nRet = 0;
+        if(SDL_WasInit(nRet))
+        {
+            return true;
+        }
+
+        if((nRet = initSDL()))
+        {
+            Log(Log_Warning, "sdl init failed, %d", nRet);
             return false;
         }
 
@@ -352,6 +392,7 @@ struct _sdl_op_
     virtual ~_sdl_op_()
     {
 //        /*if(!nInit)*/ SDL_Quit();
+        pauseSDL();
         closeSDL();
         if(swrCtx)
         {
@@ -371,7 +412,7 @@ struct _sdl_op_
     int openSDL()
     {
         auto num = SDL_GetNumAudioDevices(0);
-        for(int i = 0; i < num; ++i)
+        for(int i = 0; i <= num; ++i)
         {
             auto name = SDL_GetAudioDeviceName(i, 0);
             nAudioId = SDL_OpenAudioDevice(name, false, &target, &spec, 0);
@@ -379,7 +420,7 @@ struct _sdl_op_
             if(nAudioId > 0) return nAudioId;
         }
 
-        Log(Log_Warning, "sdl open failed!%s", SDL_GetError());
+        Log(Log_Warning, "sdl open failed, audio devices count:%d, %s", num, SDL_GetError());
         return -1;
     }
 
@@ -394,8 +435,11 @@ struct _sdl_op_
 //            Log(Log_Info, "sdl close:2");
 //            SDL_UnlockAudioDevice(nAudioId);
 //            Log(Log_Info, "sdl close:3");
+            Log(Log_Info, "sdl close:%d, thread:%d, 0x%p", nAudioId, std::this_thread::get_id(), this);
+            SDL_LockAudioDevice(nAudioId);
             SDL_CloseAudioDevice(nAudioId);
-            Log(Log_Info, "sdl close:successed");
+            SDL_UnlockAudioDevice(nAudioId);
+            Log(Log_Info, "sdl close:successed, thread: %d", std::this_thread::get_id());
             nAudioId = -1;
         }
     }
@@ -461,12 +505,10 @@ struct _sdl_op_
 struct _ffmpeg_audio_info_
 {
     _ffmpeg_audio_info_()
-        :pCodec(nullptr)
-        ,pFrame(nullptr)
+        :pFrame(nullptr)
         ,pFrameReSample(nullptr)
         ,_clock(0)
         ,nStreamIndex(-1)
-        ,sdl(nullptr)
     {
         INIT_NEW(&sdl, _sdl_op_);
     }
@@ -484,15 +526,14 @@ struct _ffmpeg_audio_info_
             pFrameReSample = nullptr;
         }
 
-        SAFE_RELEASE_PTR(&sdl);
+//        SAFE_RELEASE_PTR(&sdl);
     }
-    AVCodec* pCodec;
     AVFrame* pFrame;
     AVFrame* pFrameReSample;
     _ffmpeg_packets_ pks;
     double _clock;
     int nStreamIndex;
-    _sdl_op_* sdl;
+    static _sdl_op_* sdl;
 };
 
 enum flag_bit{
@@ -519,6 +560,18 @@ inline void setBit(unsigned int& flag, int bit, bool value = true)
         flag &= ~(1 << bit);
     else
         flag |= (1 << bit);
+}
+
+inline bool checkSeek(AVPacket &pk, AVStream *stream)
+{
+    if(strcmp((char*)pk.data, FFMPEG_SEEK) == 0)
+    {
+        avcodec_flush_buffers(stream->codec);
+        av_packet_unref(&pk);
+        return false;
+    }
+
+    return true;
 }
 
 struct _video_info_

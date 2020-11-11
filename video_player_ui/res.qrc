@@ -22,6 +22,7 @@
         <file alias="full_screen">Resources/fullscreen1.png</file>
         <file alias="unfull_screen">Resources/unfullscreen.png</file>
         <file alias="file_list">Resources/filelist.png</file>
+        <file>Resources/iptv.urls</file>
     </qresource>
     <qresource prefix="/translate">
         <file alias="zh">vPlayTranslate.qm</file>

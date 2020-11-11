@@ -2,6 +2,7 @@
 #include "Log/Log.h"
 #include "video_define.h"
 #include "video_thread.h"
+
 #include <memory>
 
 video_player_core::video_player_core()
@@ -131,10 +132,14 @@ int video_player_core::_setsize(int w, int h)
 
 int video_player_core::_state(int index)
 {
-    Log(Log_Opt, "%s=%d", __FUNCTION__, index);
+    Log(Log_Opt, "%s[%d]", __FUNCTION__, index);
     auto pIndex = video_thread::index(index);
     if(pIndex)
+    {
+        Log(Log_Opt, "%s=%d", __FUNCTION__, pIndex->state());
         return pIndex->state();
+    }
+
     return state_uninit;
 }
 

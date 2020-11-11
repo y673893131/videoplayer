@@ -4,10 +4,12 @@ INCLUDEPATH += $$PWD/../vidoe_player_log
 LIBS += -L$$PWD/../bin -lvidoe_player_log
 
 SOURCES += \
+    $$PWD/audio_thread.cpp \
     $$PWD/video_player_core.cpp \
     $$PWD/video_thread.cpp
 
 HEADERS += \
+    $$PWD/audio_thread.h \
     $$PWD/video_define.h \
     $$PWD/video_player_core.h \
     $$PWD/video_thread.h

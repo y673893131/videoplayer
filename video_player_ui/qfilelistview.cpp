@@ -56,6 +56,8 @@ QFileListView::QFileListView(QWidget* parent)
     });
 
     connect(loadFile, &QAction::triggered, this, &QFileListView::loadFile);
+    connect(this, &QFileListView::inputUrlFile, model, &QPlayFileListModel::onInputUrlFile);
+    connect(this, &QFileListView::filter, model, &QPlayFileListModel::onFilter);
 }
 
 bool QFileListView::isVerticalUnder()

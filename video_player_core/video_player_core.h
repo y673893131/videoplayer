@@ -16,7 +16,7 @@
 #endif
 
 #ifdef WIN32
-typedef _int64 int64_t;
+typedef long long int64_t;
 #endif
 #include <functional>
 

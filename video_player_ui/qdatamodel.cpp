@@ -109,6 +109,7 @@ void QDataModel::initTable(const QString &sql)
         if(!error.text().contains("already exists"))
             QMessageBox::warning(nullptr, tr("warning"), error.text() + "("+ error.nativeErrorCode() + ")");
     }
+
     query.clear();
 }
 

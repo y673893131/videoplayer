@@ -6,6 +6,7 @@
 #include <QThread>
 #include <QHeaderView>
 #include <QTimer>
+#include <QFile>
 QWorker::QWorker(QObject* parent)
     :QObject()
 {
@@ -58,7 +59,7 @@ void QWorker::run()
     });
     qDebug() << net->supportedSchemes() << QThread::currentThreadId();
     QNetworkRequest request;
-    request.setUrl(QUrl("http://ivi.bupt.edu.cn/"));
+    request.setUrl(QUrl("http://ivi.bupt.edu.cn/"));//北邮IVI
     request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36");
     net->get(request);
 }
@@ -98,6 +99,7 @@ void QPlayFileListModel::setLocaleFiles(const QVector<QStringList> &file)
         m_locals.push_back(it[1]);
     }
 
+    onFilter(m_sFilter);
     emit layoutChanged();
 }
 
@@ -129,15 +131,89 @@ void QPlayFileListModel::removeIndex(const QModelIndex &index)
     }
 }
 
+void QPlayFileListModel::onInputUrlFile(const QString &file)
+{
+    QStringList title, urls;
+    QFile f(file);
+    if(f.open(QFile::ReadOnly))
+    {
+        QByteArray arr;
+        do
+        {
+            arr = f.readLine();
+            if(arr.isEmpty())
+                break;
+            auto line = QString::fromUtf8(arr);
+            auto list = line.split(',');
+            if(list.size() != 2)
+                continue;
+            if(title.contains(list[0]))
+                continue;
+            title.push_back(list[0]);
+            urls.push_back(list[1]);
+        }while (true);
+        f.close();
+
+        m_urlNames = title;
+        m_urls = urls;
+        onFilter(m_sFilter);
+        emit layoutChanged();
+    }
+}
+
+void QPlayFileListModel::onFilter(const QString &sFilter)
+{
+    m_sFilter = sFilter;
+    QStringList titles, urls;
+    int n = 0;
+    for(auto& it : m_urlNames)
+    {
+        if(it.contains(sFilter, Qt::CaseInsensitive))
+        {
+            titles.push_back(it);
+            urls.push_back(m_urls[n]);
+        }
+
+        ++n;
+    }
+
+    m_filterNames = titles;
+    m_filterUrls = urls;
+
+    titles.clear();
+    urls.clear();
+    n = 0;
+    for(auto& it : m_localNames)
+    {
+        if(it.contains(sFilter, Qt::CaseInsensitive))
+        {
+            titles.push_back(it);
+            urls.push_back(m_locals[n]);
+        }
+
+        ++n;
+    }
+
+    m_filterLocalNames = titles;
+    m_filterLocalUrls = urls;
+
+    emit layoutChanged();
+}
+
 QPlayFileListModel::QPlayFileListModel(QObject *parent)
     : QAbstractListModel(parent), m_nPlayMode(play_mode_local)
 {
     m_worker = new QWorker(this);
-    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
+//    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
+    connect(this, &QPlayFileListModel::liveflush, [=]{
+        onInputUrlFile(":/res/Resources/iptv.urls");
+    });
+
     connect(m_worker, &QWorker::finishWork, this, [this](const QStringList& names, const QStringList& urls)
     {
-        m_urlNames = names;
-        m_urls = urls;
+       m_urlNames = names;
+       m_urls = urls;
+       onFilter(m_sFilter);
        emit layoutChanged();
     }, Qt::ConnectionType::QueuedConnection);
 
@@ -159,9 +235,9 @@ int QPlayFileListModel::rowCount(const QModelIndex &parent) const
 
     // FIXME: Implement me!
     if(m_nPlayMode == play_mode_live)
-        return m_urlNames.size();
+        return m_filterNames.size();
     else
-        return m_localNames.size();
+        return m_filterLocalNames.size();
 }
 
 QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
@@ -174,14 +250,14 @@ QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
         return m_nPlayMode;
     case Qt::DisplayRole:
         if(m_nPlayMode == play_mode_live)
-            return m_urlNames[index.row()];
+            return m_filterNames[index.row()];
         else
-            return m_localNames[index.row()];
+            return m_filterLocalNames[index.row()];
     case role_url:
         if(m_nPlayMode == play_mode_live)
-            return m_urls[index.row()];
+            return m_filterUrls[index.row()];
         else
-            return m_locals[index.row()];
+            return m_filterLocalUrls[index.row()];
     }
 
     return QVariant();

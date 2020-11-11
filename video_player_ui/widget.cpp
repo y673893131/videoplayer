@@ -22,6 +22,8 @@
 Widget::Widget(QWidget *parent)
     : QFrameLessWidget(parent)
 {
+    setSize(800, 600);
+    setEnableDoubleClicked(true);
     qApp->setApplicationName("vPlay");
     InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_");
     qApp->installEventFilter(this);
@@ -142,6 +144,7 @@ Widget::Widget(QWidget *parent)
             updateTopWindow();
         });
         connect(m_video, &QGLVideoWidget::frameRate, m_toolbar, &QToolWidgets::frameRate);
+        connect(this , &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
     }
 
     flushSheetStyle();
@@ -241,7 +244,7 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
     {
         auto file = urls.begin()->toLocalFile();
         QStringList types;
-        types << ".mp4" << ".flv" << ".avi" << ".mkv";
+        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls";
         if(checkFile(file, types))
             event->accept();
     }
@@ -249,5 +252,11 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
 
 void Widget::dropEvent(QDropEvent *event)
 {
+    auto file = event->mimeData()->urls().begin()->toLocalFile();
+    if(file.contains(".url"))
+    {
+        emit inputUrlFile(file);
+        return;
+    }
     emit m_toolbar->play(event->mimeData()->urls().begin()->toLocalFile());
 }

@@ -8,19 +8,15 @@
 #include <QAction>
 #include "qdragborder.h"
 QFrameLessWidget::QFrameLessWidget(QWidget *parent)
-    : QWidget(parent), m_drag(DragMove_None),m_bkColor("#80C7ED"),m_bTopWindow(false)
+    : QWidget(parent), m_drag(DragMove_None),m_bkColor("#80C7ED")
+    , m_bTopWindow(false), m_bEnableDoubleClicked(false)
 {
 #ifdef unix
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
 #else
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
 #endif
     setAttribute(Qt::WA_TranslucentBackground);
-    resize(800, 600);
-    m_normalSize = size();
-    m_minSize = QSize(600, 400);
-    auto deskCenter = qApp->desktop()->rect().center();
-    m_doubleClickPos = QPoint(deskCenter.x() - width() / 2, deskCenter.y() - height() / 2);
 #ifdef unix
     m_dragBorder = new QDragBorder(this);
 #endif
@@ -29,6 +25,31 @@ QFrameLessWidget::QFrameLessWidget(QWidget *parent)
 
 QFrameLessWidget::~QFrameLessWidget()
 {
+}
+
+void QFrameLessWidget::setSize(int w, int h)
+{
+    resize(w, h);
+    m_normalSize = size();
+    m_minSize = QSize(600, 400);
+    auto deskCenter = qApp->desktop()->rect().center();
+    m_doubleClickPos = QPoint(deskCenter.x() - width() / 2, deskCenter.y() - height() / 2);
+}
+
+void QFrameLessWidget::center()
+{
+    QWidget* parent = parentWidget();
+    if(!parent) parent = QApplication::desktop();
+    qDebug() << this << parent;
+    if(parent)
+    {
+        move(parent->x() + (parent->width() - width()) / 2, parent->y() + (parent->height() - height()) / 2);
+    }
+}
+
+void QFrameLessWidget::setEnableDoubleClicked(bool bEnable)
+{
+    m_bEnableDoubleClicked = bEnable;
 }
 
 void QFrameLessWidget::resizeBackground(int w, int h, int round, int margin, QColor color)
@@ -260,9 +281,12 @@ void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
 void QFrameLessWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
-    QPainter painter(this);
-    painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    painter.drawImage(0, 0, m_bkImg.scaled(this->size()));
+    if(!m_bkImg.isNull())
+    {
+        QPainter painter(this);
+        painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+        painter.drawImage(0, 0, m_bkImg.scaled(this->size()));
+    }
 }
 
 bool QFrameLessWidget::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
@@ -291,16 +315,19 @@ bool QFrameLessWidget::nativeEventFilter(const QByteArray &eventType, void *mess
 void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
     Q_UNUSED(event)
-    if(event->button() == Qt::LeftButton)
+    if(m_bEnableDoubleClicked)
     {
-        if(!isFullScreen() && m_drag == DragMove_None){
-            showFullScreen();
-            m_doubleClickPos = pos();
-            m_drag = DragMove_Top;
-        }
-        else{
-            showNormal();
-            m_drag = DragMove_None;
+        if(event->button() == Qt::LeftButton)
+        {
+            if(!isFullScreen() && m_drag == DragMove_None){
+                showFullScreen();
+                m_doubleClickPos = pos();
+                m_drag = DragMove_Top;
+            }
+            else{
+                showNormal();
+                m_drag = DragMove_None;
+            }
         }
     }
 }
@@ -317,7 +344,7 @@ void QFrameLessWidget::resizeEvent(QResizeEvent *event)
         m_normalSize = size();
 
     updateTopWindow();
-    resizeBackground(width(), height(), 5, 5, m_bkColor);//set your like
+//    resizeBackground(width(), height(), 5, 5, m_bkColor);//set your like
 }
 
 void QFrameLessWidget::setBackgroundColor(QColor c)
@@ -398,3 +425,8 @@ void QFrameLessWidget::keyPressEvent(QKeyEvent *event)
     }
 }
 
+void QFrameLessWidget::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    center();
+}

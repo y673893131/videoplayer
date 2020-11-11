@@ -25,4 +25,6 @@ void QProgressSlider::enterEvent(QEvent *event)
 
 void QProgressSlider::mouseMoveEvent(QMouseEvent *event)
 {
+    QSlider::mouseMoveEvent(event);
+
 }

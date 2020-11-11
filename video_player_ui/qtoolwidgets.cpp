@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QSlider>
 #include <QListView>
+#include <QLineEdit>
 #include <QFileIconProvider>
 #include <QDebug>
 #include <QPropertyAnimation>
@@ -21,11 +22,13 @@
 #include "qfilelistview.h"
 #include "qprogressslider.h"
 #include "config.h"
+#include "qinputurlwidget.h"
 
 QToolWidgets::QToolWidgets(QWidget *parent)
     : QWidget(parent), m_bPlaying(false)
     , m_index(0), m_playMode(QPlayFileListModel::play_mode_local)
 {
+    m_inputUrl = new QInputUrlWidget(parent);
     CreateMenu(parent);
     auto title = CreateTitle(parent);
     auto center = CreateCenterToolbar(parent);
@@ -86,7 +89,7 @@ QToolWidgets::QToolWidgets(QWidget *parent)
 
 bool QToolWidgets::isUnderValid()
 {
-    return m_filelist->isVerticalUnder();
+    return m_filelist->isVerticalUnder() || m_filelist->underMouse();
 }
 
 int QToolWidgets::index()
@@ -103,7 +106,7 @@ void QToolWidgets::onLoadFile()
         nullptr,
         QString(),
         path,
-        "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv)");
+        "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls)");
     dialog.setFileMode(QFileDialog::ExistingFiles);
     dialog.show();
     auto desktopSize = qApp->desktop()->size();
@@ -168,12 +171,13 @@ QWidget *QToolWidgets::CreateTitle(QWidget * parent)
             parent->showMaximized();
     });
     connect(close, &QPushButton::clicked, this, &QToolWidgets::exit);
-    connect(this, &QToolWidgets::hideOrShow, [name, min, max, close, this](bool bHide)
+    connect(this, &QToolWidgets::hideOrShow, [name, min, max, close, widget, this](bool bHide)
     {
         name->setHidden(bHide);
         min->setHidden(bHide);
         max->setHidden(bHide);
         close->setHidden(bHide);
+        widget->setHidden(bHide);
         if(bHide)
         {
             if(cursor().shape() != Qt::BlankCursor)
@@ -367,7 +371,7 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
         bool bShow = (mode == QPlayFileListModel::play_mode_local);
         stop->setVisible(bShow);
         prev->setVisible(bShow);
-        play->setVisible(bShow);
+//        play->setVisible(bShow);
         next->setVisible(bShow);
     });
 
@@ -451,6 +455,7 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
         SET_CONFIG_DATA(volNum->value(), Config::Data_Vol);
     });
 
+
     return widget;
 }
 
@@ -459,15 +464,19 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
     m_filelistWd = new QWidget(parent);
     auto right = new QWidget(m_filelistWd);
     m_filelist = new QFileListView(parent);
+    auto searchEdit = new QLineEdit(m_filelistWd);
     auto localMode = new QPushButton(tr("localMode"), m_filelist);
     auto liveMode = new QPushButton(tr("liveMode"), m_filelist);
 
+    searchEdit->setPlaceholderText(tr("search"));
+
     m_filelistWd->setObjectName("file_list_wd");
     m_filelist->setObjectName("list_file");
+    searchEdit->setObjectName("file_search_edit");
     localMode->setObjectName("btn_mode");
     liveMode->setObjectName("btn_mode");
 
-    auto layout0 = new QHBoxLayout;
+    auto layout0 = new QVBoxLayout;
     auto layoutR = new QGridLayout;
     m_filelistWd->setLayout(layout0);
     right->setLayout(layoutR);
@@ -478,9 +487,10 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
 
     layoutR->setMargin(0);
     layoutR->setSpacing(0);
-    layoutR->addWidget(m_filelist, 0, 0, 1, 2);
-    layoutR->addWidget(localMode, 1, 0);
-    layoutR->addWidget(liveMode, 1, 1);
+    layoutR->addWidget(searchEdit, 0, 0, 1, 2);
+    layoutR->addWidget(m_filelist, 1, 0, 1, 2);
+    layoutR->addWidget(localMode, 2, 0);
+    layoutR->addWidget(liveMode, 2, 1);
 
     localMode->setCheckable(true);
     liveMode->setCheckable(true);
@@ -498,6 +508,9 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
 
     connect(m_filelist, &QFileListView::loadFile, this, &QToolWidgets::onLoadFile);
     connect(this, &QToolWidgets::play, m_filelist, &QFileListView::addLocalUrl);
+    connect(this, &QToolWidgets::inputUrlFile, m_filelist, &QFileListView::inputUrlFile);
+
+    connect(searchEdit, &QLineEdit::textChanged, m_filelist, &QFileListView::filter);
 
     return m_filelistWd;
 }
@@ -507,6 +520,7 @@ void QToolWidgets::CreateMenu(QWidget *parent)
     auto menu = new QMenu(parent);
     auto actionAdjust = menu->addAction(tr("adjust"));
     auto topWindow = menu->addAction(tr("topWindow"));
+    auto urlWindow = menu->addAction(tr("url"));
     actionAdjust->setCheckable(true);
     topWindow->setCheckable(true);
 
@@ -530,6 +544,29 @@ void QToolWidgets::CreateMenu(QWidget *parent)
     connect(topWindow, &QAction::triggered, [](bool bCheck)
     {
        SET_CONFIG_DATA(bCheck, Config::Data_TopWindow);
+    });
+
+//    connect(urlWindow, &QAction::triggered, [this]
+//    {
+//        if(m_bPlaying)
+//        {
+//            emit stop();
+//        }
+
+//        m_inputUrl->exec();
+//        emit inputUrl();
+//        auto sName = "rtmp://172.16.62.127/live/stream";
+//        emit this->play(sName);
+//        return;
+//    });
+
+    connect(urlWindow, &QAction::triggered, m_inputUrl, &QInputUrlWidget::showInit);
+    connect(m_inputUrl, &QInputUrlWidget::inputUrl, [this](const QString& url)
+    {
+        if(m_bPlaying)
+            emit stop();
+
+        emit play(url);
     });
 }
 

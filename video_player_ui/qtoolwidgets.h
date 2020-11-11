@@ -8,6 +8,7 @@ class QFileListView;
 class QPushButton;
 class QProgressSlider;
 class QDataModel;
+class QInputUrlWidget;
 class QToolWidgets : public QWidget
 {
     Q_OBJECT
@@ -36,6 +37,8 @@ signals:
     void viewAdjust(bool);
     void topWindow(bool);
     void frameRate(int video);
+    void inputUrl();
+    void inputUrlFile(const QString&);
 public slots:
     void onLoadFile();
     void onSelectMode(int);
@@ -45,6 +48,7 @@ private:
     QBoxLayout* CreateProcessbar(QWidget*);
     QWidget* CreateToolbar(QWidget*);
     QWidget* CreateFilelist(QWidget*);
+
     void CreateMenu(QWidget *parent);
     void mousePressEvent(QMouseEvent *event);
 private:
@@ -52,6 +56,7 @@ private:
     QWidget* m_filelistWd;
     QFileListView* m_filelist;
     QPushButton *m_openfile/*,* m_filelistIndicator*/;
+    QInputUrlWidget* m_inputUrl;
     bool m_bPlaying;
     int m_index, m_playMode;
     QDataModel* m_data;

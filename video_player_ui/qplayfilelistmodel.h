@@ -46,6 +46,8 @@ public slots:
     void setLocaleFiles(const QVector<QStringList>&);
     void play(const QString&);
     void removeIndex(const QModelIndex&);
+    void onInputUrlFile(const QString&);
+    void onFilter(const QString&);
 public:
     explicit QPlayFileListModel(QObject *parent = nullptr);
 
@@ -61,6 +63,8 @@ private:
 private:
     play_mode m_nPlayMode;
     QStringList m_urlNames, m_urls, m_localNames, m_locals;
+    QStringList m_filterNames, m_filterUrls, m_filterLocalNames, m_filterLocalUrls;
+    QString m_sFilter;
     QWorker* m_worker;
     QString m_playFile;
     friend class QWorker;

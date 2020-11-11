@@ -13,7 +13,8 @@ SOURCES += \
     $$PWD/framelesswidget/framelesswidget.cpp \
     $$PWD/framelesswidget/qdragborder.cpp \
     $$PWD/qprogressslider.cpp \
-    $$PWD/qdatamodel.cpp
+    $$PWD/qdatamodel.cpp \
+    $$PWD/qinputurlwidget.cpp
 
 HEADERS += \
     $$PWD/config.h \
@@ -28,13 +29,22 @@ HEADERS += \
     $$PWD/framelesswidget/framelesswidget.h \
     $$PWD/framelesswidget/qdragborder.h \
     $$PWD/qprogressslider.h \
-    $$PWD/qdatamodel.h
+    $$PWD/qdatamodel.h \
+    $$PWD/qinputurlwidget.h
 
 INCLUDEPATH += \
     $$PWD \
     $$PWD/../vidoe_player_log \
     $$PWD/../video_player_core
 LIBS += -L$$PWD/../bin -lvidoe_player_log -lvideo_player_core
+
+win32-g++ {
+    LIBS += -lopengl32 -lglu32
+}
+win32-msvc*{
+    LIBS += opengl32.lib glu32.lib glmf32.lib
+}
+
 DESTDIR = $$PWD/../bin
 
 RESOURCES += \

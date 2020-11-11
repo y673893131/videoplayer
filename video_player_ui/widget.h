@@ -30,6 +30,8 @@ protected:
     virtual bool isValid();
 private slots:
     void flushSheetStyle();
+signals:
+    void inputUrlFile(const QString&);
 private:
     QDateTime m_last;
 

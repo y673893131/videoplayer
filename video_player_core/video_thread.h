@@ -33,13 +33,9 @@ private:
     void startPlay();
     void video_decode();
     bool audio_decode_prepare();
-    int audio_decode();
     void decode_loop();
-    static void sdl_audio_call(void *data, Uint8 *stream, int len);
-    void audio_call(Uint8*, int);
     void seek();
     bool push_frame();
-    bool checkSeek(AVPacket& pk, AVStream* stream);
 private:
     int m_index;
     _video_info_* m_info;

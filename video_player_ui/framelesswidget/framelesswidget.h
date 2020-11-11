@@ -25,6 +25,9 @@ public:
     QFrameLessWidget(QWidget *parent = nullptr);
     ~QFrameLessWidget();
 
+    void setSize(int,int);
+    void center();
+    void setEnableDoubleClicked(bool);
 private:
     void resizeBackground(int w, int h, int round, int margin, QColor color);
     void region(const QPoint &cursorGlobalPoint, bool &activeFlag);
@@ -48,7 +51,7 @@ protected:
     void showNormal();
     void updateTopWindow();
 protected:
-    bool m_bTopWindow;
+    bool m_bTopWindow, m_bEnableDoubleClicked;
 private:
     QColor m_bkColor;
     QImage m_bkImg;
@@ -63,5 +66,6 @@ private:
 protected:
     void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+    void showEvent(QShowEvent *event);
 };
 #endif // QFrameLessWidget_H
