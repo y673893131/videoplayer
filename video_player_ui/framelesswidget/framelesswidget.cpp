@@ -293,8 +293,6 @@ bool QFrameLessWidget::nativeEventFilter(const QByteArray &eventType, void *mess
 {
     Q_UNUSED(result)
 #ifdef WIN32
-    auto msg = reinterpret_cast<MSG*>(message);
-//    qDebug() << msg->message << msg->wParam << msg->lParam;
     if (eventType == "windows_generic_MSG" || eventType == "windows_dispatcher_MSG")
     {
         auto msg = reinterpret_cast<MSG*>(message);

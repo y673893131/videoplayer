@@ -21,20 +21,6 @@ audio_thread *audio_thread::instance()
     return s_instance;
 }
 
-bool audio_thread::addAudio(AVCodecContext *ctx, AVStream *stream, unsigned int &flag)
-{
-    // resample: in->out
-//    m_stream = stream;
-//    if(audio->sdl->initResample(ctx))
-//    {
-//        m_flag = &flag;
-//        audio->sdl->startSDL();
-//        return true;
-//    }
-
-    return false;
-}
-
 bool audio_thread::addAudio(_video_info_* pInfo)
 {
     m_info = pInfo;
@@ -162,7 +148,7 @@ int audio_thread::audio_decode()
         }
 
         int got_frame = 0;
-        auto size = avcodec_decode_audio4(ctx, frame, &got_frame, &pk);
+        avcodec_decode_audio4(ctx, frame, &got_frame, &pk);
         av_packet_unref(&pk);
         if(got_frame)
         {
@@ -173,8 +159,8 @@ int audio_thread::audio_decode()
             if(resample_frame->nb_samples != frame->nb_samples)
             {
                 auto delay = swr_get_delay(swrCtx, sdl->out.rate) + frame->nb_samples;
-                resample_frame->nb_samples = av_rescale_rnd(
-                    delay, sdl->out.rate, sdl->in.rate, AV_ROUND_UP);
+                resample_frame->nb_samples = static_cast<int>(av_rescale_rnd(
+                    delay, sdl->out.rate, sdl->in.rate, AV_ROUND_UP));
                 av_samples_fill_arrays(resample_frame->data, resample_frame->linesize,
                                        sdl->buff, sdl->target.channels, resample_frame->nb_samples,
                                        sdl->out.fmt, 0);

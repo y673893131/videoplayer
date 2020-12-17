@@ -9,7 +9,7 @@
 #include "video_player_core.h"
 #include "Log/Log.h"
 #if defined(WIN32)
-#include <windows.h>
+#include <Windows.h>
 #endif
 
 extern "C"
@@ -74,7 +74,7 @@ struct _ffmpeg_packets_
     {
     }
 
-    _ffmpeg_packets_(int maxSize)
+    _ffmpeg_packets_(size_t maxSize)
         :m_maxSize(maxSize)
     {
     }
@@ -84,7 +84,7 @@ struct _ffmpeg_packets_
         clear();
     }
 
-    int size()
+    size_t size()
     {
         LOCK(mutex)
         return m_packets.size();
@@ -129,8 +129,8 @@ struct _ffmpeg_packets_
         LOCK(mutex)
         if(isMax()) return false;
         AVPacket pk;
-        av_new_packet(&pk, strlen(msg) + 1);
-        strcpy((char*)pk.data, msg);
+        av_new_packet(&pk, static_cast<int>(strlen(msg)) + 1);
+        strcpy(reinterpret_cast<char*>(pk.data), msg);
         m_packets.push_back(pk);
         return true;
     }
@@ -143,7 +143,7 @@ struct _ffmpeg_packets_
         return true;
     }
 
-    int m_maxSize;
+    size_t m_maxSize;
     _graud_lock_ mutex;
     std::list<AVPacket> m_packets;
 };
@@ -243,8 +243,8 @@ struct _ffmpeg_out_frame_
                        , w, h, SELECT_PIX_FMT
                        , SWS_BICUBIC, nullptr, nullptr, nullptr);
         size = avpicture_get_size(SELECT_PIX_FMT, w, h);
-        buffer = (uint8_t*)av_malloc(size * sizeof(uint8_t));
-        avpicture_fill((AVPicture*)frame, buffer,SELECT_PIX_FMT, w, h);
+        buffer = reinterpret_cast<uint8_t*>(av_malloc(size * sizeof(uint8_t)));
+        avpicture_fill(reinterpret_cast<AVPicture*>(frame), buffer,SELECT_PIX_FMT, w, h);
         Log(Log_Info, "srcWidth=%d, srcHeight=%d size=%d, w=%d, h=%d", srcWidth, srcHeight, size, w, h);
     }
 
@@ -253,18 +253,18 @@ struct _ffmpeg_out_frame_
         if(!cb) return;
         if(srcWidth != srcCodec->width || srcHeight != srcCodec->height)
             initFrame();
-        int nRet = sws_scale(swsCov, (const uint8_t *const *)src->data
+        sws_scale(swsCov,reinterpret_cast<const uint8_t *const *>(src->data)
                   ,src->linesize, 0, srcCodec->height, frame->data
                   ,frame->linesize);
 //        Log(Log_Info, "ret:%d, height: %d", nRet, h);
-        ((video_interface*)cb)->displayCall(buffer, w, h);
+        reinterpret_cast<video_interface*>(cb)->displayCall(buffer, w, h);
     }
     AVFrame* frame;
     uint8_t* buffer;
     SwsContext* swsCov;
     AVCodecContext* srcCodec;
     _graud_lock_ mutex;
-    int size;
+    size_t size;
     int w;
     int h;
     int srcWidth;
@@ -289,7 +289,7 @@ struct _ffmpeg_video_info_
 
 struct _audio_sample_
 {
-    //2声道 16bit 44100 PCM
+    //2 channels 16bit 44100 PCM
     _audio_sample_()
         :channels(2)
         ,fmt(AV_SAMPLE_FMT_S16)
@@ -306,7 +306,10 @@ struct _audio_sample_
         ,layout(ctx->channel_layout)
     {
         if(layout <= 0)
-            layout = av_get_default_channel_layout(layout);
+        {
+            int ch_layout = static_cast<int>(layout);
+            layout = av_get_default_channel_layout(ch_layout);
+        }
     }
 
     int linesize()
@@ -316,7 +319,7 @@ struct _audio_sample_
     int channels;
     AVSampleFormat fmt;
     int rate;
-    int64_t layout;
+    uint64_t layout;
 };
 
 typedef void (*cb)(void*, unsigned char*, int);
@@ -510,7 +513,7 @@ struct _ffmpeg_audio_info_
         ,_clock(0)
         ,nStreamIndex(-1)
     {
-        INIT_NEW(&sdl, _sdl_op_);
+        INIT_NEW(&sdl, _sdl_op_)
     }
 
     virtual ~_ffmpeg_audio_info_()
@@ -564,7 +567,7 @@ inline void setBit(unsigned int& flag, int bit, bool value = true)
 
 inline bool checkSeek(AVPacket &pk, AVStream *stream)
 {
-    if(strcmp((char*)pk.data, FFMPEG_SEEK) == 0)
+    if(strcmp(reinterpret_cast<char*>(pk.data), FFMPEG_SEEK) == 0)
     {
         avcodec_flush_buffers(stream->codec);
         av_packet_unref(&pk);
@@ -598,9 +601,9 @@ struct _video_info_
         :state(src.state)
         ,src(src.src)
         ,_start_time(src._seek_time)
-        ,_seek_time(src._seek_pos)
+        ,_seek_time(static_cast<double>(src._seek_pos))
         ,_pause_time(src._pause_time)
-        ,_seek_pos(src._seek_time)
+        ,_seek_pos(static_cast<int64_t>(src._seek_time))
         ,_cb(src._cb)
         ,_flag(src._flag)
         ,_format_ctx(src._format_ctx)
@@ -622,16 +625,16 @@ struct _video_info_
             _format_ctx = nullptr;
         }
 
-        SAFE_RELEASE_PTR(&yuv);
-        SAFE_RELEASE_PTR(&video);
-        SAFE_RELEASE_PTR(&audio);
+        SAFE_RELEASE_PTR(&yuv)
+        SAFE_RELEASE_PTR(&video)
+        SAFE_RELEASE_PTR(&audio)
     }
 
     void init()
     {
-        INIT_NEW(&yuv, _ffmpeg_out_frame_);
-        INIT_NEW(&video, _ffmpeg_video_info_);
-        INIT_NEW(&audio, _ffmpeg_audio_info_);
+        INIT_NEW(&yuv, _ffmpeg_out_frame_)
+        INIT_NEW(&video, _ffmpeg_video_info_)
+        INIT_NEW(&audio, _ffmpeg_audio_info_)
     }
     int state;
     std::string src;

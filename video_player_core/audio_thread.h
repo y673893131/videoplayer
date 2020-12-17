@@ -9,7 +9,6 @@ public:
     virtual ~audio_thread();
 
     static audio_thread *instance();
-    bool addAudio(AVCodecContext* ctx, AVStream* stream, unsigned int& flag);
     bool addAudio(_video_info_* pInfo);
 private:
     audio_thread();

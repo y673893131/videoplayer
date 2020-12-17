@@ -7,7 +7,7 @@
 #include <unistd.h>
 #define msleep(x) usleep(x * 1000)
 #elif(WIN32)
-#define msleep(x) Sleep(x)
+#define msleep(x) Sleep(static_cast<unsigned long>(x))
 #endif
 
 class video_thread
@@ -15,7 +15,7 @@ class video_thread
 public:
     virtual ~video_thread();
     static void start(const _video_info_&);
-    static video_thread* index(int);
+    static video_thread* index(size_t);
     void play();
     void setPause();
     bool getPause();

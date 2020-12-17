@@ -31,7 +31,7 @@ void QDragBorder::setWidth(int width)
     m_width = width;
 }
 #include <QPainterPath>
-void QDragBorder::paintEvent(QPaintEvent */*event*/)
+void QDragBorder::paintEvent(QPaintEvent * /*event*/)
 {
 //    qDebug() << "paint";
     QPainter painter(this);

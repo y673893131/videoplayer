@@ -14,13 +14,12 @@ void QLabelVideoWidget::totalTime(const int64_t t)
 
 void YUV420_2_RGB(unsigned char* pYUV, unsigned char* pRGB, int width, int height)
 {
-    //找到Y、U、V在内存中的首地址
     unsigned char* pY = pYUV;
     unsigned char* pU = pYUV + height*width;
     unsigned char* pV = pU + (height*width / 4);
 
 
-    unsigned char* pBGR = NULL;
+    unsigned char* pBGR = nullptr;
     unsigned char R = 0;
     unsigned char G = 0;
     unsigned char B = 0;
@@ -32,10 +31,8 @@ void YUV420_2_RGB(unsigned char* pYUV, unsigned char* pRGB, int width, int heigh
     {
         for (int j = 0; j < width; j++)
         {
-            //找到相应的RGB首地址
             pBGR = pRGB + i*width * 3 + j * 3;
 
-            //取Y、U、V的数据值
             Y = *(pY + i*width + j);
             U = *pU;
             V = *pV;
@@ -60,26 +57,24 @@ void YUV420_2_RGB(unsigned char* pYUV, unsigned char* pRGB, int width, int heigh
 //            G = in[0] - 0.3917694091796875 * in[1] - 0.8129730224609375*in[2];
 //            B = in[0] + 2.017227172851563 * in[1];
 
-            //yuv转rgb公式
+            //yuv -> rgb
             temp = Y + ((1.779) * (U - 128));
-            R = temp<0 ? 0 : (temp>255 ? 255 : (unsigned char)temp);
+            R = temp<0 ? 0 : (temp>255 ? 255 : static_cast<unsigned char>(temp));
 
             temp = (Y - (0.3455) * (U - 128) - (0.7169) * (V - 128));
-            G = temp<0 ? 0 : (temp>255 ? 255 : (unsigned char)temp);
+            G = temp<0 ? 0 : (temp>255 ? 255 : static_cast<unsigned char>(temp));
 
             temp = (Y + (1.4075)*(V - 128));
-            B = temp<0 ? 0 : (temp>255 ? 255 : (unsigned char)temp);
+            B = temp<0 ? 0 : (temp>255 ? 255 : static_cast<unsigned char>(temp));
 
-            //将转化后的rgb保存在rgb内存中，注意放入的顺序b是最低位
             *pBGR = B;
             *(pBGR + 1) = G;
             *(pBGR + 2) = R;
 
-
             if (j % 2 != 0)
             {
-                *pU++;
-                *pV++;
+                pU++;
+                pV++;
             }
 
         }
@@ -199,12 +194,17 @@ void yuv420p_to_rgb24(/*YUV_TYPE type, */unsigned char* yuvbuffer,unsigned char*
 
 void QLabelVideoWidget::displayCall(void *data, int width, int height)
 {
-    char* rgb = new char[width * height * 3];
-    memset(rgb, 0x00, width * height * 3);
+    unsigned int w = static_cast<unsigned int>(width);
+    unsigned int h = static_cast<unsigned int>(height);
+    char* rgb = new char[w * h * 3];
+    memset(rgb, 0x00, w * h * 3);
+    auto _data = reinterpret_cast<unsigned char*>(data);
+    auto _rgb = reinterpret_cast<unsigned char*>(rgb);
+    auto _rgb0 = reinterpret_cast<uchar*>(rgb);
 //    YUV420_2_RGB((unsigned char*)data, (unsigned char*)rgb, width, height);
-    yuv420p_to_rgb24((unsigned char*)data, (unsigned char*)rgb, width, height);
+    yuv420p_to_rgb24(_data, _rgb, width, height);
 //    m_core->_cov(data, rgb, width, height, width * height * 3);
-    QImage img((uchar*)rgb, width, height, QImage::Format_RGB888);
+    QImage img(_rgb0, width, height, QImage::Format_RGB888);
     this->setPixmap(QPixmap::fromImage(img).scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
 //    m_img->setScaledContents(true);
     delete[] rgb;

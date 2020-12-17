@@ -25,7 +25,7 @@ video_thread::video_thread(const video_thread &)
 video_thread::~video_thread()
 {
     Log(Log_Info, "thread exit.%d", std::this_thread::get_id());
-    SAFE_RELEASE_PTR(&m_info);
+    SAFE_RELEASE_PTR(&m_info)
 }
 
 void video_thread::start(const _video_info_& arg)
@@ -37,7 +37,7 @@ void video_thread::start(const _video_info_& arg)
     }).detach();
 }
 
-video_thread *video_thread::index(int index)
+video_thread *video_thread::index(size_t index)
 {
     if(m_threads.size() > index)
         return m_threads[index];
@@ -100,7 +100,7 @@ void video_thread::seekPos(int64_t ms)
 void video_thread::setVol(int nVol)
 {
     m_info->audio->sdl->nVol = nVol;
-    m_info->audio->sdl->fVolPercent = nVol;
+    m_info->audio->sdl->fVolPercent = static_cast<float>(nVol);
 }
 
 void video_thread::setMute(bool bMute)
@@ -113,7 +113,7 @@ int video_thread::state()
     return m_info->state;
 }
 
-void av_log_call(void* ptr, int level, const char* fmt, va_list vl)
+void av_log_call(void* /*ptr*/, int level, const char* fmt, va_list vl)
 {
     if (level <= AV_LOG_INFO)
     {
@@ -130,7 +130,7 @@ void video_thread::startPlay()
     Log(Log_Info, "video info:%p vol:%.2f mute:%d", info, info->audio->sdl->fVolPercent, isSetBit(info->_flag, flag_bit_mute));
     int ret = 0, videoIndex = -1, audioIndex = -1;
     if(info->_cb)
-        ((video_interface*)info->_cb)->startCall(m_index);
+        reinterpret_cast<video_interface*>(info->_cb)->startCall(m_index);
     // allocate context
     info->_format_ctx = avformat_alloc_context();
     auto& pFormatCtx = info->_format_ctx;
@@ -238,11 +238,11 @@ void video_thread::video_decode()
     scale.setsrcCodec(ctx);
     Log(Log_Info, "video src size (%d,%d)!", ctx->width, ctx->height);
     if(info->_cb)
-        ((video_interface*)info->_cb)->setVideoSize(scale.w, scale.h);
+        reinterpret_cast<video_interface*>(info->_cb)->setVideoSize(scale.w, scale.h);
 
     info->state = video_player_core::state_running;
     bool bStart = false;
-    double dStartBase = 0.0f;
+    double dStartBase = 0.0;
     AVPacket pk;
 
     for(;;)
@@ -285,9 +285,9 @@ void video_thread::video_decode()
         while(!(nRet = avcodec_receive_frame(ctx, frame)))
         {
             if(pk.dts == AV_NOPTS_VALUE && frame->opaque && *(uint64_t*)frame->opaque != AV_NOPTS_VALUE)
-                pts_video = *(uint64_t*)frame->opaque;
+                pts_video = *reinterpret_cast<double*>(frame->opaque);
             else if(pk.dts != AV_NOPTS_VALUE)
-                pts_video = pk.dts;
+                pts_video = static_cast<double>(pk.dts);
             else
                 pts_video = 0;
 
@@ -339,12 +339,12 @@ void video_thread::video_decode()
 
             if(info->_cb)
             {
-                ((video_interface*)info->_cb)->posChange(pts_video * 1000);
+                reinterpret_cast<video_interface*>(info->_cb)->posChange(static_cast<int64_t>(pts_video * 1000));
                 scale.scale(frame, info->_cb);
             }
             if(isSetBit(info->_flag, flag_bit_need_pause))
             {
-                info->_pause_time = av_gettime();
+                info->_pause_time = static_cast<double>(av_gettime());
                 setBit(info->_flag, flag_bit_pause, true);
                 setBit(info->_flag, flag_bit_need_pause, false);
                 m_info->state = video_player_core::state_paused;
@@ -353,7 +353,7 @@ void video_thread::video_decode()
 
         av_packet_unref(&pk);
     }
-video_decode_thread_end:
+
     if(frame) av_free(frame);
     audio.sdl->pauseSDL();
     setBit(info->_flag, flag_bit_Stop);
@@ -411,7 +411,7 @@ void video_thread::decode_loop()
 //        }
 //    }).detach();
 
-    info->_start_time = av_gettime();
+    info->_start_time = static_cast<double>(av_gettime());
     Log(Log_Info, "t_base: %lld", info->_start_time);
     for(;;)
     {
@@ -474,7 +474,7 @@ void video_thread::seek()
             info->audio->pks.push_back(FFMPEG_SEEK);
         }
 
-        info->_start_time = av_gettime() - info->_seek_pos;
+        info->_start_time = static_cast<double>(av_gettime() - info->_seek_pos);
         setBit(info->_flag, flag_bit_read_finish, false);
     }
 
@@ -486,7 +486,7 @@ void video_thread::seek()
     {
         setBit(info->_flag, flag_bit_pause, false);
         setBit(info->_flag, flag_bit_need_pause);
-        info->_pause_time = av_gettime();
+        info->_pause_time = static_cast<double>(av_gettime());
     }
 }
 

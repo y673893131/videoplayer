@@ -18,11 +18,14 @@
 #include <QMouseEvent>
 #include <QMenu>
 #include <QAction>
+#include <QStackedWidget>
 #include "qplayfilelistmodel.h"
 #include "qfilelistview.h"
 #include "qprogressslider.h"
 #include "config.h"
 #include "qinputurlwidget.h"
+#include "qdouyuwidget.h"
+#include "qliveplatformmanager.h"
 
 QToolWidgets::QToolWidgets(QWidget *parent)
     : QWidget(parent), m_bPlaying(false)
@@ -34,6 +37,7 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     auto center = CreateCenterToolbar(parent);
     auto process = CreateProcessbar(parent);
     auto toolbar = CreateToolbar(parent);
+    auto leftWd = CreateLeftlist(parent);
     auto filelist = CreateFilelist(parent);
     auto timer = new QTimer(this);
     timer->setSingleShot(true);
@@ -42,7 +46,7 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     auto layout = new QVBoxLayout(parent);
     auto layoutWd = new QVBoxLayout(this);
     auto layoutMid = new QHBoxLayout;
-    auto layoutMidL = new QVBoxLayout;
+    auto layoutMidCenter = new QVBoxLayout;
     parent->setLayout(layout);
     layout->setMargin(0);
     layout->addWidget(this);
@@ -55,14 +59,16 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     layoutWd->addLayout(process);
     layoutWd->addWidget(toolbar);
 
+    layoutMid->setContentsMargins(5, 0, 0, 0);
+    layoutMid->addWidget(leftWd);
     layoutMid->addStretch();
-    layoutMid->addLayout(layoutMidL);
+    layoutMid->addLayout(layoutMidCenter);
     layoutMid->addStretch();
     layoutMid->addWidget(filelist);
 
-    layoutMidL->addStretch();
-    layoutMidL->addLayout(center);
-    layoutMidL->addStretch();
+    layoutMidCenter->addStretch();
+    layoutMidCenter->addLayout(center);
+    layoutMidCenter->addStretch();
 
     connect(this, &QToolWidgets::start, [timer, this](int index)
     {
@@ -84,12 +90,16 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     {
         emit hideOrShow(false);
         timer->start();
+        auto pos = QCursor::pos();
+        pos = mapFromGlobal(pos);
+        if(pos.x() < 10 && m_douyu->isHidden())
+            m_livePlatformWd->setVisible(true);
     });
 }
 
 bool QToolWidgets::isUnderValid()
 {
-    return m_filelist->isVerticalUnder() || m_filelist->underMouse();
+    return m_filelist->isVerticalUnder() || m_filelist->underMouse() || m_livePlatformWd->underMouse();
 }
 
 int QToolWidgets::index()
@@ -457,6 +467,34 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
 
 
     return widget;
+}
+
+QWidget *QToolWidgets::CreateLeftlist(QWidget *parent)
+{
+    m_livePlatformWd = new QWidget(parent);
+    m_livePlatformWd->setObjectName("live_platform");
+    auto close = new QPushButton(m_livePlatformWd);
+    close->setObjectName("btn_close");
+    m_platformManager = new QLivePlatformManager(m_livePlatformWd);
+    auto group = m_platformManager->group();
+
+    auto layout = new QVBoxLayout(m_livePlatformWd);
+    layout->setAlignment(Qt::AlignCenter);
+    layout->addWidget(close, 0, Qt::AlignRight | Qt::AlignTop);
+    layout->addStretch();
+    for(auto it : group->buttons())
+        layout->addWidget(it);
+    layout->addStretch();
+
+    m_livePlatformWd->hide();
+    connect(close, &QPushButton::clicked, m_livePlatformWd, &QWidget::hide);
+    connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), m_livePlatformWd, &QWidget::hide);
+
+    m_douyu = new QDouyuWidget(parent);
+    connect(m_douyu, &QDouyuWidget::play, this, &QToolWidgets::play);
+    connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), m_douyu, &QDouyuWidget::showIndex);
+
+    return m_livePlatformWd;
 }
 
 QWidget *QToolWidgets::CreateFilelist(QWidget *parent)

@@ -102,7 +102,7 @@ int video_player_core::_setVol(int index, int nVol)
     Log(Log_Opt, "%s=%d", __FUNCTION__, nVol);
     if(m_info && m_info->audio)
     {
-        nVol = nVol / 100.0 * SDL_MIX_MAXVOLUME;
+        nVol = static_cast<int>(nVol / 100.0 * SDL_MIX_MAXVOLUME);
         m_info->audio->sdl->nVol = nVol;
     }
     auto pIndex = video_thread::index(index);
@@ -159,8 +159,8 @@ bool pixel_format_convert(unsigned char *pdata_src, int src_width, int src_heigh
     const int src_w = src_width, src_h = src_height;
     const int dst_w = src_width, dst_h = src_height;
 
-    AVFrame* srcFrame;  //编码前数据，如yuv420，rgb24等
-    AVFrame* dstFrame;  //编码前数据，如yuv420，rgb24等
+    AVFrame* srcFrame;
+    AVFrame* dstFrame;
 
     struct SwsContext *img_convert_ctx;
     img_convert_ctx = sws_alloc_context();
@@ -202,7 +202,6 @@ bool pixel_format_convert(unsigned char *pdata_src, int src_width, int src_heigh
         dstFrame->format = AV_PIX_FMT_RGB24;
     }
 
-    //获取存储媒体数据空间
     if (av_frame_get_buffer(dstFrame, 1) < 0)
     {
         printf("get media buff failure.\n");

@@ -43,6 +43,8 @@ QLabel#label_title
     background: transparent;
     color: lightgray;
     font: bold 13px "Microsoft Yahei";
+    min-width: 100px;
+    max-width: 100px;
 }
 
 QLabel#label_frame_rate
@@ -516,3 +518,243 @@ QMenu#menu1::indicator:checked
 {
     background: #2E2F30;
 }
+
+#live_platform
+{
+    background: #2E2F30;
+    min-width: 200px;
+    max-width: 200px;
+    border-radius: 5px;
+}
+
+#rbutton_douyu,
+#rbutton_huya,
+#rbutton_egame
+{
+    min-width: 150px;
+    min-height: 90px;
+    background: white;
+    color: #2E2F30;
+    font: bold 14px "Microsoft YaHei";
+    margin: 5px;
+    border-radius: 5px;
+}
+
+#rbutton_douyu:hover,
+#rbutton_huya:hover,
+#rbutton_egame:hover
+{
+    background: #555657;
+    color: white;
+    min-width: 146px;
+    min-height: 86px;
+}
+
+#rbutton_douyu:pressed,
+#rbutton_huya:pressed,
+#rbutton_egame:pressed
+{
+    padding-left: 3px;
+    padding-top: 5px;
+}
+
+#rbutton_douyu:indicator
+{
+    min-width: 80px;
+    min-height: 80px;
+    border-image: url(:/res/douyu);
+    border-radius: 40px;
+}
+
+#rbutton_huya:indicator
+{
+    min-width: 80px;
+    min-height: 80px;
+    border-image: url(:/res/huya);
+    border-radius: 40px;
+}
+
+#rbutton_egame:indicator
+{
+    min-width: 80px;
+    min-height: 80px;
+    border-image: url(:/res/egame);
+    border-radius: 40px;
+}
+
+#douyuWd
+{
+    background: white;
+    border: 1px solid #555657;
+    min-width: 1250px;
+    min-height: 800px;
+    border-radius: 10px;
+}
+
+#douyuTitleWd
+{
+    background: #2E2F30;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+#douyuContentWd
+{
+    background: white;
+    margin: 1px;
+}
+
+#room_search
+{
+    min-height: 30px;
+    border: 2px solid lightgray;
+    font: bold 15px "Microsoft YaHei";
+    color: #5b5b5b;
+    padding-left: 20px;
+    border-radius: 15px;
+}
+
+#room_search:focus
+{
+    border: 2px solid #e75110;
+}
+
+#platform_tree
+{
+    border: 1px solid #2E2F30;
+    border-radius: 5px;
+    background: #2D2E36;
+    color: white;
+    outline: none;
+    qproperty-indentation: 0px;
+    show-decoration-selected: 1;
+}
+
+#platform_tree:item
+{
+    height: 20px;
+    min-width: 170px;
+    max-width: 170px;
+    font: 15px "Microsoft YaHei";
+    color: #d5d5d5;
+    border: 0px;
+    padding-left: 10px;
+}
+
+#platform_tree:branch
+{
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+#platform_tree:item:selected,
+#platform_tree:branch:selected,
+#platform_tree:branch:selected:active
+{
+    font-weight: bold;
+    color: #FF5C38;
+    background: #56575B;
+    border-top:1px solid #8d8d8d;
+    border-bottom:1px solid #8d8d8d;
+}
+
+#platform_tree:item:hover,
+#platform_tree:branch:hover
+{
+    color: #FF5C38;
+    background: rgba(128,128,128,128); 
+}
+
+#room_list
+{
+    background: #F2F5F6;
+    border: none;
+}
+
+#room_list:item
+{
+    min-width: 300px;
+    max-width: 300px;
+    min-height: 260px;
+    max-height: 260px;
+    background: white;
+    padding: 3px;
+    border-radius: 5px;
+}
+
+#room_list:item:hover
+{
+    border: 2px solid red;
+    padding: 5px;
+}
+
+/* pagewidget begin */
+#jump_edit
+{
+        min-height: 23px;
+        max-width: 23px;
+        font: 12px "Microsoft YaHei";
+        color: #5b5b5b;
+        background: white;
+        border: 1px solid lightgray;
+}
+
+#jump_edit:hover
+{
+        border: 1px solid #e75110;
+}
+
+#jump_button
+{
+        background: transparent;
+        font: 13px "Microsoft YaHei";
+        color: #5b5b5b;
+        padding: 0px 10px;
+        min-height: 23px;
+        max-height: 23px;
+        text-align: center;
+        border: 1px solid lightgray;
+}
+
+#jump_button:hover
+{
+        color: white;
+        background: #F96534;
+        border: 0px;
+}
+
+#page_button
+{
+        background: transparent;
+        border: 1px solid lightgray;
+        font: 12px "Microsoft YaHei";
+        color: #5b5b5b;
+        padding: 0px 10px;
+        min-height: 23px;
+        max-height: 23px;
+        text-align: center;
+}
+
+#page_button:hover
+{
+        color: white;
+        background: #F96534;
+        border: 0px;
+}
+
+#page_button::checked,
+#page_button::checked:hover
+{
+        color: white;
+        background: #e75110;
+        border: 0px;
+}
+
+#page_label
+{
+        font: 12px "Microsoft YaHei";
+        color: #5b5b5b;
+}
+
+/* pagewidget end */

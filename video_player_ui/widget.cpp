@@ -28,124 +28,121 @@ Widget::Widget(QWidget *parent)
     InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_");
     qApp->installEventFilter(this);
     setAcceptDrops(true);
-    for (int n = 0;n < 1; ++n)
+    m_video = new QGLVideoWidget(this);
+    m_toolbar = new QToolWidgets(this);
+    m_video->setAutoFillBackground(true);
+
+    static video_player_core* core = nullptr;
+    core = new video_player_core();
+    core->_init();
+    core->_setCallBack(m_video);
+
+    auto funcStop = [this]
     {
-        m_video = new QGLVideoWidget(this);
-        m_toolbar = new QToolWidgets(this);
-        m_video->setAutoFillBackground(true);
-
-        static video_player_core* core = nullptr;
-        core = new video_player_core();
-        core->_init();
-        core->_setCallBack(m_video);
-
-        auto funcStop = [this]
+        int index = m_toolbar->index();
+        core->_stop(index);
+        int state = core->_state(index);
+        qDebug() << "index: " << index << " state: " << state;
+        while(state != video_player_core::state_uninit
+               && state != video_player_core::state_stopped)
         {
-            int index = m_toolbar->index();
-            core->_stop(index);
-            int state = core->_state(index);
-            qDebug() << "index: " << index << " state: " << state;
-            while(state != video_player_core::state_uninit
-                   && state != video_player_core::state_stopped)
-            {
 #ifdef unix
-                usleep(100 * 1000);
+            usleep(100 * 1000);
 #else
-                Sleep(100);
+            Sleep(100);
 #endif
-                state = core->_state(index);
-            }
-        };
+            state = core->_state(index);
+        }
+    };
 
-        connect(m_toolbar, &QToolWidgets::play, [this, funcStop](const QString& filename)
+    connect(m_toolbar, &QToolWidgets::play, [this, funcStop](const QString& filename)
+    {
+        if(filename.isEmpty())
         {
-            if(filename.isEmpty())
+            emit m_toolbar->loadFile();
+            return ;
+        }
+
+        if(core)
+        {
+            if(core->_getState() == video_player_core::state_paused)
             {
-                emit m_toolbar->loadFile();
-                return ;
+                qDebug() << "countinue play.";
+                core->_continue(m_toolbar->index());
+                return;
             }
+        }
 
-            if(core)
-            {
-                if(core->_getState() == video_player_core::state_paused)
-                {
-                    qDebug() << "countinue play.";
-                    core->_continue(m_toolbar->index());
-                    return;
-                }
-            }
+        funcStop();
 
-            funcStop();
+        core->_setSrc(filename.toUtf8().toStdString());
 
-            core->_setSrc(filename.toUtf8().toStdString());
+        qDebug() << "==>>start play:" << filename;
+        qDebug() << m_video->size();
+        Log(Log_Info, "--->>play: %s", filename.toLocal8Bit().toStdString().c_str());
+        core->_play();
+    });
 
-            qDebug() << "==>>start play:" << filename;
-            qDebug() << m_video->size();
-            Log(Log_Info, "--->>play: %s", filename.toLocal8Bit().toStdString().c_str());
-            core->_play();
-        });
+    connect(m_toolbar, &QToolWidgets::exit, [funcStop]
+    {
+        Log(Log_Opt, "quit begin.");
+        funcStop();
+        Log(Log_Opt, "quit end.");
+        qApp->quit();
+    });
 
-        connect(m_toolbar, &QToolWidgets::exit, [funcStop]
-        {
-            Log(Log_Opt, "quit begin.");
-            funcStop();
-            Log(Log_Opt, "quit end.");
-            qApp->quit();
-        });
+    connect(m_video, &QGLVideoWidget::start, m_toolbar, &QToolWidgets::start);
+    connect(m_video, &QGLVideoWidget::playOver, [this](int /*index*/)
+    {
+        emit m_toolbar->stop();
+    });
+    connect(m_video, &QGLVideoWidget::setpos, m_toolbar, &QToolWidgets::setPosSeconds);
+    connect(m_video, &QGLVideoWidget::total, m_toolbar, &QToolWidgets::setTotalSeconds);
+    connect(m_toolbar, &QToolWidgets::pause, [this]
+    {
+        if(!core)return;
+        core->_pause(m_toolbar->index());
+        qDebug() << "pause play." << m_toolbar->index();
+    });
 
-        connect(m_video, &QGLVideoWidget::start, m_toolbar, &QToolWidgets::start);
-        connect(m_video, &QGLVideoWidget::playOver, [this](int index)
-        {
-            emit m_toolbar->stop();
-        });
-        connect(m_video, &QGLVideoWidget::setpos, m_toolbar, &QToolWidgets::setPosSeconds);
-        connect(m_video, &QGLVideoWidget::total, m_toolbar, &QToolWidgets::setTotalSeconds);
-        connect(m_toolbar, &QToolWidgets::pause, [this]
-        {
-            if(!core)return;
-            core->_pause(m_toolbar->index());
-            qDebug() << "pause play." << m_toolbar->index();
-        });
+    connect(m_toolbar, &QToolWidgets::continuePlay, [this]
+    {
+        if(!core)return;
+        core->_continue(m_toolbar->index());
+        qDebug() << "continue play." << m_toolbar->index();
+    });
 
-        connect(m_toolbar, &QToolWidgets::continuePlay, [this]
-        {
-            if(!core)return;
-            core->_continue(m_toolbar->index());
-            qDebug() << "continue play." << m_toolbar->index();
-        });
+    connect(m_toolbar, &QToolWidgets::stop, [this]
+    {
+        if(!core)return;
+        core->_stop(m_toolbar->index());
+    });
+    connect(m_toolbar, &QToolWidgets::setSeekPos, [this](int value)
+    {
+        if(!core)return;
+        core->_seek(m_toolbar->index(), value);
+    });
 
-        connect(m_toolbar, &QToolWidgets::stop, [this]
-        {
-            if(!core)return;
-            core->_stop(m_toolbar->index());
-        });
-        connect(m_toolbar, &QToolWidgets::setSeekPos, [this](int value)
-        {
-            if(!core)return;
-            core->_seek(m_toolbar->index(), value);
-        });
+    connect(m_toolbar, &QToolWidgets::setVol, [this](int value)
+    {
+        if(!core)return;
+        core->_setVol(m_toolbar->index(), value);
+    });
+    connect(m_toolbar, &QToolWidgets::mute, [this](bool bMute)
+    {
+        if(!core)return;
+        core->_setMute(m_toolbar->index(), bMute);
+    });
 
-        connect(m_toolbar, &QToolWidgets::setVol, [this](int value)
-        {
-            if(!core)return;
-            core->_setVol(m_toolbar->index(), value);
-        });
-        connect(m_toolbar, &QToolWidgets::mute, [this](bool bMute)
-        {
-            if(!core)return;
-            core->_setMute(m_toolbar->index(), bMute);
-        });
-
-        connect(m_toolbar, &QToolWidgets::viewAdjust, m_video, &QGLVideoWidget::onViewAdjust);
-        connect(m_toolbar, &QToolWidgets::topWindow, [this](bool bTop)
-        {
-            qDebug() << "topWindow:" << bTop;
-            m_bTopWindow = bTop;
-            updateTopWindow();
-        });
-        connect(m_video, &QGLVideoWidget::frameRate, m_toolbar, &QToolWidgets::frameRate);
-        connect(this , &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
-    }
+    connect(m_toolbar, &QToolWidgets::viewAdjust, m_video, &QGLVideoWidget::onViewAdjust);
+    connect(m_toolbar, &QToolWidgets::topWindow, [this](bool bTop)
+    {
+        qDebug() << "topWindow:" << bTop;
+        m_bTopWindow = bTop;
+        updateTopWindow();
+    });
+    connect(m_video, &QGLVideoWidget::frameRate, m_toolbar, &QToolWidgets::frameRate);
+    connect(this , &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
 
     flushSheetStyle();
     auto timer = new QTimer();
@@ -195,7 +192,7 @@ bool Widget::eventFilter(QObject *watched, QEvent *event)
     }
     else if(watched == this && event->type() == QEvent::KeyPress)
     {
-        auto keyEvent = (QKeyEvent*)(event);
+        auto keyEvent = reinterpret_cast<QKeyEvent*>(event);
         if(keyEvent->key() == Qt::Key_Escape)
         {
             if(isFullScreen())

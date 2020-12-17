@@ -11,7 +11,7 @@
 #include <string>
 #define MAX_PATH 256
 #else
-#include <windows.h>
+#include <Windows.h>
 #endif
 #include <mutex>
 
@@ -32,12 +32,12 @@ class CLog
 {
 public:
 	~CLog();
-	static CLog* Instanse(const char* sDir = NULL, const char* sPrifix = NULL);
+    static CLog* Instanse(const char* sDir = nullptr, const char* sPrifix = nullptr);
 	bool AddLog(Log_Level level, const char* sFormat, ...);
 private:
-	CLog(const char* sDir = NULL, const char* sPrifix = NULL);
+    CLog(const char* sDir = nullptr, const char* sPrifix = nullptr);
 	CLog(const CLog&);
-	char* CurTime(char* buff, struct tm* time1 = NULL, time_t subSecond = 0);
+    char* CurTime(char* buff, struct tm* time1 = nullptr, time_t subSecond = 0);
 	void Open(const char* sDate);
 	void write(char* str, int nlength);
 	void AutoDeleteFile();

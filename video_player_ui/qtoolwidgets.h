@@ -9,9 +9,21 @@ class QPushButton;
 class QProgressSlider;
 class QDataModel;
 class QInputUrlWidget;
+class QDouyuWidget;
+class QLivePlatformManager;
 class QToolWidgets : public QWidget
 {
     Q_OBJECT
+private:
+    enum Live_Platform
+    {
+        Live_DouYu = 0,
+        Live_HuYa,
+
+
+        Live_Max
+    };
+
 public:
     explicit QToolWidgets(QWidget *parent = nullptr);
 
@@ -47,13 +59,16 @@ private:
     QBoxLayout* CreateCenterToolbar(QWidget*);
     QBoxLayout* CreateProcessbar(QWidget*);
     QWidget* CreateToolbar(QWidget*);
+    QWidget* CreateLeftlist(QWidget*);
     QWidget* CreateFilelist(QWidget*);
 
     void CreateMenu(QWidget *parent);
     void mousePressEvent(QMouseEvent *event);
 private:
     QProgressSlider* m_process;
-    QWidget* m_filelistWd;
+    QWidget* m_livePlatformWd,* m_filelistWd;
+    QDouyuWidget* m_douyu;
+    QLivePlatformManager* m_platformManager;
     QFileListView* m_filelist;
     QPushButton *m_openfile/*,* m_filelistIndicator*/;
     QInputUrlWidget* m_inputUrl;

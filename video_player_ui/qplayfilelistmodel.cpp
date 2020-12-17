@@ -7,7 +7,7 @@
 #include <QHeaderView>
 #include <QTimer>
 #include <QFile>
-QWorker::QWorker(QObject* parent)
+QWorker::QWorker(QObject* /*parent*/)
     :QObject()
 {
     m_thread = new QThread();
@@ -30,6 +30,9 @@ void QWorker::run()
         qDebug() << "recv: "<< response->error();
         qDebug() << "code: "<< response->attribute(QNetworkRequest::Attribute::HttpStatusCodeAttribute).toInt();
         auto data = QString(response->readAll());
+//        response->close();
+//        net->deleteLater();
+//        return;
         int start = 0;
         int pos = 0;
         while(1)
@@ -57,9 +60,10 @@ void QWorker::run()
         net->deleteLater();
         emit finishWork(names, urls);
     });
-    qDebug() << net->supportedSchemes() << QThread::currentThreadId();
+
     QNetworkRequest request;
     request.setUrl(QUrl("http://ivi.bupt.edu.cn/"));//北邮IVI
+//    request.setUrl(QUrl("https://www.baidu.com"));
     request.setRawHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36");
     net->get(request);
 }
@@ -206,6 +210,8 @@ QPlayFileListModel::QPlayFileListModel(QObject *parent)
     m_worker = new QWorker(this);
 //    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
     connect(this, &QPlayFileListModel::liveflush, [=]{
+        QNetworkAccessManager net;
+        qDebug() << net.supportedSchemes() << QThread::currentThreadId();
         onInputUrlFile(":/res/Resources/iptv.urls");
     });
 
@@ -220,7 +226,7 @@ QPlayFileListModel::QPlayFileListModel(QObject *parent)
     QTimer::singleShot(0, [this]{ liveflush();});
 }
 
-QVariant QPlayFileListModel::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant QPlayFileListModel::headerData(int /*section*/, Qt::Orientation /*orientation*/, int /*role*/) const
 {
     // FIXME: Implement me!
     return QVariant();
