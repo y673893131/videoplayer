@@ -17,7 +17,6 @@ QFileListView::QFileListView(QWidget* parent)
     verticalScrollBar()->setObjectName("scroll1");
     horizontalScrollBar()->setObjectName("scroll1");
     auto model = new QPlayFileListModel(this);
-    auto data = new QDataModel(this);
     auto delegate = new QFileListDelegate(this);
     auto menu = new QMenu(this);
     menu->setObjectName("menu1");
@@ -29,15 +28,15 @@ QFileListView::QFileListView(QWidget* parent)
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     setMouseTracking(true);
 
-    connect(data, &QDataModel::loadsuccessed, model, &QPlayFileListModel::setLocaleFiles);
-    connect(data, &QDataModel::addUrlSuccess, [this, model](const QString& url)
+    connect(DATA(), &QDataModel::loadsuccessed, model, &QPlayFileListModel::setLocaleFiles);
+    connect(DATA(), &QDataModel::addUrlSuccess, [this, model](const QString& url)
     {
         setCurrentIndex(model->findIndex(url));
     });
-    connect(this, &QFileListView::addLocalUrl, data, &QDataModel::onAddUrl);
+    connect(this, &QFileListView::addLocalUrl, DATA(), &QDataModel::onAddUrl);
     connect(this, &QFileListView::addLocalUrl, model, &QPlayFileListModel::play);
     connect(this, &QFileListView::remove, model, &QPlayFileListModel::removeIndex);
-    connect(model, &QPlayFileListModel::removeUrl, data, &QDataModel::removeUrl);
+    connect(model, &QPlayFileListModel::removeUrl, DATA(), &QDataModel::removeUrl);
     connect(this, &QFileListView::rightClick, [this, menu, openDir, loadFile](const QPoint& pt)
     {
         auto index = indexAt(pt);
@@ -83,7 +82,8 @@ void QFileListView::mouseMoveEvent(QMouseEvent *event)
 {
     auto pos = event->pos();
     auto index = indexAt(pos);
-    if(((QFileListDelegate*)itemDelegate())->inCloseArea(visualRect(index), pos))
+    auto delegate = reinterpret_cast<QFileListDelegate*>(itemDelegate());
+    if(delegate->inCloseArea(visualRect(index), pos))
         setCursor(QCursor(Qt::PointingHandCursor));
     else
         setCursor(QCursor(Qt::ArrowCursor));
@@ -101,24 +101,12 @@ void QFileListView::mousePressEvent(QMouseEvent *event)
     if(!index.isValid()) return;
     if(event->buttons() & Qt::LeftButton)
     {
-        if(((QFileListDelegate*)itemDelegate())->inCloseArea(visualRect(index), pos))
+        auto delegate = reinterpret_cast<QFileListDelegate*>(itemDelegate());
+        if(delegate->inCloseArea(visualRect(index), pos))
             emit remove(index);
     }
     else
     {
         return;
     }
-
-//    QListView::mousePressEvent(event);
-}
-
-
-void QFileListView::currentChanged(const QModelIndex &/*current*/, const QModelIndex &/*previous*/)
-{
-//    qDebug() << previous << "->" << current;
-//    if(current.isValid())
-//    {
-//        auto url = current.data(QPlayFileListModel::role_url).toString();
-//        emit select(url);
-//    }
 }

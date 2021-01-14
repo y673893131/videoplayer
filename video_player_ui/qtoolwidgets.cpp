@@ -18,7 +18,11 @@
 #include <QMouseEvent>
 #include <QMenu>
 #include <QAction>
+#include <QPainter>
 #include <QStackedWidget>
+#include <QTimer>
+#include <QTime>
+#include <QToolTip>
 #include "qplayfilelistmodel.h"
 #include "qfilelistview.h"
 #include "qprogressslider.h"
@@ -26,32 +30,68 @@
 #include "qinputurlwidget.h"
 #include "qdouyuwidget.h"
 #include "qliveplatformmanager.h"
+#include "control/videocontrol.h"
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#include <windowsx.h>
+#include <dwmapi.h>
+#endif
 
 QToolWidgets::QToolWidgets(QWidget *parent)
-    : QWidget(parent), m_bPlaying(false)
-    , m_index(0), m_playMode(QPlayFileListModel::play_mode_local)
+    : QWidget(parent)
+    , m_bPlaying(false)
+    , m_bLocalFile(false)
+    , m_index(0)
+    , m_totalSeconds(0)
+    , m_playMode(QPlayFileListModel::play_mode_local)
 {
-    m_inputUrl = new QInputUrlWidget(parent);
-    CreateMenu(parent);
-    auto title = CreateTitle(parent);
-    auto center = CreateCenterToolbar(parent);
-    auto process = CreateProcessbar(parent);
-    auto toolbar = CreateToolbar(parent);
-    auto leftWd = CreateLeftlist(parent);
-    auto filelist = CreateFilelist(parent);
-    auto timer = new QTimer(this);
-    timer->setSingleShot(true);
-    timer->setInterval(3000);
+    init(parent);
+}
 
-    auto layout = new QVBoxLayout(parent);
-    auto layoutWd = new QVBoxLayout(this);
+void QToolWidgets::init(QWidget *parent)
+{
+    initStyle();
+    initUi(parent);
+    qApp->installNativeEventFilter(this);
+}
+
+void QToolWidgets::initStyle()
+{
+    setWindowFlags(Qt::FramelessWindowHint | Qt::Window /*| Qt::SubWindow*/);
+    setAttribute(Qt::WA_TranslucentBackground);
+#ifdef Q_OS_WIN
+    auto hwnd = reinterpret_cast<HWND>(this->winId());
+    setAreo(hwnd);
+    setShadow(hwnd);
+#endif
+}
+
+void QToolWidgets::initUi(QWidget *parent)
+{
+    setObjectName("toolWd");
+    m_inputUrl = new QInputUrlWidget(this);
+    CreateMenu(parent);
+    auto widget = new QWidget(this);
+    CreateSubTitle(widget);
+    auto title = CreateTitle(widget);
+    auto center = CreateCenterToolbar(widget);
+    auto process = CreateProcessbar(widget);
+    auto toolbar = CreateToolbar(widget);
+    auto leftWd = CreateLeftlist(widget);
+    auto filelist = CreateFilelist(widget);
+
+    auto autoHidetimer = new QTimer(this);
+    autoHidetimer->setSingleShot(true);
+    autoHidetimer->setInterval(3000);
+
+    auto layoutThis = new QVBoxLayout(this);
+    auto layoutWd = new QVBoxLayout(widget);
     auto layoutMid = new QHBoxLayout;
     auto layoutMidCenter = new QVBoxLayout;
-    parent->setLayout(layout);
-    layout->setMargin(0);
-    layout->addWidget(this);
 
-    this->setLayout(layoutWd);
+    layoutThis->setMargin(0);
+    layoutThis->addWidget(widget);
+
     layoutWd->setMargin(0);
     layoutWd->setSpacing(0);
     layoutWd->addWidget(title);
@@ -70,14 +110,16 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     layoutMidCenter->addLayout(center);
     layoutMidCenter->addStretch();
 
-    connect(this, &QToolWidgets::start, [timer, this](int index)
+    initSize();
+
+    connect(this, &QToolWidgets::start, [autoHidetimer, this](int index)
     {
-        timer->start();
-        qDebug() << "start:" << index;
+        autoHidetimer->start();
         m_index = index;
     });
-    connect(this, &QToolWidgets::hideOrShow, timer, &QTimer::stop);
-    connect(timer, &QTimer::timeout, [this]
+
+    connect(this, &QToolWidgets::hideOrShow, autoHidetimer, &QTimer::stop);
+    connect(autoHidetimer, &QTimer::timeout, [this]
     {
         if(m_bPlaying)
             emit hideOrShow(true);
@@ -86,25 +128,37 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     connect(this,&QToolWidgets::selectMode, this, &QToolWidgets::onSelectMode);
     connect(this,&QToolWidgets::setTotalSeconds, [this]{m_bPlaying = true; });
     connect(this,&QToolWidgets::stop, [this]{m_bPlaying = false; });
-    connect(this,&QToolWidgets::move, [timer, this]
+    connect(this,&QToolWidgets::mouseMove, [autoHidetimer, title, toolbar, this]
     {
         emit hideOrShow(false);
-        timer->start();
+        autoHidetimer->start();
         auto pos = QCursor::pos();
         pos = mapFromGlobal(pos);
-        if(pos.x() < 10 && m_douyu->isHidden())
+        auto y0 = title->pos().y() + title->height();
+        auto y1 = toolbar->pos().y();
+        if(pos.x() < 25 && pos.y() > y0 && pos.y() < y1 && m_douyu->isHidden())
             m_livePlatformWd->setVisible(true);
     });
 }
 
-bool QToolWidgets::isUnderValid()
+void QToolWidgets::initSize()
 {
-    return m_filelist->isVerticalUnder() || m_filelist->underMouse() || m_livePlatformWd->underMouse();
+    CALC_WIDGET_WIDTH(m_livePlatformWd, 200.0f / 1920);
+    CALC_WIDGET_WIDTH(m_filelistWd, 200.0f / 1920);
+    CALC_WIDGET_WIDTH(m_title, 100.0f / 1920);
+    CALC_WIDGET_HEIGHT(m_titleWd, 60.0f / 1920);
+    CALC_WIDGET_HEIGHT(m_toolWd, 150.0f / 1920);
+    CALC_WIDGET_HEIGHT(m_subtitleWd, 150.0f / 1920);
 }
 
 int QToolWidgets::index()
 {
     return m_index;
+}
+
+void QToolWidgets::setExists(bool bExists)
+{
+    m_bLocalFile = bExists;
 }
 
 void QToolWidgets::onLoadFile()
@@ -113,7 +167,7 @@ void QToolWidgets::onLoadFile()
     if(path.isEmpty())
         path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QFileDialog dialog(
-        nullptr,
+        this,
         QString(),
         path,
         "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls)");
@@ -124,7 +178,6 @@ void QToolWidgets::onLoadFile()
     QStringList fileNames;
     if (dialog.exec())
         fileNames = dialog.selectedFiles();
-    qDebug() << fileNames;
     if(!fileNames.isEmpty())
     {
         auto curPath = dialog.directory().path();
@@ -141,66 +194,155 @@ void QToolWidgets::onSelectMode(int index)
     m_playMode = index;
 }
 
+void QToolWidgets::onLeftPress()
+{
+#ifdef Q_OS_WIN
+    if(isFullScreen())
+        return;
+    if(::ReleaseCapture()){
+        ::SendMessage(HWND(this->winId()), WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
+    }
+#endif
+}
+
+void QToolWidgets::onMax()
+{
+    auto widget =/* parentWidget()*/this;
+    if(!widget)
+        widget = this;
+
+    if(widget->isMaximized() || widget->isFullScreen())
+    {
+        widget->showNormal();
+        setMaximumSize(qApp->desktop()->availableGeometry().size());
+    }
+    else
+    {
+        setMaximumSize(qApp->desktop()->availableGeometry().size());
+        widget->showMaximized();
+    }
+}
+
+void QToolWidgets::onFull()
+{
+    auto widget =/* parentWidget()*/this;
+    if(!widget)
+        widget = this;
+    if(widget->isMaximized() || widget->isFullScreen())
+    {
+        widget->showNormal();
+        setMaximumSize(qApp->desktop()->availableGeometry().size());
+    }
+    else
+    {
+//        setMaximumSize(qApp->desktop()->screenGeometry().size());
+        widget->showFullScreen();
+    }
+}
+
+void QToolWidgets::onSubtitle(const QString &str)
+{
+    auto list = str.split(',');
+    if(list.size() != 10)
+    {
+        return;
+    }
+
+    enum enum_sub_title
+    {
+        Sub_Titl_Time_Begin = 1,
+        Sub_Titl_Time_End,
+        Sub_Title_Type,
+        Sub_Title_Content = 9
+    };
+
+    auto tmBeg = UTIL->getMs(list[Sub_Titl_Time_Begin]);
+    auto tmEnd = UTIL->getMs(list[Sub_Titl_Time_End]);
+
+    if(m_subtitle.tmBeg != tmBeg || m_subtitle.tmEnd != tmEnd)
+    {
+        m_subtitle.tmBeg = tmBeg;
+        m_subtitle.tmEnd = tmEnd;
+        m_subtitle.titls.clear();
+    }
+
+    auto content = list[Sub_Title_Content];
+    if(content.lastIndexOf("\r\n") >= 0)
+    {
+        content = content.remove(content.length() - 2, 2);
+    }
+
+    m_subtitle.titls[list[Sub_Title_Type]] = content;
+    m_ch->setText(m_subtitle.titls.begin()->second);
+    if(m_subtitle.titls.size() == 2)
+    {
+        m_other->setText(m_subtitle.titls.rbegin()->second);
+    }
+}
+
 QWidget *QToolWidgets::CreateTitle(QWidget * parent)
 {
     auto widget = new QWidget(parent);
-    auto name = new QLabel(qApp->applicationName(),widget);
-    auto min = new QPushButton(widget);
-    auto max = new QPushButton(widget);
-    auto close = new QPushButton(widget);
+    m_titleWd = widget;
+    m_title = new QLabel(qApp->applicationName(), widget);
+    m_title->installEventFilter(this);
+    m_title->setMouseTracking(true);
+    m_min = new QPushButton(widget);
+    m_max = new QPushButton(widget);
+    m_close = new QPushButton(widget);
 
     widget->setObjectName("wd_title");
-    name->setObjectName("label_title");
-    min->setObjectName("btn_min");
-    max->setObjectName("btn_max");
-    close->setObjectName("btn_close");
+    m_title->setObjectName("label_title");
+    m_min->setObjectName("btn_min");
+    m_max->setObjectName("btn_max");
+    m_close->setObjectName("btn_close");
 
-    min->setToolTip(tr("minimize"));
-    max->setToolTip(tr("maximize"));
-    close->setToolTip(tr("close"));
+    m_min->setToolTip(tr("minimize"));
+    m_max->setToolTip(tr("maximize"));
+    m_close->setToolTip(tr("close"));
 
     auto layout = new QHBoxLayout(widget);
     layout->setSpacing(0);
     layout->setMargin(10);
     layout->addStretch();
-    layout->addWidget(name);
+    layout->addWidget(m_title);
     layout->addStretch();
-    layout->addWidget(min);
-    layout->addWidget(max);
-    layout->addWidget(close);
+    layout->addWidget(m_min);
+    layout->addWidget(m_max);
+    layout->addWidget(m_close);
 
-    connect(min, &QPushButton::clicked, [parent]
+    connect(m_min, &QPushButton::clicked, [this]
     {
-        parent->showMinimized();
+        parentWidget()->showMinimized();
     });
-    connect(max, &QPushButton::clicked, [parent]
+
+    connect(m_max, &QPushButton::clicked, this, &QToolWidgets::onMax);
+    connect(parentWidget(), SIGNAL(leftDoubleClicked()), this, SLOT(onFull()));
+    connect(m_close, &QPushButton::clicked, this, &QToolWidgets::exit);
+    connect(this, &QToolWidgets::hideOrShow, [widget, this](bool bHide)
     {
-        if(parent->isMaximized())
-            parent->showNormal();
-        else
-            parent->showMaximized();
-    });
-    connect(close, &QPushButton::clicked, this, &QToolWidgets::exit);
-    connect(this, &QToolWidgets::hideOrShow, [name, min, max, close, widget, this](bool bHide)
-    {
-        name->setHidden(bHide);
-        min->setHidden(bHide);
-        max->setHidden(bHide);
-        close->setHidden(bHide);
+        m_title->setHidden(bHide);
+        m_min->setHidden(bHide);
+        m_max->setHidden(bHide);
+        m_close->setHidden(bHide);
         widget->setHidden(bHide);
         if(bHide)
         {
+            m_livePlatformWd->setHidden(bHide);
             if(cursor().shape() != Qt::BlankCursor)
                 setCursor(Qt::BlankCursor);
         }
-        else if(cursor().shape() == Qt::BlankCursor)
-            setCursor(Qt::ArrowCursor);
+        else
+        {
+            if(cursor().shape() == Qt::BlankCursor)
+                setCursor(Qt::ArrowCursor);
+        }
     });
 
-    connect(this, &QToolWidgets::play, [name](const QString& sUrl)
+    connect(this, &QToolWidgets::play, [this](const QString& sUrl)
     {
         auto sName = sUrl.mid(sUrl.lastIndexOf('/') + 1);
-        name->setText(sName);
+        m_title->setText(sName);
     });
 
     return widget;
@@ -230,10 +372,11 @@ QBoxLayout *QToolWidgets::CreateCenterToolbar(QWidget *parent)
 
 QBoxLayout *QToolWidgets::CreateProcessbar(QWidget *parent)
 {
-    m_process = new QProgressSlider(Qt::Orientation::Horizontal, parent);
+    m_process = new QProgressSlider(Qt::Orientation::Horizontal, parent, this);
     m_process->setObjectName("slider_pro");
     m_process->setValue(0);
     m_process->setDisabled(true);
+    m_process->hide();
     auto layout = new QHBoxLayout;
     layout->setSpacing(0);
     layout->setMargin(0);
@@ -244,17 +387,26 @@ QBoxLayout *QToolWidgets::CreateProcessbar(QWidget *parent)
     });
 
     connect(this, &QToolWidgets::stop, this, [this]{
+        m_process->setValue(0);
         m_process->setDisabled(true);
+        m_process->setVisible(false);
     }, Qt::QueuedConnection);
 
-    connect(this,&QToolWidgets::setTotalSeconds, [this]{m_process->setHidden(true); });
+    connect(this,&QToolWidgets::setTotalSeconds, [this]{
+        m_process->setEnabled(true);
+        m_process->setVisible(false);
+    });
+
     connect(this, &QToolWidgets::hideOrShow, [this](bool bHide){
-        m_process->setHidden(bHide || m_playMode == QPlayFileListModel::play_mode_live);
+        m_process->setVisible(m_bLocalFile && !bHide);
+        if(!(m_bLocalFile && !bHide))
+        {
+            QTimer::singleShot(0, [this]{m_process->hide();});
+        }
     });
 
     connect(this, &QToolWidgets::setTotalSeconds, [this](int nSeconds)
     {
-        qDebug() << nSeconds;
         m_process->setRange(0, nSeconds);
     });
     connect(this, &QToolWidgets::setPosSeconds, [this](int nSeconds)
@@ -263,12 +415,8 @@ QBoxLayout *QToolWidgets::CreateProcessbar(QWidget *parent)
     });
 
     connect(m_process, &QProgressSlider::sliderMoved, this, &QToolWidgets::setSeekPos);
-
-    connect(this, &QToolWidgets::selectMode, [this](int mode)
-    {
-        bool bShow = (mode == QPlayFileListModel::play_mode_local);
-        m_process->setVisible(bShow);
-    });
+    connect(m_process, &QProgressSlider::getPreview, this, &QToolWidgets::getPreview);
+    connect(this, &QToolWidgets::_preview, m_process, &QProgressSlider::onPreview);
 
     return layout;
 }
@@ -276,6 +424,7 @@ QBoxLayout *QToolWidgets::CreateProcessbar(QWidget *parent)
 QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
 {
     auto widget = new QWidget(parent);
+    m_toolWd = widget;
     auto stop = new QPushButton(widget);
     auto prev = new QPushButton(widget);
     auto play = new QPushButton(widget);
@@ -283,6 +432,8 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     auto volMute = new QPushButton(widget);
     auto volNum = new QSlider(Qt::Orientation::Horizontal, widget);
     auto fileList = new QPushButton(widget);
+    auto time = new QLabel(widget);
+    time->setAlignment(Qt::AlignCenter);
     auto framRate = new QLabel(widget);
 
     widget->setObjectName("wd_toolbar");
@@ -291,21 +442,35 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     play->setObjectName("btn_pause");
     next->setObjectName("btn_next");
     volMute->setObjectName("btn_volume");
-    volMute->setIcon(parent->style()->standardIcon(QStyle::SP_MediaVolume));
+    volMute->setIcon(/*parent->*/style()->standardIcon(QStyle::SP_MediaVolume));
     volNum->setObjectName("slider_voice");
     fileList->setObjectName("file_list");
     fileList->setToolTip(tr("play list"));
+    time->setObjectName("label_frame_time");
     framRate->setObjectName("label_frame_rate");
 
+    auto space = CALC_WIDGET_WIDTH(nullptr, 10.0f / 1920);
+    auto margin = CALC_WIDGET_WIDTH(nullptr, 15.0f / 1920);
+    auto btnSize = CALC_WIDGET_SIZE(nullptr, 50.0f / 1920, 50.0f / 1080);
+    stop->setFixedSize(btnSize / 5 * 2);
+    prev->setFixedSize(btnSize);
+    play->setFixedSize(btnSize);
+    next->setFixedSize(btnSize);
+    volMute->setFixedSize(btnSize / 2);
+    CALC_WIDGET_WIDTH(volNum, 100.0f / 1920);
+    fileList->setFixedSize(btnSize / 5 * 3);
+
     auto layout = new QHBoxLayout(widget);
-    layout->setSpacing(0);
-    layout->setMargin(10);
+    layout->setSpacing(space);
+    layout->setMargin(margin);
     layout->addWidget(stop);
     layout->addWidget(prev);
     layout->addWidget(play);
     layout->addWidget(next);
     layout->addWidget(volMute);
     layout->addWidget(volNum);
+    layout->addSpacing(10);
+    layout->addWidget(time);
     layout->addStretch();
     layout->addWidget(framRate);
     layout->addSpacing(10);
@@ -440,11 +605,12 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
         }
     });
 
-    connect(this, &QToolWidgets::frameRate, [framRate](int video)
+    connect(this, &QToolWidgets::frameRate, [framRate](int frameCount)
     {
-       framRate->setText(QString("%1: %2/s").arg(tr("video")).arg(video));
+        framRate->setText(QString("%1: %2/s").arg(tr("video")).arg(frameCount));
     });
 
+    connect(this, &QToolWidgets::stop, this, [framRate]{ framRate->clear(); });
     connect(Config::instance(), &Config::loadConfig, [volNum, volMute]
     {
         volNum->setValue(GET_CONFIG_DATA(Config::Data_Vol).toInt());
@@ -465,6 +631,32 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
         SET_CONFIG_DATA(volNum->value(), Config::Data_Vol);
     });
 
+    auto funcUpdateTime = [this, time](int nSeconds)
+    {
+        if(m_totalSeconds > 100000000)
+        {
+            time->clear();
+        }
+        else
+        {
+            time->setText(QString("%1 / %2").arg(QTime::fromMSecsSinceStartOfDay(nSeconds).toString("HH:mm:ss"))
+                          .arg(QTime::fromMSecsSinceStartOfDay(m_totalSeconds).toString("HH:mm:ss")));
+        }
+    };
+
+    connect(this, &QToolWidgets::setTotalSeconds, [this, funcUpdateTime](int totals)
+    {
+        m_totalSeconds = totals;
+        funcUpdateTime(0);
+    });
+
+    connect(this, &QToolWidgets::stop, this, [this, time]
+    {
+        m_totalSeconds = 0;
+        time->clear();
+    });
+
+    connect(this, &QToolWidgets::setPosSeconds, funcUpdateTime);
 
     return widget;
 }
@@ -479,12 +671,15 @@ QWidget *QToolWidgets::CreateLeftlist(QWidget *parent)
     auto group = m_platformManager->group();
 
     auto layout = new QVBoxLayout(m_livePlatformWd);
-    layout->setAlignment(Qt::AlignCenter);
+    auto layoutBtn = new QVBoxLayout;
     layout->addWidget(close, 0, Qt::AlignRight | Qt::AlignTop);
     layout->addStretch();
-    for(auto it : group->buttons())
-        layout->addWidget(it);
+    layout->addLayout(layoutBtn);
     layout->addStretch();
+
+    layoutBtn->setAlignment(Qt::AlignCenter);
+    for(auto it : group->buttons())
+        layoutBtn->addWidget(it);
 
     m_livePlatformWd->hide();
     connect(close, &QPushButton::clicked, m_livePlatformWd, &QWidget::hide);
@@ -507,17 +702,14 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
     auto liveMode = new QPushButton(tr("liveMode"), m_filelist);
 
     searchEdit->setPlaceholderText(tr("search"));
-
     m_filelistWd->setObjectName("file_list_wd");
     m_filelist->setObjectName("list_file");
     searchEdit->setObjectName("file_search_edit");
     localMode->setObjectName("btn_mode");
     liveMode->setObjectName("btn_mode");
 
-    auto layout0 = new QVBoxLayout;
-    auto layoutR = new QGridLayout;
-    m_filelistWd->setLayout(layout0);
-    right->setLayout(layoutR);
+    auto layout0 = new QVBoxLayout(m_filelistWd);
+    auto layoutR = new QGridLayout(right);
 
     layout0->setSpacing(0);
     layout0->setMargin(0);
@@ -547,10 +739,38 @@ QWidget *QToolWidgets::CreateFilelist(QWidget *parent)
     connect(m_filelist, &QFileListView::loadFile, this, &QToolWidgets::onLoadFile);
     connect(this, &QToolWidgets::play, m_filelist, &QFileListView::addLocalUrl);
     connect(this, &QToolWidgets::inputUrlFile, m_filelist, &QFileListView::inputUrlFile);
-
     connect(searchEdit, &QLineEdit::textChanged, m_filelist, &QFileListView::filter);
 
     return m_filelistWd;
+}
+
+QWidget *QToolWidgets::CreateSubTitle(QWidget *parent)
+{
+    auto widget = new QWidget(parent);
+    m_subtitleWd = widget;
+    m_ch = new QLabel(widget);
+    m_other = new QLabel(widget);
+    m_ch->setAlignment(Qt::AlignCenter);
+    m_other->setAlignment(Qt::AlignCenter);
+
+    widget->setObjectName("sub_title_wd");
+    m_ch->setObjectName("sub_title_ch");
+    m_other->setObjectName("sub_title_other");
+
+    auto layout = new QVBoxLayout(widget);
+    layout->setAlignment(Qt::AlignCenter);
+    layout->setMargin(0);
+    layout->addWidget(m_ch);
+    layout->addWidget(m_other);
+    layout->addSpacing(CALC_WIDGET_HEIGHT(nullptr, 20.0f / 1920));
+    connect(this, &QToolWidgets::setPosSeconds, this, [this](int pos)
+    {
+        bool bVisible = (m_subtitle.tmBeg < pos && m_subtitle.tmEnd > pos);
+        m_ch->setVisible(bVisible);
+        m_other->setVisible(bVisible);
+    });
+
+    return widget;
 }
 
 void QToolWidgets::CreateMenu(QWidget *parent)
@@ -559,10 +779,23 @@ void QToolWidgets::CreateMenu(QWidget *parent)
     auto actionAdjust = menu->addAction(tr("adjust"));
     auto topWindow = menu->addAction(tr("topWindow"));
     auto urlWindow = menu->addAction(tr("url"));
+
+    auto menuRender = new QMenu(tr("render"), parent);
+    auto group = new QActionGroup(parent);
+    auto actionOpengl = group->addAction(tr("opengl"));
+    actionOpengl->setCheckable(true);
+    auto actionDX11 = group->addAction(tr("dx11"));
+    actionDX11->setCheckable(true);
+
+    menuRender->addActions(group->actions());
+    menu->addSeparator();
+    menu->addMenu(menuRender);
+
     actionAdjust->setCheckable(true);
     topWindow->setCheckable(true);
 
     menu->setObjectName("menu1");
+    menuRender->setObjectName("menu1");
     actionAdjust->setChecked(GET_CONFIG_DATA(Config::Data_Adjust).toBool());
     topWindow->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
     connect(this, &QToolWidgets::showMenu, [menu]{ menu->popup(QCursor::pos());});
@@ -576,27 +809,13 @@ void QToolWidgets::CreateMenu(QWidget *parent)
 
     connect(actionAdjust, &QAction::triggered, [](bool bCheck)
     {
-       SET_CONFIG_DATA(bCheck, Config::Data_Adjust);
+        SET_CONFIG_DATA(bCheck, Config::Data_Adjust);
     });
 
     connect(topWindow, &QAction::triggered, [](bool bCheck)
     {
-       SET_CONFIG_DATA(bCheck, Config::Data_TopWindow);
+        SET_CONFIG_DATA(bCheck, Config::Data_TopWindow);
     });
-
-//    connect(urlWindow, &QAction::triggered, [this]
-//    {
-//        if(m_bPlaying)
-//        {
-//            emit stop();
-//        }
-
-//        m_inputUrl->exec();
-//        emit inputUrl();
-//        auto sName = "rtmp://172.16.62.127/live/stream";
-//        emit this->play(sName);
-//        return;
-//    });
 
     connect(urlWindow, &QAction::triggered, m_inputUrl, &QInputUrlWidget::showInit);
     connect(m_inputUrl, &QInputUrlWidget::inputUrl, [this](const QString& url)
@@ -606,6 +825,37 @@ void QToolWidgets::CreateMenu(QWidget *parent)
 
         emit play(url);
     });
+
+    connect(group, &QActionGroup::triggered, [group, this](QAction *action)
+    {
+        for (auto ac : group->actions())
+        {
+            if(!ac->text().contains(m_curRender) && action == ac)
+            {
+                ac->setText(ac->text() + tr("(restart valid)"));
+            }
+            else
+            {
+                ac->setText(ac->text().replace(tr("(restart valid)"), ""));
+            }
+        }
+
+        action->setChecked(true);
+        SET_CONFIG_DATA(action->text().replace(tr("(restart valid)"), ""), Config::Data_Render);
+    });
+
+    connect(Config::instance(), &Config::loadConfig, [this, group]
+    {
+        m_curRender = GET_CONFIG_DATA(Config::Data_Render).toString();
+        for (auto ac : group->actions())
+        {
+            if(ac->text().contains(m_curRender))
+            {
+                ac->setChecked(true);
+                break;
+            }
+        }
+    });
 }
 
 void QToolWidgets::mousePressEvent(QMouseEvent *event)
@@ -613,4 +863,138 @@ void QToolWidgets::mousePressEvent(QMouseEvent *event)
     QWidget::mousePressEvent(event);
     if(event->buttons() & Qt::RightButton)
         emit showMenu();
+    if(event->button() == Qt::LeftButton)
+    {
+#ifdef Q_OS_WIN
+        onLeftPress();
+#endif
+    }
+}
+
+void QToolWidgets::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    QWidget::mouseDoubleClickEvent(event);
+    if(event->button() == Qt::LeftButton)
+    {
+        onFull();
+    }
+}
+
+void QToolWidgets::moveEvent(QMoveEvent *event)
+{
+    QWidget::moveEvent(event);
+    emit _move(event->pos());
+}
+
+bool QToolWidgets::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+{
+#ifdef Q_OS_WIN
+    auto msg = reinterpret_cast<MSG*>(message);
+//    auto widget = QWidget::find((int)msg->hwnd);
+//    if(msg->hwnd == reinterpret_cast<HWND>(m_inputUrl->winId()))
+//        qDebug() << __FUNCTION__ << widget << msg->message;
+    if(msg->hwnd != reinterpret_cast<HWND>(this->winId()))
+    {
+        // resize box
+        // 因为设置了WA_TranslucentBackground，不能捕获到鼠标的消息（用于缩放），需要转发给自己
+        // 如果不设置WA_TranslucentBackground，背景无法穿透，不能看到视频界面
+        if((isActiveWindow() || (parentWidget() && parentWidget()->isActiveWindow())) && (msg->message == WM_NCHITTEST || msg->message == WM_NCLBUTTONDOWN))
+        {
+            msg->hwnd = reinterpret_cast<HWND>(winId());
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    if(_nativeEvent(eventType, message, result, this))
+        return true;
+#endif
+    return false;
+}
+
+void QToolWidgets::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    UTIL->setWindowEllispeFrame(this, 0, 0);
+    emit _resize(event->size());
+    m_subtitleWd->setFixedWidth(width());
+    m_subtitleWd->move(0, height() - m_subtitleWd->height());
+}
+
+void QToolWidgets::keyPressEvent(QKeyEvent *event)
+{
+    qDebug() << __FUNCTION__ << event->key();
+    switch (event->key()) {
+    case Qt::Key_Escape:
+        if(isFullScreen())
+        {
+            showNormal();
+        }
+        break;
+    case Qt::Key_Left:
+    {
+        auto value = m_process->value();
+        value -= 5000;
+        if(value >= 0)
+        {
+            m_process->setValue(value);
+            emit m_process->sliderMoved(value);
+        }
+    }break;
+    case Qt::Key_Right:
+    {
+        auto value = m_process->value();
+        value += 5000;
+        if(value < m_process->maximum())
+        {
+            m_process->setValue(value);
+            emit m_process->sliderMoved(value);
+        }
+    }break;
+    case Qt::Key_Up:
+        break;
+    case Qt::Key_Down:
+        break;
+    default:
+        break;
+    }
+}
+
+bool QToolWidgets::eventFilter(QObject *watched, QEvent *event)
+{
+    if(watched == m_title)
+    {
+        static bool hold = false;
+        static QTimer* timer = new QTimer;
+        timer->setInterval(500);
+        timer->setSingleShot(true);
+        connect(timer, &QTimer::timeout, [this]{ QToolTip::showText(QCursor::pos() + QPoint(0, 5), m_title->text(), this); });
+        switch (event->type()) {
+        case QEvent::Enter:
+            hold = true;
+            timer->start();
+            setCursor(Qt::CursorShape::WhatsThisCursor);
+            break;
+        case QEvent::Leave:
+            hold = false;
+            timer->stop();
+            setCursor(Qt::CursorShape::ArrowCursor);
+            QToolTip::hideText();
+            break;
+        case QEvent::MouseMove:
+            if(hold)
+            {
+                QToolTip::hideText();
+                timer->stop();
+                timer->start();
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    return QWidget::eventFilter(watched, event);
 }

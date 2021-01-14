@@ -47,9 +47,7 @@ static std::map<void*, std::string> leakMap;
 #endif
 
 #define INIT_NEW(x, y) if(!*x) *x = new y(); NEW_TYPE(*x, ":"#y)
-//Log(Log_Info, "new count:%d %p %s %s(%d)",++newCount, *x, #y, __FUNCTION__, __LINE__);
 #define SAFE_RELEASE_PTR(x) DELETE_TYPE(*x, "delete count:") if(*x){delete *x;*x=nullptr;}
-//Log(Log_Info, "delete count:%d %p",++deleteCount, *x); if(*x){delete *x;*x=nullptr;}
 #define CALC_PTS(x, y) ((x - y) / 1000000.0)
 #define CALC_DELAY(x, y) ((x) > (y) ? (y) : (x))
 
@@ -68,7 +66,6 @@ struct _graud_lock_ : public std::mutex{
 struct _ffmpeg_packets_
 {
 #define FFMPEG_PK_SIZE_DEFAULT 1000
-#define FFMPEG_SEEK "ffmpeg_seek"
     _ffmpeg_packets_()
         :m_maxSize(FFMPEG_PK_SIZE_DEFAULT)
     {
@@ -164,6 +161,20 @@ struct _ffmpeg_out_frame_
 
     }
 
+    _ffmpeg_out_frame_(AVCodecContext* codec)
+        :frame(nullptr)
+        ,buffer(nullptr)
+        ,swsCov(nullptr)
+        ,srcCodec(nullptr)
+        ,size(0)
+        ,w(0)
+        ,h(0)
+        ,srcWidth(0)
+        ,srcHeight(0)
+    {
+        setsrcCodec(codec);
+    }
+
     virtual ~_ffmpeg_out_frame_()
     {
         uninit();
@@ -174,7 +185,7 @@ struct _ffmpeg_out_frame_
         init(w, h);
     }
 #ifdef FRAME_RGB
-    #define SELECT_PIX_FMT AV_PIX_FMT_RGB24
+    #define SELECT_PIX_FMT AV_PIX_FMT_RGBA
 #else
     #define SELECT_PIX_FMT AV_PIX_FMT_YUV420P
 #endif
@@ -250,15 +261,17 @@ struct _ffmpeg_out_frame_
 
     void scale(AVFrame* src, void* cb)
     {
-        if(!cb) return;
         if(srcWidth != srcCodec->width || srcHeight != srcCodec->height)
             initFrame();
         sws_scale(swsCov,reinterpret_cast<const uint8_t *const *>(src->data)
                   ,src->linesize, 0, srcCodec->height, frame->data
                   ,frame->linesize);
-//        Log(Log_Info, "ret:%d, height: %d", nRet, h);
-        reinterpret_cast<video_interface*>(cb)->displayCall(buffer, w, h);
+//        Log(Log_Info, "src_line_size:[%d-%d-%d], width: %d, height: %d dst_line_size:[%d-%d-%d]", src->linesize[0], src->linesize[1], src->linesize[2]
+//                , w, h, frame->linesize[0], frame->linesize[1], frame->linesize[2]);
+        if(cb)
+            reinterpret_cast<video_interface*>(cb)->displayCall(buffer, w, h);
     }
+
     AVFrame* frame;
     uint8_t* buffer;
     SwsContext* swsCov;
@@ -274,16 +287,56 @@ struct _ffmpeg_out_frame_
 struct _ffmpeg_video_info_
 {
     _ffmpeg_video_info_()
-        :_clock(0)
-        ,nStreamIndex(-1)
+        : _clock(0)
+        , nStreamIndex(-1)
+        , frame(nullptr)
     {
 
     }
+
+    AVFrame* frame;
     AVCodecContext* pCodecContext;
     AVCodec* pCodec;
     _ffmpeg_packets_ pks;
     double _clock;
     std::function<void ()> callback;
+    int nStreamIndex;
+};
+
+struct _ffmpeg_subtitle_info_
+{
+    _ffmpeg_subtitle_info_()
+        : nStreamIndex(-1)
+        , pCodecContext(nullptr)
+        , pCodec(nullptr)
+        , pSubtitle(nullptr)
+    {
+
+    }
+
+    virtual ~_ffmpeg_subtitle_info_()
+    {
+        uninit();
+    }
+
+    void init()
+    {
+        pCodec = avcodec_find_decoder(pCodecContext->codec_id);
+        avcodec_open2(pCodecContext, pCodec, nullptr);
+        INIT_NEW(&pSubtitle, AVSubtitle)
+    }
+
+    void uninit()
+    {
+        nStreamIndex = -1;
+        pCodecContext = nullptr;
+        pCodec = nullptr;
+        SAFE_RELEASE_PTR(&pSubtitle)
+    }
+
+    AVCodecContext* pCodecContext;
+    AVCodec* pCodec;
+    AVSubtitle* pSubtitle;
     int nStreamIndex;
 };
 
@@ -541,15 +594,13 @@ struct _ffmpeg_audio_info_
 
 enum flag_bit{
     flag_bit_seek = 0,
-    flag_bit_vseek_finish,
-    flag_bit_aseek_finish,
     flag_bit_pause,
     flag_bit_Stop,
     flag_bit_tvideo_finish,
     flag_bit_taudio_finish,
     flag_bit_mute,
     flag_bit_read_finish,
-    flag_bit_need_pause
+    flag_bit_need_pause,
 };
 
 inline bool isSetBit(unsigned int flag, int bit)
@@ -563,18 +614,6 @@ inline void setBit(unsigned int& flag, int bit, bool value = true)
         flag &= ~(1 << bit);
     else
         flag |= (1 << bit);
-}
-
-inline bool checkSeek(AVPacket &pk, AVStream *stream)
-{
-    if(strcmp(reinterpret_cast<char*>(pk.data), FFMPEG_SEEK) == 0)
-    {
-        avcodec_flush_buffers(stream->codec);
-        av_packet_unref(&pk);
-        return false;
-    }
-
-    return true;
 }
 
 struct _video_info_
@@ -610,6 +649,7 @@ struct _video_info_
         ,yuv(nullptr)
         ,video(nullptr)
         ,audio(nullptr)
+        ,subtitle(nullptr)
         ,_vRead(src._vRead)
         ,_aRead(src._aRead)
     {
@@ -628,6 +668,7 @@ struct _video_info_
         SAFE_RELEASE_PTR(&yuv)
         SAFE_RELEASE_PTR(&video)
         SAFE_RELEASE_PTR(&audio)
+        SAFE_RELEASE_PTR(&subtitle)
     }
 
     void init()
@@ -635,6 +676,7 @@ struct _video_info_
         INIT_NEW(&yuv, _ffmpeg_out_frame_)
         INIT_NEW(&video, _ffmpeg_video_info_)
         INIT_NEW(&audio, _ffmpeg_audio_info_)
+        INIT_NEW(&subtitle, _ffmpeg_subtitle_info_)
     }
     int state;
     std::string src;
@@ -646,8 +688,156 @@ struct _video_info_
     _ffmpeg_out_frame_* yuv;
     _ffmpeg_video_info_* video;
     _ffmpeg_audio_info_* audio;
+    _ffmpeg_subtitle_info_* subtitle;
 
     int _vRead, _aRead;
+};
+
+struct _preview_info_
+{
+    _preview_info_()
+    {
+        sFile.clear();
+        nIndex = -1;
+        frame = nullptr;
+        pFormatCtx = nullptr;
+        ctx = nullptr;
+        outFrame = nullptr;
+    }
+
+    virtual ~_preview_info_()
+    {
+        clear();
+    }
+
+    bool isOk()
+    {
+        return ctx != nullptr;
+    }
+
+    void init(const std::string& file)
+    {
+        if(file == sFile)
+            return;
+
+        clear();
+
+        sFile = file;
+        frame = av_frame_alloc();
+        pFormatCtx = avformat_alloc_context();
+        avformat_open_input(&pFormatCtx, file.c_str(), nullptr, nullptr);
+        avformat_find_stream_info(pFormatCtx, nullptr);
+        for(size_t i = 0; i < pFormatCtx->nb_streams; ++i)
+        {
+            if(pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+                nIndex = i;
+        }
+        if(nIndex >= 0)
+        {
+            ctx = pFormatCtx->streams[nIndex]->codec;
+            auto pCodec = avcodec_find_decoder(ctx->codec_id);
+            avcodec_open2(ctx, pCodec, nullptr);
+            outFrame = new _ffmpeg_out_frame_(ctx);
+        }
+    }
+
+    void preview(const std::string& src, int64_t ms, void* cb)
+    {
+        init(src);
+        if(!isOk())
+            return;
+        auto target = ms * 1000;
+        AVRational aVRational = {1, AV_TIME_BASE};
+        if(nIndex >= 0)
+            target = av_rescale_q(target, aVRational, pFormatCtx->streams[nIndex]->time_base);
+        if(av_seek_frame(pFormatCtx, nIndex, target, AVSEEK_FLAG_BACKWARD) < 0)
+        {
+            Log(Log_Warning, "%s:seek img failed!", pFormatCtx->filename);
+            return;
+        }
+
+        avcodec_flush_buffers(ctx);
+        AVPacket pk;
+        int ret = 0;
+        bool bFirst = false;
+        while(1)
+        {
+            ret = av_read_frame(pFormatCtx, &pk);
+            if(pk.stream_index != nIndex)
+            {
+                av_packet_unref(&pk);
+                continue;
+            }
+
+            if(!bFirst && !(pk.flags & AV_PKT_FLAG_KEY))
+            {
+                av_packet_unref(&pk);
+                continue;
+            }
+
+            bFirst = true;
+
+            ret = avcodec_send_packet(ctx, &pk);
+            if( ret != 0 && ret != AVERROR(EAGAIN) )
+            {
+                av_packet_unref(&pk);
+                continue;
+            }
+
+            ret = avcodec_receive_frame(ctx, frame);
+            if(ret != 0)
+            {
+                av_packet_unref(&pk);
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        outFrame->scale(frame, nullptr);
+        av_packet_unref(&pk);
+        reinterpret_cast<video_interface*>(cb)->previewDisplayCall(outFrame->buffer, outFrame->w, outFrame->h);
+    }
+
+    void clear()
+    {
+        sFile.clear();
+        nIndex = -1;
+
+        if(frame)
+        {
+            av_frame_free(&frame);
+            frame = nullptr;
+        }
+
+        if(ctx)
+        {
+            avcodec_close(ctx);
+            ctx = nullptr;
+        }
+
+        if(pFormatCtx)
+        {
+            avformat_close_input(&pFormatCtx);
+            avformat_free_context(pFormatCtx);
+            pFormatCtx = nullptr;
+        }
+
+        if(outFrame)
+        {
+            delete outFrame;
+            outFrame = nullptr;
+        }
+    }
+
+    std::string sFile;
+    int nIndex;
+    AVFrame* frame;
+    AVFormatContext* pFormatCtx;
+    AVCodecContext* ctx;
+    _ffmpeg_out_frame_* outFrame;
 };
 
 #endif // VIDEO_DEFINE_H

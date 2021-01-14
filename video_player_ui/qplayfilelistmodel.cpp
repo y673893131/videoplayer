@@ -7,6 +7,7 @@
 #include <QHeaderView>
 #include <QTimer>
 #include <QFile>
+#include "framelesswidget/util.h"
 QWorker::QWorker(QObject* /*parent*/)
     :QObject()
 {
@@ -88,7 +89,7 @@ void QPlayFileListModel::setMode(int mode)
 {
     if(m_nPlayMode != mode)
     {
-        m_nPlayMode = (play_mode)mode;
+        m_nPlayMode = static_cast<play_mode>(mode);
         emit layoutChanged();
     }
 }
@@ -154,7 +155,7 @@ void QPlayFileListModel::onInputUrlFile(const QString &file)
             if(title.contains(list[0]))
                 continue;
             title.push_back(list[0]);
-            urls.push_back(list[1]);
+            urls.push_back(list[1].replace("\r\n", ""));
         }while (true);
         f.close();
 
@@ -207,11 +208,12 @@ void QPlayFileListModel::onFilter(const QString &sFilter)
 QPlayFileListModel::QPlayFileListModel(QObject *parent)
     : QAbstractListModel(parent), m_nPlayMode(play_mode_local)
 {
+    m_itemSize = CALC_WIDGET_SIZE(nullptr, 200.0f / 1920, 20.0f / 1080);
     m_worker = new QWorker(this);
 //    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
     connect(this, &QPlayFileListModel::liveflush, [=]{
         QNetworkAccessManager net;
-        qDebug() << net.supportedSchemes() << QThread::currentThreadId();
+//        qDebug() << net.supportedSchemes();
         onInputUrlFile(":/res/Resources/iptv.urls");
     });
 
@@ -266,6 +268,8 @@ QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
                 return m_filterLocalNames[index.row()];
         }
         break;
+    case Qt::SizeHintRole:
+        return m_itemSize;
     case role_url:
         if(m_nPlayMode == play_mode_live)
         {

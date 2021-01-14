@@ -33,7 +33,8 @@ class CLog
 public:
 	~CLog();
     static CLog* Instanse(const char* sDir = nullptr, const char* sPrifix = nullptr);
-	bool AddLog(Log_Level level, const char* sFormat, ...);
+    bool AddLog(Log_Level level, const char* function, int line, const char* sFormat, ...);
+    bool AddLogB(Log_Level level, const char* sFormat, ...);
 private:
     CLog(const char* sDir = nullptr, const char* sPrifix = nullptr);
 	CLog(const CLog&);
@@ -55,4 +56,6 @@ private:
 };
 
 #define InitLogInstance(x, y) CLog::Instanse(x, y)
-#define Log(l, x, ...) CLog::Instanse()->AddLog(l, x, ##__VA_ARGS__)
+
+#define Log(l, format, ...) CLog::Instanse()->AddLog(l, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
+#define LogB(l, format, ...) CLog::Instanse()->AddLogB(l, format, ##__VA_ARGS__)

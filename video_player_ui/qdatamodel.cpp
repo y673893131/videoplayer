@@ -8,6 +8,17 @@
 #include <QTimer>
 #include "qplayfilelistmodel.h"
 #include "config.h"
+QDataModel *QDataModel::m_instance=nullptr;
+QDataModel *QDataModel::instance()
+{
+    if(!m_instance)
+    {
+        m_instance = new QDataModel();
+    }
+
+    return m_instance;
+}
+
 QDataModel::QDataModel(QObject *parent) : QObject(parent)
 {
     m_db = QSqlDatabase::addDatabase("QSQLITE");
@@ -24,9 +35,11 @@ QDataModel::QDataModel(QObject *parent) : QObject(parent)
     }
     else
         initConfig();
+
+    loadConfig();
+
     QTimer::singleShot(0, [this]
     {
-        loadConfig();
         init();
     });
 }

@@ -4,40 +4,53 @@
 #include <QWidget>
 #include <framelesswidget/framelesswidget.h>
 #include <QDateTime>
+#include "qtoolwidgets.h"
+#ifdef Q_OS_WIN
+#define USE_DX
+#endif
+
+#ifdef USE_DX
+class QDirect3D11Widget;
+#else
 class QGLVideoWidget;
-class video_player_core;
+#endif
+class QRenderFactory;
 class QToolWidgets;
+class QVideoControl;
+
 class Widget : public QFrameLessWidget
 {
     Q_OBJECT
 
 public:
     Widget(QWidget *parent = nullptr);
-    ~Widget();
+    ~Widget() override;
 
-    // video_interface interface
-public:
-    void endCall();
-private:
-    video_player_core* m_core;
-    QGLVideoWidget* m_video;
-    QToolWidgets* m_toolbar;
-    // QWidget interface
-protected:
-    void resizeEvent(QResizeEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    bool eventFilter(QObject *watched, QEvent *event);
-    virtual bool isValid();
-private slots:
-    void flushSheetStyle();
 signals:
     void inputUrlFile(const QString&);
-private:
-    QDateTime m_last;
 
-    // QWidget interface
+private slots:
+    void onExit();
+    void onTopWindow(bool);
+    void onFlushSheetStyle();
+private:
+    Q_DISABLE_COPY(Widget)
+    void init();
+    void initData();
+    void initStyle();
+    void initResource();
+    void initConnect();
+    void flushQss();
+    void flushInitSize();
 protected:
-    void dragEnterEvent(QDragEnterEvent *event);
-    void dropEvent(QDropEvent *event);
+    void mouseMoveEvent(QMouseEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+
+private:
+    QRenderFactory* m_render;
+    QToolWidgets* m_toolbar;
+    QVideoControl* m_control;
 };
 #endif // WIDGET_H

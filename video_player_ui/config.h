@@ -15,6 +15,7 @@ public:
         Data_Vol,
         Data_TopWindow,
         Data_Adjust,
+        Data_Render
     };
 
 signals:

@@ -30,6 +30,8 @@ public:
     virtual void posChange(const int64_t t) = 0;
     virtual void setVideoSize(int width, int hight) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
+    virtual void displaySubTitleCall(char*) = 0;
+    virtual void previewDisplayCall(void* data, int width, int height) = 0;
     virtual void startCall(int) = 0;
     virtual void endCall(int) = 0;
 };
@@ -57,6 +59,7 @@ public:
     int _continue(int);
     int _stop(int);
     int _seek(int, int64_t);
+    int _get_seek_img(int, int64_t);
     int _setVol(int, int);
     int _setMute(int, bool bMute);
     int _setsize(int w, int h);

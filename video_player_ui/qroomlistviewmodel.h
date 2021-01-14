@@ -32,6 +32,7 @@ public slots:
     void onRoomChanged(int n, const QString&, void*)
 ;private:
     CRoomManager* m_room;
+    QSize m_itemSize;
 };
 
 #endif // QROOMLISTVIEWMODEL_H

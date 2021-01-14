@@ -3,6 +3,7 @@
 
 #include "framelesswidget/framelesswidget.h"
 class QTimer;
+class QPushButton;
 class QDouyuWidget : public QFrameLessWidget
 {
     Q_OBJECT
@@ -12,13 +13,20 @@ public:
 signals:
     void play(const QString&);
     void showIndex(int);
-public slots:
 
+private:
+    void init(QWidget* parent);
+    void initStyle();
+    void initUi(QWidget* parent);
     // QObject interface
-public:
-    bool eventFilter(QObject *watched, QEvent *event);
+private:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    bool isValid() override;
+    void showEvent(QShowEvent *event) override;
 private:
     QTimer* m_timer;
+    QWidget* m_title;
+    QPushButton* m_close;
 };
 
 #endif // QDOUYUWIDGET_H

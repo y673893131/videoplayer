@@ -75,7 +75,7 @@ void QDyModel::loadGameRooms(const QString& url)
         int nPos = data.indexOf("\"pageCount\":");
         auto pgCount = getAttr(data, "\"pageCount\":", ",", nPos);
         auto pgPath = getAttr(data, "\"pagePath\":\"", "\"", nPos);
-        qDebug() << pgCount << pgPath;
+//        qDebug() << pgCount << pgPath;
         emit totalPage(pgCount.toInt(), pgPath);
         loadGameRoomPage(pgPath);
     };
@@ -88,6 +88,7 @@ void QDyModel::loadGameRooms(const QString& url)
 
 void QDyModel::loadGameRoomPage(const QString &url, int nPage)
 {
+//    qDebug() << url;
     auto func = [=](QNetworkReply *response)
     {
         QString text = response->readAll();
@@ -97,22 +98,43 @@ void QDyModel::loadGameRoomPage(const QString &url, int nPage)
         auto obj = doc.object();
         auto data = obj.value("data");
         auto arr = data.toObject().value("rl").toArray();
-        QStringList sKeys;
-        sKeys << "rid" << "rn" << "rs1" << "rs16" << "url" << "nn";
         waitClearRooms();
         for(auto it : arr)
         {
             auto arrObj = it.toObject();
+            auto type = arrObj.value("type").toInt();
+            if(type == 2)
+                continue;
             auto room = new _DyRoom_();
-            room->sRid = QString::number(arrObj.value("rid").toInt());
-            room->sImg1 = arrObj.value("rs1").toString();
-            room->sImg2 = arrObj.value("rs16").toString();
-            room->sUrl = arrObj.value("url").toString();
-            room->nOnlineCount = arrObj.value("ol").toInt();
-            room->sC2Name = arrObj.value("c2name").toString();
-            room->sName = arrObj.value("nn").toString();
-            room->sRn = arrObj.value("rn").toString();
-            room->sOd = arrObj.value("od").toString();
+            room->nType = type;
+
+            switch (room->nType) {
+            case 1://live room
+                room->sRid = QString::number(arrObj.value("rid").toInt());
+                room->sImg1 = arrObj.value("rs1").toString();
+                room->sImg2 = arrObj.value("rs16").toString();
+                room->sUrl = arrObj.value("url").toString();
+                room->nOnlineCount = arrObj.value("ol").toInt();
+                room->sC2Name = arrObj.value("c2name").toString();
+                room->sName = arrObj.value("nn").toString();
+                room->sRn = arrObj.value("rn").toString();
+                room->sOd = arrObj.value("od").toString();
+                break;
+             case 2://video
+             {
+                auto video = arrObj.value("video").toObject();
+                room->sRid = QString::number(video.value("hashId").toInt());
+                room->sImg1 = video.value("cover").toString();
+                room->sImg2 = video.value("cover").toString();
+                room->sUrl = arrObj.value("url").toString();
+                //https://v.douyu.com/api/stream/getStreamUrl
+//                room->sLiveUrl = arrObj.value("url").toString();
+                room->sC2Name = video.value("ct2name").toString();
+                room->sName = video.value("nickname").toString();
+                room->sRn = video.value("title").toString();
+            }break;
+            }
+
             m_room->append(room);
         }
 
@@ -131,7 +153,6 @@ void QDyModel::getLiveArg(const QString &rid)
     auto func = [=](QNetworkReply *response)
     {
         QString data = response->readAll();
-
 
         _Dy_Sign_Arg_ arg;
         int nPos = 0;
@@ -199,8 +220,8 @@ void QDyModel::getLiveUrl(const _Dy_Sign_Arg_ &arg)
     {
         QString data = QString::fromUtf8(response->readAll());
 
-        qDebug() << "live" << data.length();
-        qDebug() << "live" << data;
+//        qDebug() << "live" << data.length();
+//        qDebug() << "live" << data;
         auto doc = QJsonDocument::fromJson(data.toUtf8());
         auto obj = doc.object();
         auto dataObj = obj.value("data").toObject();
@@ -210,7 +231,7 @@ void QDyModel::getLiveUrl(const _Dy_Sign_Arg_ &arg)
         re.indexIn(url);
         auto list = re.cap(2).split('_');
         auto liveUrl = QString("http://tx2play1.douyucdn.cn/live/%1.flv?uuid=").arg(list[0]);
-        qDebug() << liveUrl;
+//        qDebug() << liveUrl;
         emit play(liveUrl);
     };
 
@@ -225,7 +246,7 @@ void QDyModel::getLiveUrl(const _Dy_Sign_Arg_ &arg)
 
 void QDyModel::getPreviewUrl(const QString & sRid)
 {
-    qDebug() << "play->" << sRid;
+//    qDebug() << "play->" << sRid;
     auto func = [=](QNetworkReply *response)
     {
         QString data = QString::fromUtf8(response->readAll());
@@ -241,7 +262,8 @@ void QDyModel::getPreviewUrl(const QString & sRid)
         auto dataObj = obj.value("data").toObject();
         auto url = dataObj["rtmp_live"].toString();
         auto list = url.split('/');
-        auto list1 = list[0].split('_');
+        auto list0 = url.split(".m3u8");
+        auto list1 = list0[0].split('_');
         auto liveUrl = QString("http://tx2play1.douyucdn.cn/live/%1.flv?uuid=").arg(list1[0]);
         emit play(liveUrl);
     };

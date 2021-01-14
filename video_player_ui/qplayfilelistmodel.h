@@ -3,6 +3,7 @@
 
 #include <QAbstractListModel>
 #include <QThread>
+#include <QSize>
 
 class QWorker : public QObject
 {
@@ -59,7 +60,7 @@ public:
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 private:
-    Qt::ItemFlags flags(const QModelIndex &index) const;
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
 private:
     play_mode m_nPlayMode;
     QStringList m_urlNames, m_urls, m_localNames, m_locals;
@@ -67,6 +68,7 @@ private:
     QString m_sFilter;
     QWorker* m_worker;
     QString m_playFile;
+    QSize m_itemSize;
     friend class QWorker;
 };
 

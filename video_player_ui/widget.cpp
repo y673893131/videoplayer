@@ -1,8 +1,6 @@
 #include "widget.h"
 #include <QDebug>
-#include <QLabel>
 #include <QBoxLayout>
-#include <QPushButton>
 #include <QTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -11,155 +9,148 @@
 #include <math.h>
 #include <QMessageBox>
 #include <QKeyEvent>
+#include <QDesktopWidget>
+#include <QMimeData>
+#include <QDragEnterEvent>
 #include "video_player_core.h"
-#include "qglvideowidget.h"
+#include "control/videocontrol.h"
 #include "qtoolwidgets.h"
+#include "qdatamodel.h"
 #include "Log/Log.h"
 #ifdef unix
 #include <unistd.h>
+#else
+#include "render/qdirect3d11widget.h"
+#include "render/qglvideowidget.h"
+#endif
+#include "render/qrenderfactory.h"
+
+
+#ifdef USE_DX
+    using VIDEO_TYPE = QDirect3D11Widget;
+#else
+    using VIDEO_TYPE = QGLVideoWidget;
 #endif
 
 Widget::Widget(QWidget *parent)
     : QFrameLessWidget(parent)
 {
-    setSize(800, 600);
-    setEnableDoubleClicked(true);
-    qApp->setApplicationName("vPlay");
-    InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_");
-    qApp->installEventFilter(this);
-    setAcceptDrops(true);
-    m_video = new QGLVideoWidget(this);
-    m_toolbar = new QToolWidgets(this);
-    m_video->setAutoFillBackground(true);
-
-    static video_player_core* core = nullptr;
-    core = new video_player_core();
-    core->_init();
-    core->_setCallBack(m_video);
-
-    auto funcStop = [this]
-    {
-        int index = m_toolbar->index();
-        core->_stop(index);
-        int state = core->_state(index);
-        qDebug() << "index: " << index << " state: " << state;
-        while(state != video_player_core::state_uninit
-               && state != video_player_core::state_stopped)
-        {
-#ifdef unix
-            usleep(100 * 1000);
-#else
-            Sleep(100);
-#endif
-            state = core->_state(index);
-        }
-    };
-
-    connect(m_toolbar, &QToolWidgets::play, [this, funcStop](const QString& filename)
-    {
-        if(filename.isEmpty())
-        {
-            emit m_toolbar->loadFile();
-            return ;
-        }
-
-        if(core)
-        {
-            if(core->_getState() == video_player_core::state_paused)
-            {
-                qDebug() << "countinue play.";
-                core->_continue(m_toolbar->index());
-                return;
-            }
-        }
-
-        funcStop();
-
-        core->_setSrc(filename.toUtf8().toStdString());
-
-        qDebug() << "==>>start play:" << filename;
-        qDebug() << m_video->size();
-        Log(Log_Info, "--->>play: %s", filename.toLocal8Bit().toStdString().c_str());
-        core->_play();
-    });
-
-    connect(m_toolbar, &QToolWidgets::exit, [funcStop]
-    {
-        Log(Log_Opt, "quit begin.");
-        funcStop();
-        Log(Log_Opt, "quit end.");
-        qApp->quit();
-    });
-
-    connect(m_video, &QGLVideoWidget::start, m_toolbar, &QToolWidgets::start);
-    connect(m_video, &QGLVideoWidget::playOver, [this](int /*index*/)
-    {
-        emit m_toolbar->stop();
-    });
-    connect(m_video, &QGLVideoWidget::setpos, m_toolbar, &QToolWidgets::setPosSeconds);
-    connect(m_video, &QGLVideoWidget::total, m_toolbar, &QToolWidgets::setTotalSeconds);
-    connect(m_toolbar, &QToolWidgets::pause, [this]
-    {
-        if(!core)return;
-        core->_pause(m_toolbar->index());
-        qDebug() << "pause play." << m_toolbar->index();
-    });
-
-    connect(m_toolbar, &QToolWidgets::continuePlay, [this]
-    {
-        if(!core)return;
-        core->_continue(m_toolbar->index());
-        qDebug() << "continue play." << m_toolbar->index();
-    });
-
-    connect(m_toolbar, &QToolWidgets::stop, [this]
-    {
-        if(!core)return;
-        core->_stop(m_toolbar->index());
-    });
-    connect(m_toolbar, &QToolWidgets::setSeekPos, [this](int value)
-    {
-        if(!core)return;
-        core->_seek(m_toolbar->index(), value);
-    });
-
-    connect(m_toolbar, &QToolWidgets::setVol, [this](int value)
-    {
-        if(!core)return;
-        core->_setVol(m_toolbar->index(), value);
-    });
-    connect(m_toolbar, &QToolWidgets::mute, [this](bool bMute)
-    {
-        if(!core)return;
-        core->_setMute(m_toolbar->index(), bMute);
-    });
-
-    connect(m_toolbar, &QToolWidgets::viewAdjust, m_video, &QGLVideoWidget::onViewAdjust);
-    connect(m_toolbar, &QToolWidgets::topWindow, [this](bool bTop)
-    {
-        qDebug() << "topWindow:" << bTop;
-        m_bTopWindow = bTop;
-        updateTopWindow();
-    });
-    connect(m_video, &QGLVideoWidget::frameRate, m_toolbar, &QToolWidgets::frameRate);
-    connect(this , &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
-
-    flushSheetStyle();
-    auto timer = new QTimer();
-    timer->setInterval(200);
-    connect(timer, &QTimer::timeout, this, &Widget::flushSheetStyle);
-    timer->start();
+    init();
 }
 
 Widget::~Widget()
 {
 }
 
-void Widget::flushSheetStyle()
+void Widget::init()
+{
+    initData();
+    initStyle();
+    initResource();
+}
+
+void Widget::initData()
+{
+    DATA();
+}
+
+void Widget::initStyle()
+{
+    qApp->setApplicationName("vPlay");
+    InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_");
+    qApp->installEventFilter(this);
+    setAcceptDrops(true);
+}
+
+void Widget::initResource()
+{
+    m_render = new QRenderFactory(this);
+//    m_video = new VIDEO_TYPE(this);
+    m_toolbar = new QToolWidgets(this);
+    m_toolbar->show();
+    m_control = new QVideoControl(this);
+    m_control->setToolBar(m_toolbar);
+
+    auto layout = new QVBoxLayout(this);
+    layout->setMargin(0);
+    layout->addWidget(m_render->renderWidget());
+
+    initConnect();
+    flushQss();
+}
+
+void Widget::initConnect()
+{
+    auto renderWd = m_render->renderWidget();
+    connect(this, &Widget::rightClicked, m_toolbar, &QToolWidgets::showMenu);
+    connect(this, &Widget::leftPress, m_toolbar, &QToolWidgets::onLeftPress);
+    connect(this, &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
+
+    connect(m_control, SIGNAL(appendFrame(void*)), renderWd, SLOT(onAppendFrame(void*)), Qt::QueuedConnection);
+    connect(m_control, SIGNAL(start(int)), renderWd, SLOT(onStart()));
+    connect(m_control, SIGNAL(end(int)), renderWd, SLOT(onStop()));
+
+    connect(m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
+    connect(m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
+    connect(m_toolbar, &QToolWidgets::exit, this, &Widget::onExit);
+    connect(m_toolbar, &QToolWidgets::topWindow, this, &Widget::onTopWindow);
+    connect(m_toolbar, SIGNAL(viewAdjust(bool)), renderWd, SLOT(onViewAdjust(bool)));
+}
+
+void Widget::flushQss()
+{
+    onFlushSheetStyle();
+
+//    auto timer = new QTimer();
+//    timer->setInterval(200);
+//    connect(timer, &QTimer::timeout, this, &Widget::onFlushSheetStyle);
+//        timer->start();
+    flushInitSize();
+}
+
+void Widget::flushInitSize()
+{
+    if(m_render->isUpdate())
+    {
+        CALC_WIDGET_SIZE(m_toolbar, 0.5f, 0.7f);
+        CENTER_DESKTOP(m_toolbar);
+    }
+    else
+    {
+        QTimer::singleShot(0, [this]{
+            CALC_WIDGET_SIZE(m_toolbar, 0.5f, 0.7f);
+            CENTER_DESKTOP(m_toolbar);
+        });
+    }
+}
+
+void Widget::onExit()
+{
+#ifdef Q_OS_WIN
+    Log(Log_Opt, "quit begin.");
+    ::TerminateProcess(::GetCurrentProcess(), 0);
+    Log(Log_Opt, "quit end.");
+    return;
+#endif
+    Log(Log_Opt, "quit begin.");
+    m_control->waittingStoped();
+    Log(Log_Opt, "quit end.");
+    qApp->quit();
+}
+
+void Widget::onTopWindow(bool bTop)
+{
+    qDebug() << "topWindow:" << bTop;
+    m_bTopWindow = bTop;
+    updateTopWindow();
+}
+
+void Widget::onFlushSheetStyle()
 {
 #define QSS_FILE ":/res/qss.qss"
 //#define QSS_FILE "./Resources/res.qss"
     QFileInfo fi(QSS_FILE);
+    static QDateTime m_last;
     QDateTime lastMdTime = fi.lastModified();
     if (m_last != lastMdTime)
     {
@@ -172,12 +163,6 @@ void Widget::flushSheetStyle()
     }
 }
 
-void Widget::resizeEvent(QResizeEvent *event)
-{
-    QFrameLessWidget::resizeEvent(event);
-    m_video->resize(size());
-}
-
 void Widget::mouseMoveEvent(QMouseEvent *event)
 {
     QFrameLessWidget::mouseMoveEvent(event);
@@ -188,24 +173,24 @@ bool Widget::eventFilter(QObject *watched, QEvent *event)
 {
     if(/*watched == this && */event->type() == QEvent::MouseMove)
     {
-        emit m_toolbar->move();
+        emit m_toolbar->mouseMove();
     }
     else if(watched == this && event->type() == QEvent::KeyPress)
     {
         auto keyEvent = reinterpret_cast<QKeyEvent*>(event);
         if(keyEvent->key() == Qt::Key_Escape)
         {
-            if(isFullScreen())
+            if(m_toolbar->isFullScreen())
             {
-                showNormal();
+                m_toolbar->showNormal();
             }
-            else
-            {
-                auto btn = QMessageBox::information(this, tr("tips"),tr("quit") + " " + qApp->applicationName() + "?"
-                                                    , QMessageBox::Ok | QMessageBox::Cancel);
-                if(btn == QMessageBox::Ok)
-                    emit m_toolbar->exit();
-            }
+//            else
+//            {
+//                auto btn = QMessageBox::information(this, tr("tips"),tr("quit") + " " + qApp->applicationName() + "?"
+//                                                    , QMessageBox::Ok | QMessageBox::Cancel);
+//                if(btn == QMessageBox::Ok)
+//                    emit m_toolbar->exit();
+//            }
         }
 
         return true;
@@ -214,13 +199,7 @@ bool Widget::eventFilter(QObject *watched, QEvent *event)
     return QFrameLessWidget::eventFilter(watched, event);
 }
 
-bool Widget::isValid()
-{
-    return m_toolbar->isUnderValid();
-}
 
-#include <QMimeData>
-#include <QDragEnterEvent>
 inline bool checkFile(const QString& file, const QStringList& types)
 {
     for(auto type : types)
@@ -235,7 +214,6 @@ inline bool checkFile(const QString& file, const QStringList& types)
 
 void Widget::dragEnterEvent(QDragEnterEvent *event)
 {
-    qDebug() << "QDragEnterEvent";
     auto urls = event->mimeData()->urls();
     if(!urls.empty())
     {

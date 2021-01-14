@@ -5,8 +5,16 @@
 #include <QDir>
 #include <QDebug>
 
+void myMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+{
+  if (type != QtWarningMsg || !msg.startsWith("QWindowsWindow::setGeometry")) {
+    QByteArray localMsg = msg.toLocal8Bit();
+    fprintf(stdout, localMsg.constData());
+  }
+}
 int main(int argc, char *argv[])
 {
+//    qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
 
     auto trans = new QTranslator();
@@ -15,8 +23,5 @@ int main(int argc, char *argv[])
 
     Widget w;
     w.show();
-#ifdef WIN32
-    a.installNativeEventFilter(&w);
-#endif
     return a.exec();
 }

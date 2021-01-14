@@ -7,12 +7,12 @@
 #include <QVector>
 #include <QMetaType>
 #include <QImage>
-
+#include "framelesswidget/framelesswidget.h"
 QRoomListViewModel::QRoomListViewModel(QObject *parent)
     : QAbstractListModel(parent)
-    ,m_room(nullptr)
+    , m_room(nullptr)
 {
-    qRegisterMetaType<QVector<int>>("QVector<int>");
+    m_itemSize = CALC_SIZE(300.0f / 1920, 260.0f / 1080);
 }
 
 QVariant QRoomListViewModel::headerData(int /*section*/, Qt::Orientation /*orientation*/, int /*role*/) const
@@ -43,7 +43,9 @@ QVariant QRoomListViewModel::data(const QModelIndex &index, int role) const
     case rid_role:
         return m_room->index(index.row())->sRid;
     case room_info_role:
-        return QVariant::fromValue((void*)m_room->index(index.row()));
+        return QVariant::fromValue(reinterpret_cast<void*>(m_room->index(index.row())));
+    case Qt::SizeHintRole:
+        return m_itemSize;
     default:
         break;
     }

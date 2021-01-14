@@ -1,4 +1,5 @@
 #include "audio_thread.h"
+#include "video_thread.h"
 
 _sdl_op_* _ffmpeg_audio_info_::sdl = nullptr;
 audio_thread* audio_thread::s_instance=nullptr;
@@ -35,6 +36,8 @@ bool audio_thread::addAudio(_video_info_* pInfo)
         if(m_flag != &m_info->_flag)
             m_flag = &m_info->_flag;
         audio->sdl->startSDL();
+
+        Log(Log_Info, "thread_id:%d", SDL_ThreadID());
         return true;
     }
 
@@ -123,29 +126,27 @@ int audio_thread::audio_decode()
         if(isSetBit(*m_flag, flag_bit_pause))
             break;
 
+        if(isSetBit(*m_flag, flag_bit_seek))
+        {
+            msleep(1);
+            continue;
+        }
+
         if(pks.empty(pk))
         {
-            if(isSetBit(*m_flag, flag_bit_read_finish) && !isSetBit(*m_flag, flag_bit_seek))
+            if(isSetBit(*m_flag, flag_bit_read_finish) /*&& !isSetBit(*m_flag, flag_bit_seek)*/)
             {
                 Log(Log_Info, "audio_thread break, pks is empty and read finish.");
                 setBit(*m_flag, flag_bit_taudio_finish);
+                break;
             }
-            break;
+
+            msleep(1);
+            continue;
         }
 
         if(pk.pts != AV_NOPTS_VALUE)
             clock = av_q2d(m_stream->time_base) * pk.pts;
-        if(!checkSeek(pk, m_stream))
-            continue;
-        if(isSetBit(*m_flag, flag_bit_aseek_finish))
-        {
-            if(clock < m_info->_seek_time)
-            {
-                av_packet_unref(&pk);
-                continue;
-            }
-            setBit(*m_flag, flag_bit_aseek_finish, false);
-        }
 
         int got_frame = 0;
         avcodec_decode_audio4(ctx, frame, &got_frame, &pk);

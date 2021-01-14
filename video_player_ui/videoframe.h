@@ -5,7 +5,7 @@
 #include "video_player_core.h"
 
 #ifdef FRAME_RGB
-#define FRAME_LENGTH(x, y) x*y*3
+#define FRAME_LENGTH(x, y) x*y*4
 #else
 #define FRAME_LENGTH(x, y) x*y*3/2
 #endif
@@ -46,22 +46,36 @@ public:
         return framebuffer + w * h * 5 / 4;
     }
 
-    int size_y()
+    unsigned int size_y()
     {
         return w * h;
     }
 
-    int size_u()
+    unsigned int size_u()
     {
         return w * h / 4;
     }
 
-    int size_v()
+    unsigned int size_v()
     {
         return w * h / 4;
     }
 
-    unsigned char* data(int index, int& width, int& height){
+    unsigned int size(int index)
+    {
+        switch (index) {
+        case 0:
+            return size_y();
+        case 1:
+            return size_u();
+        case 2:
+            return size_v();
+        }
+
+        return 0;
+    }
+
+    unsigned char* data(int index, unsigned int& width, unsigned int& height){
         unsigned char* data = nullptr;
         switch (index)
         {
@@ -84,8 +98,8 @@ public:
 
         return data;
     }
-    int w;
-    int h;
+    unsigned int w;
+    unsigned int h;
     unsigned char* framebuffer;
 };
 

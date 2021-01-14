@@ -13,6 +13,7 @@ struct _DyRoom_
         :pm(nullptr)
     {
         nOnlineCount = 0;
+        nType = 1;
     }
 
     virtual ~_DyRoom_()
@@ -35,6 +36,7 @@ struct _DyRoom_
     QString sUrl;
     QString sLiveUrl;
     int nOnlineCount;
+    int nType;
     QString sName;
     QString sRn;
     QString sOd;

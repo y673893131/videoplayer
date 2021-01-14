@@ -1,5 +1,6 @@
 #include "config.h"
 #include <QJsonDocument>
+#include <QTimer>
 
 Config* Config::instance()
 {
@@ -15,6 +16,7 @@ Config::Config()
     m_obj["volume_num"] = 50;
     m_obj["is_top_window"] = false;
     m_obj["is_adjust_frame"] = true;
+    m_obj["render"] = "opengl";
 }
 
 void Config::init(const QVariant &va)
@@ -25,7 +27,7 @@ void Config::init(const QVariant &va)
         m_obj = doc.object();
     }
 
-    emit loadConfig();
+    QTimer::singleShot(0, [this]{ emit loadConfig();});
 }
 
 QVariant Config::getData(Config::Data_Type type) const
@@ -42,6 +44,8 @@ QVariant Config::getData(Config::Data_Type type) const
         return m_obj.value("is_top_window");
     case Data_Adjust:
         return m_obj.value("is_adjust_frame");
+    case Data_Render:
+        return m_obj.value("render");
     }
 
     return QVariant();
@@ -65,6 +69,9 @@ void Config::setData(const QVariant &value, Config::Data_Type type)
         break;
     case Data_Adjust:
         m_obj["is_adjust_frame"] = value.toBool();
+        break;
+    case Data_Render:
+        m_obj["render"] = value.toString();
         break;
     }
 

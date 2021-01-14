@@ -21,6 +21,7 @@ struct _Dy_Sign_Arg_
     {
         rate = "-1";
         did = "10000000000000000000000000001501";
+        type = 1;
     }
 
     QString key()
@@ -39,6 +40,7 @@ struct _Dy_Sign_Arg_
     QString sign;
     QString ver;
     QString rate;
+    int type;
 };
 
 enum Live_Platform

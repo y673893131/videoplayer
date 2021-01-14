@@ -12,6 +12,8 @@ public:
 signals:
     void inputUrl(const QString&);
     void showInit();
+private:
+    void showEvent(QShowEvent *event) override;
 };
 
 #endif // QINPUTURLWIDGET_H

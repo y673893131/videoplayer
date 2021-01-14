@@ -5,11 +5,13 @@
 #include <QtSql/QSqlDatabase>
 #include <QSqlQuery>
 
-
 class QDataModel : public QObject
 {
     Q_OBJECT
 public:
+    static QDataModel *instance();
+
+private:
     explicit QDataModel(QObject *parent = nullptr);
 
     void init();
@@ -27,6 +29,8 @@ private:
     void reportError(const QSqlQuery & query);
 private:
     QSqlDatabase m_db;
+    static QDataModel* m_instance;
 };
 
+#define DATA() QDataModel::instance()
 #endif // QDATAMODEL_H

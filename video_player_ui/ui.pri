@@ -1,5 +1,46 @@
 CONFIG += c++11
 
+win32
+{
+    INCLUDEPATH += F:/DX11/Include
+    LIBS += -LF:/DX11/lib/x86 -ld3d11 -ld3dx11 -ld3dcompiler
+}
+
+# ui
+HEADERS += \
+    $$PWD/control/videocontrol.h \
+    $$PWD/framelesswidget/nativeevent_win.h \
+    $$PWD/framelesswidget/util.h \
+    $$PWD/render/dx11/bitmapclass.h \
+    $$PWD/render/dx11/graphicsclass.h \
+    $$PWD/render/qrenderfactory.h \
+    render/qglvideowidget.h \
+    render/qlabelvideowidget.h \
+    render/qd3d11widget.h \
+    render/qdirect3d11widget.h \
+    render/dx11/cameraclass.h \
+    render/dx11/d3dclass.h \
+    render/dx11/inputclass.h \
+    render/dx11/textureclass.h \
+    render/dx11/textureshaderclass.h
+
+SOURCES += \
+    $$PWD/control/videocontrol.cpp \
+    $$PWD/framelesswidget/nativeevent_win.cpp \
+    $$PWD/framelesswidget/util.cpp \
+    $$PWD/render/dx11/bitmapclass.cpp \
+    $$PWD/render/dx11/graphicsclass.cpp \
+    $$PWD/render/qrenderfactory.cpp \
+    render/qglvideowidget.cpp \
+    render/qlabelvideowidget.cpp \
+    render/qd3d11widget.cpp \
+    render/qdirect3d11widget.cpp \
+    render/dx11/cameraclass.cpp \
+    render/dx11/d3dclass.cpp \
+    render/dx11/inputclass.cpp \
+    render/dx11/textureclass.cpp \
+    render/dx11/textureshaderclass.cpp
+
 SOURCES += \
     $$PWD/config.cpp \
     $$PWD/croommanager.cpp \
@@ -8,8 +49,6 @@ SOURCES += \
     $$PWD/qdouyuwidget.cpp \
     $$PWD/qfilelistdelegate.cpp \
     $$PWD/qfilelistview.cpp \
-    $$PWD/qglvideowidget.cpp \
-    $$PWD/qlabelvideowidget.cpp \
     $$PWD/qlivelist.cpp \
     $$PWD/qlivelistmodel.cpp \
     $$PWD/qliveplatformmanager.cpp \
@@ -38,8 +77,6 @@ HEADERS += \
     $$PWD/qdouyuwidget.h \
     $$PWD/qfilelistdelegate.h \
     $$PWD/qfilelistview.h \
-    $$PWD/qglvideowidget.h \
-    $$PWD/qlabelvideowidget.h \
     $$PWD/qlivelist.h \
     $$PWD/qlivelistmodel.h \
     $$PWD/qliveplatformmanager.h \
@@ -79,7 +116,7 @@ DESTDIR = $$PWD/../bin
 RESOURCES += \
     $$PWD/res.qrc
 
-TRANSLATIONS = vPlayTranslate.ts
+TRANSLATIONS = $$PWD/tr/zh_cn/vPlayTranslate.ts
 
 RC_FILE += \
     $$PWD/res.rc

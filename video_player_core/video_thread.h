@@ -23,6 +23,7 @@ public:
     void setStop();
     bool getStop();
     void seekPos(int64_t);
+    void getSeekImg(int64_t);
     void setVol(int);
     void setMute(bool bMute);
     int state();
@@ -35,10 +36,15 @@ private:
     bool audio_decode_prepare();
     void decode_loop();
     void seek();
-    bool push_frame();
+    bool push_frame(bool& bSeek);
+    bool checkSeekPkt(AVPacket* pk);
+    // subtitle
+    void initSubTitle();
+    bool checkSubTitle(AVPacket*);
 private:
     int m_index;
     _video_info_* m_info;
+    _preview_info_* m_previewInfo;
     static std::vector<video_thread*> m_threads;
 };
 

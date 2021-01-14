@@ -4,6 +4,7 @@
 #include <QLineEdit>
 #include <QTimer>
 #include <QKeyEvent>
+#include <QDebug>
 #include "qlivelist.h"
 #include "qlivelistmodel.h"
 #include "qroomlistview.h"
@@ -12,17 +13,35 @@
 QDouyuWidget::QDouyuWidget(QWidget *parent)
     :QFrameLessWidget(parent)
 {
-//    setAttribute(Qt::WA_ShowModal, true);
+    init(parent);
+}
+
+void QDouyuWidget::init(QWidget *parent)
+{
+    initStyle();
+    initUi(parent);
+}
+
+void QDouyuWidget::initStyle()
+{
+    setAttribute(Qt::WA_ShowModal, true);
+    setDragSelf(true);
+    setDoubleClickMax();
+    auto hwnd = reinterpret_cast<HWND>(this->winId());
+    setAreo(hwnd);
+    setShadow(hwnd);
     installEventFilter(this);
+}
+
+void QDouyuWidget::initUi(QWidget */*parent*/)
+{
     setObjectName("douyuWd");
-    auto widget = new QWidget(this);
-    widget->setObjectName("douyuWd");
+    auto widget = this;
+    m_title = new QWidget(widget);
+    m_title->setObjectName("douyuTitleWd");
 
-    auto titleWidget = new QWidget(widget);
-    titleWidget->setObjectName("douyuTitleWd");
-
-    auto close = new QPushButton("", titleWidget);
-    close->setObjectName("btn_close");
+    m_close = new QPushButton("", m_title);
+    m_close->setObjectName("btn_close");
 
     auto contentWidget = new QWidget(widget);
     contentWidget->setObjectName("douyuContentWd");
@@ -36,15 +55,10 @@ QDouyuWidget::QDouyuWidget(QWidget *parent)
 
     auto page = new QPageWidget(contentWidget);
 
-    auto layoutThis = new QVBoxLayout(this);
-    layoutThis->setMargin(0);
-    layoutThis->setSpacing(0);
-    layoutThis->addWidget(widget);
-
     auto layout = new QVBoxLayout(widget);
     layout->setMargin(0);
     layout->setSpacing(0);
-    layout->addWidget(titleWidget, 0, Qt::AlignTop);
+    layout->addWidget(m_title, 0, Qt::AlignTop);
     layout->addWidget(contentWidget);
 
     auto layoutLeft = new QVBoxLayout;
@@ -60,20 +74,22 @@ QDouyuWidget::QDouyuWidget(QWidget *parent)
     layoutRight->addWidget(roomlist);
     layoutRight->addLayout(layoutRightBottom);
 
-    auto titleLayout = new QHBoxLayout(titleWidget);
+    auto titleLayout = new QHBoxLayout(m_title);
     titleLayout->addStretch();
-    titleLayout->addWidget(close);
+    titleLayout->addWidget(m_close);
 
     auto layoutContent = new QHBoxLayout(contentWidget);
     layoutContent->setMargin(5);
 
-    layoutContent->addLayout(layoutLeft, 1);
-    layoutContent->addLayout(layoutRight, 4);
+    layoutContent->addLayout(layoutLeft);
+    layoutContent->addLayout(layoutRight);
 
-    connect(close, &QPushButton::clicked, this, &QFrameLessWidget::hide);
+    CALC_WIDGET_WIDTH(liveList, 0.1f);
 
-    auto modelPlatform = (QLiveListModel*)liveList->model();
-    auto modelRoom = (QRoomListViewModel*)roomlist->model();
+    connect(m_close, &QPushButton::clicked, this, &QFrameLessWidget::hide);
+
+    auto modelPlatform = reinterpret_cast<QLiveListModel*>(liveList->model());
+    auto modelRoom = reinterpret_cast<QRoomListViewModel*>(roomlist->model());
     modelRoom->setRoomManager(modelPlatform->getRoomManager());
     m_timer = new QTimer();
     m_timer->setInterval(300);
@@ -88,8 +104,6 @@ QDouyuWidget::QDouyuWidget(QWidget *parent)
     connect(modelPlatform, &QLiveListModel::resetPage, page, &QPageWidget::setTotalCount);
     connect(modelPlatform, &QLiveListModel::loadRoomsInfo, page, &QPageWidget::setPageCount);
 //    connect(page, &QPageWidget::pageChanged, modelPlatform, &QLiveListModel::onPageChanged);
-
-
     connect(m_timer, &QTimer::timeout, this, [=]{ modelPlatform->onPageChanged(page->curentPage()); });
     connect(page, &QPageWidget::pageChanged, this, [=](int){ m_timer->start(); });
     connect(this, &QDouyuWidget::showIndex, modelPlatform, [=](int type)
@@ -98,6 +112,7 @@ QDouyuWidget::QDouyuWidget(QWidget *parent)
         modelPlatform->setCurrentType(type);
         modelRoom->setRoomManager(modelPlatform->curData()->roomManager());
         show();
+        CENTER_DESKTOP(this);
     });
 }
 
@@ -116,4 +131,15 @@ bool QDouyuWidget::eventFilter(QObject *watched, QEvent *event)
         }
     }
     return QWidget::eventFilter(watched, event);
+}
+
+bool QDouyuWidget::isValid()
+{
+    return m_title->underMouse() && !m_close->underMouse();
+}
+
+void QDouyuWidget::showEvent(QShowEvent *event)
+{
+    CALC_WIDGET_SIZE(this, 0.7f, 0.8f);
+    QFrameLessWidget::showEvent(event);
 }

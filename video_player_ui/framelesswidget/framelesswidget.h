@@ -3,69 +3,44 @@
 
 #include <QWidget>
 #include <QAbstractNativeEventFilter>
-#ifdef WIN32
-#include <windows.h>
-#endif
+#include "nativeevent_win.h"
+#include "util.h"
+
 class QDragBorder;
-class QFrameLessWidget : public QWidget, public QAbstractNativeEventFilter
+#ifdef Q_OS_WIN
+class QFrameLessWidget : public QWidget, public CNativeEvent_Win
+#else
+class QFrameLessWidget : public QWidget
+#endif
 {
     Q_OBJECT
-
-#define PADDING 10
-    enum Drag_Move
-    {
-        DragMove_None = 0,
-        DragMove_Left,
-        DragMove_Right,
-        DragMove_Top,
-        DragMove_Restore
-    };
-
+signals:
+    void leftPress();
+    void rightClicked();
+    void leftDoubleClicked();
 public:
     QFrameLessWidget(QWidget *parent = nullptr);
-    ~QFrameLessWidget();
+    virtual ~QFrameLessWidget() override;
 
-    void setSize(int,int);
-    void center();
-    void setEnableDoubleClicked(bool);
-private:
-    void resizeBackground(int w, int h, int round, int margin, QColor color);
-    void region(const QPoint &cursorGlobalPoint, bool &activeFlag);
-    void checkMouseMoveRegion();
-    bool checkLButtonPressRegion();
-    void checkSize(void*);
-    void checkDragMove(void*);
-
+    void setDragSelf(bool);
+    void setDoubleClickFullScreen();
+    void setDoubleClickMax();
     // QWidget interface
 protected:
-    void mousePressEvent(QMouseEvent *event);
-    void paintEvent(QPaintEvent *event);
-    bool nativeEventFilter(const QByteArray &eventType, void *message, long *result);
-    void mouseDoubleClickEvent(QMouseEvent *event);
-    void resizeEvent(QResizeEvent *event);
-    void keyPressEvent(QKeyEvent *event);
-    void setBackgroundColor(QColor);
+    bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
     virtual bool isValid();
-    bool isFullScreen();
-    void showFullScreen();
-    void showNormal();
     void updateTopWindow();
 protected:
-    bool m_bTopWindow, m_bEnableDoubleClicked;
+    bool m_bTopWindow;
 private:
-    QColor m_bkColor;
     QImage m_bkImg;
-    int m_dir;
-    Drag_Move m_drag;
-    QSize m_normalSize,m_minSize;
-    QRect m_dragRc;
-    QPoint m_dragLastPos,m_doubleClickPos;
     QDragBorder* m_dragBorder;
-
-    // QWidget interface
-protected:
-    void mouseReleaseEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void showEvent(QShowEvent *event);
 };
 #endif // QFrameLessWidget_H

@@ -22,7 +22,6 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void mousePressEvent(QMouseEvent *event);
-    void currentChanged(const QModelIndex &current, const QModelIndex &previous);
 };
 
 #endif // QFILELISTVIEW_H

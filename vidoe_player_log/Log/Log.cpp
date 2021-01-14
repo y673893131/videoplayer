@@ -72,46 +72,90 @@ CLog* CLog::Instanse(const char* sDir, const char* sPrifix)
     return (CLog*)g_log;
 }
 
-bool CLog::AddLog(Log_Level level, const char* sFormat, ...)
+bool CLog::AddLogB(Log_Level level, const char* sFormat, ...)
 {
-        if (!m_bIsOpen) return true;
+    if (!m_bIsOpen) return true;
     std::lock_guard<std::mutex> lock(m_lock);
 
-        struct tm tm1;
-        char sDate[32] = {};
-        bool bret = true;
-        if (!strstr(m_absFile, CurTime(sDate, &tm1)) || !m_file)
-        {
-                bret = false;
-                Open(sDate);
-        }
-        memset(m_sText, 0x00, sizeof(m_sText));
-        int n = 0;
-        switch (level)
-        {
-        case Log_Warning:
-        n += sprintf(m_sText, "%-10s", "[Warning]");
-        break;
-        case Log_Err:
-        n += sprintf(m_sText, "%-10s", "[Error]");
-                break;
-        case Log_Opt:
-        n += sprintf(m_sText, "%-10s", "[Option]");
-                break;
-        default:
-        n += sprintf(m_sText, "%-10s", "[Info]");
-                break;
-        }
+    struct tm tm1;
+    char sDate[32] = {};
+    bool bret = true;
+    if (!strstr(m_absFile, CurTime(sDate, &tm1)) || !m_file)
+    {
+            bret = false;
+            Open(sDate);
+    }
+    memset(m_sText, 0x00, sizeof(m_sText));
+    int n = 0;
+    switch (level)
+    {
+    case Log_Warning:
+    n += sprintf(m_sText, "%-10s", "[Warning]");
+    break;
+    case Log_Err:
+    n += sprintf(m_sText, "%-10s", "[Error]");
+            break;
+    case Log_Opt:
+    n += sprintf(m_sText, "%-10s", "[Option]");
+            break;
+    default:
+    n += sprintf(m_sText, "%-10s", "[Info]");
+            break;
+    }
 
-        n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
-        char* pNext = m_sText + n;
-        va_list args;
-        va_start(args, sFormat);
+    n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
+    char* pNext = m_sText + n;
+    va_list args;
+    va_start(args, sFormat);
     vsprintf(pNext, sFormat, args);
-        va_end(args);
+    va_end(args);
 
-        write(m_sText, strlen(m_sText));
-        return bret;
+    write(m_sText, strlen(m_sText));
+    return bret;
+}
+
+bool CLog::AddLog(Log_Level level, const char *function, int line, const char *sFormat, ...)
+{
+    if (!m_bIsOpen) return true;
+    std::lock_guard<std::mutex> lock(m_lock);
+
+    struct tm tm1;
+    char sDate[32] = {};
+    bool bret = true;
+    if (!strstr(m_absFile, CurTime(sDate, &tm1)) || !m_file)
+    {
+            bret = false;
+            Open(sDate);
+    }
+    memset(m_sText, 0x00, sizeof(m_sText));
+    int n = 0;
+    switch (level)
+    {
+    case Log_Warning:
+    n += sprintf(m_sText, "%-10s", "[Warning]");
+    break;
+    case Log_Err:
+    n += sprintf(m_sText, "%-10s", "[Error]");
+            break;
+    case Log_Opt:
+    n += sprintf(m_sText, "%-10s", "[Option]");
+            break;
+    default:
+    n += sprintf(m_sText, "%-10s", "[Info]");
+            break;
+    }
+
+    n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
+    n += sprintf(m_sText + n, " [%s:%d] ", function, line);
+
+    char* pNext = m_sText + n;
+    va_list args;
+    va_start(args, sFormat);
+    vsprintf(pNext, sFormat, args);
+    va_end(args);
+
+    write(m_sText, strlen(m_sText));
+    return bret;
 }
 
 char* CLog::CurTime(char* buff, struct tm* time1, time_t subSecond)
@@ -144,7 +188,7 @@ void CLog::Open(const char* sDate)
         m_file = fopen(m_absFile, "a+");
         m_bIsOpen = m_file != NULL;
         if (!m_bIsOpen) return;
-    AddLog(Log_Info, "===============================START=================================");
+    AddLogB(Log_Info, "===============================START=================================");
         AutoDeleteFile();
 }
 
