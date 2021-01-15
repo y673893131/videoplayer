@@ -35,6 +35,7 @@ private:
     void video_decode();
     bool audio_decode_prepare();
     void decode_loop();
+    double get_video_pts(AVFrame* frame);
     void seek();
     bool push_frame(bool& bSeek);
     bool checkSeekPkt(AVPacket* pk);

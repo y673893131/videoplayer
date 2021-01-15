@@ -313,28 +313,7 @@ void video_thread::video_decode()
 
         while(!(nRet = avcodec_receive_frame(ctx, frame)))
         {
-//            if(pk.dts == AV_NOPTS_VALUE && frame->opaque && *(uint64_t*)frame->opaque != AV_NOPTS_VALUE)
-//                pts_video = *reinterpret_cast<double*>(frame->opaque);
-//            else if(pk.dts != AV_NOPTS_VALUE)
-//                pts_video = static_cast<double>(pk.dts);
-//            else
-//                pts_video = 0;
-
-            if(frame->pts != AV_NOPTS_VALUE)
-                pts_video = frame->pts;
-            else if(frame->pkt_dts != AV_NOPTS_VALUE)
-                pts_video = frame->pkt_dts;
-            else
-            {
-                auto opa = *reinterpret_cast<double*>(frame->opaque);
-                if(opa != AV_NOPTS_VALUE)
-                    pts_video = opa;
-                else
-                    pts_video = 0;
-            }
-
-            pts_video *= av_q2d(stream->time_base);
-            video._clock = pts_video;
+            pts_video = get_video_pts(frame);
             if(!bStart)
             {
                 bStart = true;
@@ -457,7 +436,8 @@ void video_thread::decode_loop()
             bSeek = true;
             seek();
         }
-        if(aduio_pks.isMax() || video_pks.isMax() || isSetBit(info->_flag, flag_bit_pause))
+
+        if(aduio_pks.isMax() || video_pks.isMax() || (isSetBit(info->_flag, flag_bit_pause) && !bSeek))
         {
             msleep(10);
             continue;
@@ -485,6 +465,38 @@ void video_thread::decode_loop()
         Log(Log_Info, "waitting for video thread stop...");
         msleep(100);
     }
+}
+
+double video_thread::get_video_pts(AVFrame *frame)
+{
+    double pts_video = 0.0;
+//            if(pk.dts == AV_NOPTS_VALUE && frame->opaque && *(uint64_t*)frame->opaque != AV_NOPTS_VALUE)
+//                pts_video = *reinterpret_cast<double*>(frame->opaque);
+//            else if(pk.dts != AV_NOPTS_VALUE)
+//                pts_video = static_cast<double>(pk.dts);
+//            else
+//                pts_video = 0;
+
+    if(frame->pts != AV_NOPTS_VALUE)
+        pts_video = frame->pts;
+    else if(frame->pkt_dts != AV_NOPTS_VALUE)
+        pts_video = frame->pkt_dts;
+    else
+    {
+        auto opa = *reinterpret_cast<double*>(frame->opaque);
+        if(opa != AV_NOPTS_VALUE)
+            pts_video = opa;
+        else
+            pts_video = 0;
+    }
+
+    auto& video = *m_info->video;
+    auto& stream = m_info->_format_ctx->streams[m_info->video->nStreamIndex];
+
+    pts_video *= av_q2d(stream->time_base);
+    video._clock = pts_video;
+
+    return pts_video;
 }
 
 void video_thread::seek()
@@ -601,6 +613,14 @@ bool video_thread::checkSeekPkt(AVPacket *pk)
     {
         av_packet_unref(pk);
         return true;
+    }
+
+    auto pts = get_video_pts(m_info->video->frame);
+    auto& scale = *m_info->yuv;
+    if(m_info->_cb)
+    {
+        reinterpret_cast<video_interface*>(m_info->_cb)->posChange(static_cast<int64_t>(pts * 1000));
+        scale.scale(m_info->video->frame, m_info->_cb);
     }
 
     av_packet_unref(pk);
