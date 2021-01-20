@@ -5,11 +5,11 @@
 #include <QTimer>
 #include <QKeyEvent>
 #include <QDebug>
-#include "qlivelist.h"
-#include "qlivelistmodel.h"
-#include "qroomlistview.h"
-#include "qroomlistviewmodel.h"
-#include "qpagewidget.h"
+#include "platform/platform/qlivelist.h"
+#include "platform/platform/qlivelistmodel.h"
+#include "platform/room/qroomlistview.h"
+#include "platform/room/qroomlistviewmodel.h"
+#include "platform/room/qpagewidget.h"
 QDouyuWidget::QDouyuWidget(QWidget *parent)
     :QFrameLessWidget(parent)
 {

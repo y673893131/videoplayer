@@ -1,8 +1,8 @@
 #include "qlivelistmodel.h"
-#include "./platform/qdymodel.h"
-#include "./platform/qhuyamodel.h"
-#include "./platform/qegamemodel.h"
-#include "qroomlistviewmodel.h"
+#include "platform/model/qdymodel.h"
+#include "platform/model/qhuyamodel.h"
+#include "platform/model/qegamemodel.h"
+#include "platform/room/qroomlistviewmodel.h"
 #include <QEventLoop>
 QLiveListModel::QLiveListModel(QObject *parent)
     : QAbstractItemModel(parent)

@@ -2,7 +2,7 @@
 #define QLIVELISTMODEL_H
 
 #include <QAbstractItemModel>
-#include "./platform/qlivedatamodel.h"
+#include "platform/model/qlivedatamodel.h"
 #include "datadef.h"
 
 class QLiveListModel : public QAbstractItemModel
