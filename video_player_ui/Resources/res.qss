@@ -36,6 +36,18 @@ QLabel#label_frame_rate
     font: bold 13px "Microsoft Yahei";
 }
 
+QWidget#time_wd
+{
+    background: white;
+}
+
+QLabel#label_time
+{
+    background: transparent;
+    color: #5A5A5A;
+    font: bold 13px "Microsoft Yahei";
+}
+
 QLabel#label_preview
 {
     background: transparent;

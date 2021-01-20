@@ -19,18 +19,47 @@
 typedef long long int64_t;
 #endif
 #include <functional>
+#include <vector>
 
-//#define FRAME_RGB
+enum enum_stream_channel
+{
+    channel_video = 0,
+    channel_audio,
+    channel_subtitle,
 
-struct _video_info_;
+    channel_max
+};
+
+struct _stream_channel_info_
+{
+    _stream_channel_info_()
+        : index(-1)
+    {
+
+    }
+
+    _stream_channel_info_(const std::string& sTitle, const std::string& sLanguage, int index)
+    {
+        this->sTitle = sTitle;
+        this->sLanguage = sLanguage;
+        this->index = index;
+    }
+
+    std::string sTitle;
+    std::string sLanguage;
+    int index;
+};
+
+class core_media;
 class VIDEO_PLAYER_CORE_EXPORT video_interface
 {
 public:
     virtual void totalTime(const int64_t t) = 0;
     virtual void posChange(const int64_t t) = 0;
     virtual void setVideoSize(int width, int hight) = 0;
+    virtual void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
-    virtual void displaySubTitleCall(char*) = 0;
+    virtual void displaySubTitleCall(char*, int) = 0;
     virtual void previewDisplayCall(void* data, int width, int height) = 0;
     virtual void startCall(int) = 0;
     virtual void endCall(int) = 0;
@@ -48,7 +77,7 @@ public:
     };
 
 public:
-    video_player_core();
+    video_player_core(const std::string& logDir);
     virtual ~video_player_core();
     int _init();
     int _uninit();
@@ -62,12 +91,13 @@ public:
     int _get_seek_img(int, int64_t);
     int _setVol(int, int);
     int _setMute(int, bool bMute);
-    int _setsize(int w, int h);
+    int _setsize(int index, int w, int h);
+    int _setStreamChannel(int index, int channel, int sel);
     int _state(int);
     bool _cov(void *indata, void* outdata, int w, int h, int outsize);
-    enum_state _getState();
+    enum_state _getState(int);
 private:
-    _video_info_* m_info;
+    core_media* m_media;
 };
 
 #endif // VIDEO_PLAYER_CORE_H

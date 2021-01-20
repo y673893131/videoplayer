@@ -1,20 +1,21 @@
 #include "video_player_core.h"
 #include "Log/Log.h"
-#include "video_define.h"
+//#include "video_define.h"
+#include "module/media/core_media.h"
 #include "video_thread.h"
 
 #include <memory>
 
-video_player_core::video_player_core()
+video_player_core::video_player_core(const std::string& logDir)
 {
-    m_info = new _video_info_();
-    m_info->init();
-    setBit(m_info->_flag, flag_bit_Stop);
+    InitLogInstance(logDir.c_str(), "log_core_");
+    m_media = new core_media();
+    m_media->init();
 }
 
 video_player_core::~video_player_core()
 {
-    SAFE_RELEASE_PTR(&m_info);
+    SAFE_RELEASE_PTR(&m_media);
     avformat_network_deinit();
 }
 
@@ -40,24 +41,21 @@ int video_player_core::_uninit()
 int video_player_core::_setCallBack(video_interface * cb)
 {
     Log(Log_Info, ".");
-    m_info->_cb = cb;
+    m_media->setCallback(cb);
     return 0;
 }
 
 int video_player_core::_setSrc(const std::string &src)
 {
     Log(Log_Opt, "%s", src.c_str());
-    m_info->src = src;
+    m_media->setSrc(src);
     return 0;
 }
 
 int video_player_core::_play()
 {
     Log(Log_Opt, "call.");
-    setBit(m_info->_flag, flag_bit_Stop, false);
-    setBit(m_info->_flag, flag_bit_pause, false);
-    setBit(m_info->_flag, flag_bit_need_pause, false);
-    video_thread::start(*m_info);
+    video_thread::start(*m_media);
     return 0;
 }
 
@@ -99,7 +97,6 @@ int video_player_core::_seek(int index, int64_t ms)
 
 int video_player_core::_get_seek_img(int index, int64_t ms)
 {
-    Log(Log_Opt, "%lld", ms);
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->getSeekImg(ms);
@@ -109,11 +106,8 @@ int video_player_core::_get_seek_img(int index, int64_t ms)
 int video_player_core::_setVol(int index, int nVol)
 {
     Log(Log_Opt, "%d", nVol);
-    if(m_info && m_info->audio)
-    {
-        nVol = static_cast<int>(nVol / 100.0 * SDL_MIX_MAXVOLUME);
-        m_info->audio->sdl->nVol = nVol;
-    }
+    if(m_media)
+        m_media->setVol(nVol);
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->setVol(nVol);
@@ -123,18 +117,31 @@ int video_player_core::_setVol(int index, int nVol)
 int video_player_core::_setMute(int index, bool bMute)
 {
     Log(Log_Opt, "%d", bMute);
-    setBit(m_info->_flag, flag_bit_mute, bMute);
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->setMute(bMute);
     return 0;
 }
 
-int video_player_core::_setsize(int w, int h)
+int video_player_core::_setsize(int index, int w, int h)
 {
     Log(Log_Opt, "(%d,%d)", w, h);
-    if(m_info->yuv)
-        m_info->yuv->setSize(w, h);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+    {
+        pIndex->setSize(w, h);
+    }
+    return 0;
+}
+
+int video_player_core::_setStreamChannel(int index, int channel, int sel)
+{
+    Log(Log_Opt, " select (%d,%d)", channel, sel);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+    {
+        pIndex->setChannel(channel, sel);
+    }
     return 0;
 }
 
@@ -151,14 +158,16 @@ int video_player_core::_state(int index)
     return state_uninit;
 }
 
-video_player_core::enum_state video_player_core::_getState()
+video_player_core::enum_state video_player_core::_getState(int index)
 {
-    if(isSetBit(m_info->_flag, flag_bit_pause) ||
-       isSetBit(m_info->_flag, flag_bit_need_pause))
-        return state_paused;
-    if(isSetBit(m_info->_flag, flag_bit_Stop))
-        return state_stopped;
-    return state_running;
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+    {
+        Log(Log_Opt, "%d", pIndex->state1());
+        return pIndex->state1();
+    }
+
+    return state_stopped;
 }
 
 bool pixel_format_convert(unsigned char *pdata_src, int src_width, int src_height, AVPixelFormat src_pixfmt,

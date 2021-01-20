@@ -25,13 +25,6 @@
 #endif
 #include "render/qrenderfactory.h"
 
-
-#ifdef USE_DX
-    using VIDEO_TYPE = QDirect3D11Widget;
-#else
-    using VIDEO_TYPE = QGLVideoWidget;
-#endif
-
 Widget::Widget(QWidget *parent)
     : QFrameLessWidget(parent)
 {
@@ -57,7 +50,7 @@ void Widget::initData()
 void Widget::initStyle()
 {
     qApp->setApplicationName("vPlay");
-    InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_");
+    InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_ui_");
     qApp->installEventFilter(this);
     setAcceptDrops(true);
 }
@@ -89,6 +82,7 @@ void Widget::initConnect()
     connect(m_control, SIGNAL(appendFrame(void*)), renderWd, SLOT(onAppendFrame(void*)), Qt::QueuedConnection);
     connect(m_control, SIGNAL(start(int)), renderWd, SLOT(onStart()));
     connect(m_control, SIGNAL(end(int)), renderWd, SLOT(onStop()));
+    connect(m_control, SIGNAL(videoSizeChanged(int, int)), renderWd, SLOT(onVideoSizeChanged(int, int)));
 
     connect(m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
     connect(m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
@@ -234,4 +228,11 @@ void Widget::dropEvent(QDropEvent *event)
         return;
     }
     emit m_toolbar->play(event->mimeData()->urls().begin()->toLocalFile());
+}
+
+
+void Widget::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+    onExit();
 }

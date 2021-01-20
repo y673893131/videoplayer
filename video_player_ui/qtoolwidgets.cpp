@@ -25,11 +25,11 @@
 #include <QToolTip>
 #include "qplayfilelistmodel.h"
 #include "qfilelistview.h"
-#include "qprogressslider.h"
+#include "progress/qprogressslider.h"
 #include "config.h"
 #include "qinputurlwidget.h"
 #include "qdouyuwidget.h"
-#include "qliveplatformmanager.h"
+#include "platform/platform/qliveplatformmanager.h"
 #include "control/videocontrol.h"
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -42,8 +42,8 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     , m_bPlaying(false)
     , m_bLocalFile(false)
     , m_index(0)
-    , m_totalSeconds(0)
     , m_playMode(QPlayFileListModel::play_mode_local)
+    , m_totalSeconds(0)
 {
     init(parent);
 }
@@ -240,14 +240,8 @@ void QToolWidgets::onFull()
     }
 }
 
-void QToolWidgets::onSubtitle(const QString &str)
+void QToolWidgets::onSubtitle(const QString &str, int /*index*/)
 {
-    auto list = str.split(',');
-    if(list.size() != 10)
-    {
-        return;
-    }
-
     enum enum_sub_title
     {
         Sub_Titl_Time_Begin = 1,
@@ -255,6 +249,12 @@ void QToolWidgets::onSubtitle(const QString &str)
         Sub_Title_Type,
         Sub_Title_Content = 9
     };
+
+    auto list = str.split(',');
+    if(list.size() <= Sub_Title_Content)
+    {
+        return;
+    }
 
     auto tmBeg = UTIL->getMs(list[Sub_Titl_Time_Begin]);
     auto tmEnd = UTIL->getMs(list[Sub_Titl_Time_End]);
@@ -266,18 +266,56 @@ void QToolWidgets::onSubtitle(const QString &str)
         m_subtitle.titls.clear();
     }
 
-    auto content = list[Sub_Title_Content];
+    QString content;
+    for (int n = Sub_Title_Content; n < list.size(); ++n)
+    {
+        content.append(list[Sub_Title_Content]);
+        content.append(",");
+    }
+
+    if(list.size() > Sub_Title_Content)
+    {
+        content.remove(content.length() - 1, 1);
+    }
+
     if(content.lastIndexOf("\r\n") >= 0)
     {
         content = content.remove(content.length() - 2, 2);
     }
 
     m_subtitle.titls[list[Sub_Title_Type]] = content;
-    m_ch->setText(m_subtitle.titls.begin()->second);
+    m_subtitles[0]->setText(m_subtitle.titls.begin()->second);
     if(m_subtitle.titls.size() == 2)
     {
-        m_other->setText(m_subtitle.titls.rbegin()->second);
+        m_subtitles[1]->setText(m_subtitle.titls.rbegin()->second);
     }
+    else
+    {
+        m_subtitles[1]->clear();
+    }
+}
+
+void QToolWidgets::onStreamInfo(const QStringList &list, int nChannel, int nDefault)
+{
+    auto actions = m_channelActions[nChannel];
+    auto menu = m_channelMenus[nChannel];
+    menu->clear();
+    for(auto ac : actions->actions())
+        actions->removeAction(ac);
+    if(nDefault < 0)
+        return;
+    int n = 0;
+    for(auto it : list)
+    {
+        auto ac = menu->addAction(it);
+        ac->setCheckable(true);
+        actions->addAction(ac);
+        if(n == nDefault)
+            ac->setChecked(true);
+        ++n;
+    }
+
+    menu->addActions(actions->actions());
 }
 
 QWidget *QToolWidgets::CreateTitle(QWidget * parent)
@@ -411,10 +449,10 @@ QBoxLayout *QToolWidgets::CreateProcessbar(QWidget *parent)
     });
     connect(this, &QToolWidgets::setPosSeconds, [this](int nSeconds)
     {
-        m_process->setValue(nSeconds);
+        m_process->setPos(nSeconds);
     });
 
-    connect(m_process, &QProgressSlider::sliderMoved, this, &QToolWidgets::setSeekPos);
+    connect(m_process, &QProgressSlider::gotoPos, this, &QToolWidgets::setSeekPos);
     connect(m_process, &QProgressSlider::getPreview, this, &QToolWidgets::getPreview);
     connect(this, &QToolWidgets::_preview, m_process, &QProgressSlider::onPreview);
 
@@ -748,26 +786,30 @@ QWidget *QToolWidgets::CreateSubTitle(QWidget *parent)
 {
     auto widget = new QWidget(parent);
     m_subtitleWd = widget;
-    m_ch = new QLabel(widget);
-    m_other = new QLabel(widget);
-    m_ch->setAlignment(Qt::AlignCenter);
-    m_other->setAlignment(Qt::AlignCenter);
+    auto ch = new QLabel(widget);
+    auto other = new QLabel(widget);
+    m_subtitles.push_back(ch);
+    m_subtitles.push_back(other);
+    ch->setAlignment(Qt::AlignCenter);
+    other->setAlignment(Qt::AlignCenter);
 
     widget->setObjectName("sub_title_wd");
-    m_ch->setObjectName("sub_title_ch");
-    m_other->setObjectName("sub_title_other");
+    ch->setObjectName("sub_title_ch");
+    other->setObjectName("sub_title_other");
 
     auto layout = new QVBoxLayout(widget);
     layout->setAlignment(Qt::AlignCenter);
     layout->setMargin(0);
-    layout->addWidget(m_ch);
-    layout->addWidget(m_other);
+    layout->addWidget(ch);
+    layout->addWidget(other);
     layout->addSpacing(CALC_WIDGET_HEIGHT(nullptr, 20.0f / 1920));
     connect(this, &QToolWidgets::setPosSeconds, this, [this](int pos)
     {
         bool bVisible = (m_subtitle.tmBeg < pos && m_subtitle.tmEnd > pos);
-        m_ch->setVisible(bVisible);
-        m_other->setVisible(bVisible);
+        for (auto it : m_subtitles)
+        {
+            it->setVisible(bVisible);
+        }
     });
 
     return widget;
@@ -786,16 +828,43 @@ void QToolWidgets::CreateMenu(QWidget *parent)
     actionOpengl->setCheckable(true);
     auto actionDX11 = group->addAction(tr("dx11"));
     actionDX11->setCheckable(true);
-
     menuRender->addActions(group->actions());
+
+    auto menuChannel = new QMenu(tr("channel"), parent);
+    auto menuChannelVideo = new QMenu(tr("video"), parent);
+    auto menuChannelAudio = new QMenu(tr("audio"), parent);
+    auto menuChannelSubtitle = new QMenu(tr("subtitle"), parent);
+
+    m_channelMenus.push_back(menuChannelVideo);
+    m_channelMenus.push_back(menuChannelAudio);
+    m_channelMenus.push_back(menuChannelSubtitle);
+    for (int n = 0; n < channel_max; ++n) {
+        auto channelGroup = new QActionGroup(parent);
+        m_channelActions.push_back(channelGroup);
+        connect(channelGroup, &QActionGroup::triggered, [this, n, channelGroup](QAction *ac)
+        {
+            auto index = channelGroup->actions().indexOf(ac);
+            emit activeChannel(n, index);
+        });
+    }
+
+    menuChannel->addMenu(menuChannelVideo);
+    menuChannel->addMenu(menuChannelAudio);
+    menuChannel->addMenu(menuChannelSubtitle);
+
     menu->addSeparator();
     menu->addMenu(menuRender);
+    menu->addMenu(menuChannel);
 
     actionAdjust->setCheckable(true);
     topWindow->setCheckable(true);
 
     menu->setObjectName("menu1");
     menuRender->setObjectName("menu1");
+    menuChannel->setObjectName("menu1");
+    menuChannelVideo->setObjectName("menu1");
+    menuChannelAudio->setObjectName("menu1");
+    menuChannelSubtitle->setObjectName("menu1");
     actionAdjust->setChecked(GET_CONFIG_DATA(Config::Data_Adjust).toBool());
     topWindow->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
     connect(this, &QToolWidgets::showMenu, [menu]{ menu->popup(QCursor::pos());});
@@ -940,7 +1009,7 @@ void QToolWidgets::keyPressEvent(QKeyEvent *event)
         if(value >= 0)
         {
             m_process->setValue(value);
-            emit m_process->sliderMoved(value);
+            emit m_process->gotoPos(value);
         }
     }break;
     case Qt::Key_Right:
@@ -950,7 +1019,7 @@ void QToolWidgets::keyPressEvent(QKeyEvent *event)
         if(value < m_process->maximum())
         {
             m_process->setValue(value);
-            emit m_process->sliderMoved(value);
+            emit m_process->gotoPos(value);
         }
     }break;
     case Qt::Key_Up:

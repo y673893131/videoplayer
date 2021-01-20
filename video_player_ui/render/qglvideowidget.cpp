@@ -167,7 +167,7 @@ void QGLVideoWidget::scaleViewCalc(bool bFlush)
                  1.0f * fX, 1.0f * fY,
             };
 
-//            qDebug() << "scale:" << fX << fY << f0 << f1 << m_videoSize.width() << "/" << width() << m_videoSize.width() * 1.0 / width() << m_videoSize.height() << "/" << height() << m_videoSize.height() * 1.0 / height();
+            qDebug() << "scale:" << fX << fY << f0 << f1 << m_videoSize.width() << "/" << width() << m_videoSize.width() * 1.0 / width() << m_videoSize.height() << "/" << height() << m_videoSize.height() * 1.0 / height();
             memcpy(m_vertexVertices, vertexVertices, sizeof(vertexVertices));
             initViewScale();
         }while(0);

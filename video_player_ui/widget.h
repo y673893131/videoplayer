@@ -5,15 +5,7 @@
 #include <framelesswidget/framelesswidget.h>
 #include <QDateTime>
 #include "qtoolwidgets.h"
-#ifdef Q_OS_WIN
-#define USE_DX
-#endif
 
-#ifdef USE_DX
-class QDirect3D11Widget;
-#else
-class QGLVideoWidget;
-#endif
 class QRenderFactory;
 class QToolWidgets;
 class QVideoControl;
@@ -47,7 +39,7 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
-
+    void closeEvent(QCloseEvent *event) override;
 private:
     QRenderFactory* m_render;
     QToolWidgets* m_toolbar;

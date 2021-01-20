@@ -44,59 +44,59 @@ SOURCES += \
 SOURCES += \
     $$PWD/config.cpp \
     $$PWD/croommanager.cpp \
-    $$PWD/main.cpp \
-    $$PWD/platform/qegamemodel.cpp \
+    $$PWD/main.cpp \  
     $$PWD/qdouyuwidget.cpp \
     $$PWD/qfilelistdelegate.cpp \
-    $$PWD/qfilelistview.cpp \
-    $$PWD/qlivelist.cpp \
-    $$PWD/qlivelistmodel.cpp \
-    $$PWD/qliveplatformmanager.cpp \
-    $$PWD/qnetworkqueue.cpp \
-    $$PWD/qpagewidget.cpp \
+    $$PWD/qfilelistview.cpp \    
+    $$PWD/qnetworkqueue.cpp \ 
     $$PWD/qplayfilelistmodel.cpp \
-    $$PWD/qroomlistdelegate.cpp \
-    $$PWD/qroomlistview.cpp \
-    $$PWD/qroomlistviewmodel.cpp \
     $$PWD/qtoolwidgets.cpp \
     $$PWD/widget.cpp \
     $$PWD/framelesswidget/framelesswidget.cpp \
     $$PWD/framelesswidget/qdragborder.cpp \
-    $$PWD/qprogressslider.cpp \
+    $$PWD/progress/qprogressslider.cpp \
     $$PWD/qdatamodel.cpp \
     $$PWD/qinputurlwidget.cpp \
-    $$PWD/platform/qdymodel.cpp \
-    $$PWD/platform/qhuyamodel.cpp \
-    $$PWD/platform/qlivedatamodel.cpp
+    $$PWD/platform/platform/qlivelist.cpp \
+    $$PWD/platform/platform/qlivelistmodel.cpp \
+    $$PWD/platform/platform/qliveplatformmanager.cpp \
+    $$PWD/platform/model/qegamemodel.cpp \
+    $$PWD/platform/model/qdymodel.cpp \
+    $$PWD/platform/model/qhuyamodel.cpp \
+    $$PWD/platform/model/qlivedatamodel.cpp \
+    $$PWD/platform/room/qpagewidget.cpp \
+    $$PWD/platform/room/qroomlistdelegate.cpp \
+    $$PWD/platform/room/qroomlistview.cpp \
+    $$PWD/platform/room/qroomlistviewmodel.cpp
 
 HEADERS += \
     $$PWD/config.h \
     $$PWD/croommanager.h \
     $$PWD/datadef.h \
-    $$PWD/platform/qegamemodel.h \
     $$PWD/qdouyuwidget.h \
     $$PWD/qfilelistdelegate.h \
     $$PWD/qfilelistview.h \
-    $$PWD/qlivelist.h \
-    $$PWD/qlivelistmodel.h \
-    $$PWD/qliveplatformmanager.h \
-    $$PWD/qnetworkqueue.h \
-    $$PWD/qpagewidget.h \
-    $$PWD/qplayfilelistmodel.h \
-    $$PWD/qroomlistdelegate.h \
-    $$PWD/qroomlistview.h \
-    $$PWD/qroomlistviewmodel.h \
+    $$PWD/qnetworkqueue.h \   
+    $$PWD/qplayfilelistmodel.h \  
     $$PWD/qtoolwidgets.h \
     $$PWD/videoframe.h \
     $$PWD/widget.h \
     $$PWD/framelesswidget/framelesswidget.h \
     $$PWD/framelesswidget/qdragborder.h \
-    $$PWD/qprogressslider.h \
+    $$PWD/progress/qprogressslider.h \
     $$PWD/qdatamodel.h \
     $$PWD/qinputurlwidget.h \
-    $$PWD/platform/qdymodel.h \
-    $$PWD/platform/qhuyamodel.h \
-    $$PWD/platform/qlivedatamodel.h
+    $$PWD/platform/platform/qlivelist.h \
+    $$PWD/platform/platform/qlivelistmodel.h \
+    $$PWD/platform/platform/qliveplatformmanager.h \
+    $$PWD/platform/model/qegamemodel.h \
+    $$PWD/platform/model/qdymodel.h \
+    $$PWD/platform/model/qhuyamodel.h \
+    $$PWD/platform/model/qlivedatamodel.h \
+    $$PWD/platform/room/qpagewidget.h \
+    $$PWD/platform/room/qroomlistdelegate.h \
+    $$PWD/platform/room/qroomlistview.h \
+    $$PWD/platform/room/qroomlistviewmodel.h
 
 INCLUDEPATH += \
     $$PWD \

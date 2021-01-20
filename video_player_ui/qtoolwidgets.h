@@ -29,6 +29,8 @@ class QInputUrlWidget;
 class QDouyuWidget;
 class QLivePlatformManager;
 class QVideoControl;
+class QMenu;
+class QActionGroup;
 
 #ifdef Q_OS_WIN
 class QToolWidgets : public QWidget, public CNativeEvent_Win, public QAbstractNativeEventFilter
@@ -68,13 +70,15 @@ signals:
     void _resize(const QSize&);
     void getPreview(int);
     void _preview(void*, int, int);
+    void activeChannel(int, int);
 public slots:
     void onLoadFile();
     void onSelectMode(int);
     void onLeftPress();
     void onMax();
     void onFull();
-    void onSubtitle(const QString&);
+    void onSubtitle(const QString&, int);
+    void onStreamInfo(const QStringList&, int, int);
 private:
     void init(QWidget* parent);
     void initStyle();
@@ -113,8 +117,10 @@ private:
 
     QVideoControl* m_contorl;
     sub_title_info m_subtitle;
-    QLabel* m_ch;
-    QLabel* m_other;
+    std::vector<QLabel*> m_subtitles;
+
+    std::vector<QMenu*> m_channelMenus;
+    std::vector<QActionGroup*> m_channelActions;
 };
 
 #endif // QTOOLWIDGETS_H

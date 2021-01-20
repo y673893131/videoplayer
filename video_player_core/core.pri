@@ -4,13 +4,41 @@ INCLUDEPATH += $$PWD/../vidoe_player_log
 LIBS += -L$$PWD/../bin -lvidoe_player_log
 
 SOURCES += \
-    $$PWD/audio_thread.cpp \
+    $$PWD/module/convert/core_frame_convert.cpp \
+    $$PWD/module/decoder/core_decoder.cpp \
+    $$PWD/module/decoder/core_decoder_audio.cpp \
+    $$PWD/module/decoder/core_decoder_subtitle.cpp \
+    $$PWD/module/decoder/core_decoder_video.cpp \
+    $$PWD/module/lock/core_graud_lock.cpp \
+    $$PWD/module/media/core_media.cpp \
+    $$PWD/module/packet/core_packets.cpp \
+    $$PWD/module/preview/core_preview.cpp \
+    $$PWD/module/sample/core_audio_sample.cpp \
+    $$PWD/module/sdl/core_sdl_op.cpp \
+    $$PWD/module/thread/core_thread.cpp \
+    $$PWD/module/thread/core_thread_audio.cpp \
+    $$PWD/module/thread/core_thread_video.cpp \
+    $$PWD/module/util/core_util.cpp \
     $$PWD/video_player_core.cpp \
     $$PWD/video_thread.cpp
 
 HEADERS += \
-    $$PWD/audio_thread.h \
-    $$PWD/video_define.h \
+    $$PWD/module/common.h \
+    $$PWD/module/convert/core_frame_convert.h \
+    $$PWD/module/decoder/core_decoder.h \
+    $$PWD/module/decoder/core_decoder_audio.h \
+    $$PWD/module/decoder/core_decoder_subtitle.h \
+    $$PWD/module/decoder/core_decoder_video.h \
+    $$PWD/module/lock/core_graud_lock.h \
+    $$PWD/module/media/core_media.h \
+    $$PWD/module/packet/core_packets.h \
+    $$PWD/module/preview/core_preview.h \
+    $$PWD/module/sample/core_audio_sample.h \
+    $$PWD/module/sdl/core_sdl_op.h \
+    $$PWD/module/thread/core_thread.h \
+    $$PWD/module/thread/core_thread_audio.h \
+    $$PWD/module/thread/core_thread_video.h \
+    $$PWD/module/util/core_util.h \
     $$PWD/video_player_core.h \
     $$PWD/video_thread.h
 
