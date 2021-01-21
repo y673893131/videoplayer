@@ -2,7 +2,7 @@
 // Filename: textureclass.cpp
 ////////////////////////////////////////////////////////////////////////////////
 #include "textureclass.h"
-#include "videoframe.h"
+#include "render/videoframe.h"
 #include <QDebug>
 TextureClass::TextureClass()
 {

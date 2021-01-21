@@ -3,7 +3,7 @@
 
 #include <QAbstractItemModel>
 #include "platform/model/qlivedatamodel.h"
-#include "datadef.h"
+#include "platform/model/datadef.h"
 
 class QLiveListModel : public QAbstractItemModel
 {

@@ -1,7 +1,7 @@
 #include "qrenderfactory.h"
 #include "render/qdirect3d11widget.h"
 #include "render/qglvideowidget.h"
-#include "config.h"
+#include "config/config.h"
 #include <QDebug>
 
 QRenderFactory::QRenderFactory(QWidget *parent)

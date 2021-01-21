@@ -1,8 +1,7 @@
 #include "qglvideowidget.h"
-#include "glvdieodefine.h"
 #include "Log/Log.h"
 #include "videoframe.h"
-#include "config.h"
+#include "config/config.h"
 #include <QDebug>
 #include <QTimer>
 #include <QFile>

@@ -268,8 +268,8 @@ QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
                 return m_filterLocalNames[index.row()];
         }
         break;
-    case Qt::SizeHintRole:
-        return m_itemSize;
+//    case Qt::SizeHintRole:
+//        return m_itemSize;
     case role_url:
         if(m_nPlayMode == play_mode_live)
         {

@@ -14,15 +14,15 @@ HEADERS += \
     $$PWD/render/dx11/bitmapclass.h \
     $$PWD/render/dx11/graphicsclass.h \
     $$PWD/render/qrenderfactory.h \
-    render/qglvideowidget.h \
-    render/qlabelvideowidget.h \
-    render/qd3d11widget.h \
-    render/qdirect3d11widget.h \
-    render/dx11/cameraclass.h \
-    render/dx11/d3dclass.h \
-    render/dx11/inputclass.h \
-    render/dx11/textureclass.h \
-    render/dx11/textureshaderclass.h
+    $$PWD/render/qglvideowidget.h \
+    $$PWD/render/qlabelvideowidget.h \
+    $$PWD/render/qd3d11widget.h \
+    $$PWD/render/qdirect3d11widget.h \
+    $$PWD/render/dx11/cameraclass.h \
+    $$PWD/render/dx11/d3dclass.h \
+    $$PWD/render/dx11/inputclass.h \
+    $$PWD/render/dx11/textureclass.h \
+    $$PWD/render/dx11/textureshaderclass.h
 
 SOURCES += \
     $$PWD/control/videocontrol.cpp \
@@ -31,32 +31,28 @@ SOURCES += \
     $$PWD/render/dx11/bitmapclass.cpp \
     $$PWD/render/dx11/graphicsclass.cpp \
     $$PWD/render/qrenderfactory.cpp \
-    render/qglvideowidget.cpp \
-    render/qlabelvideowidget.cpp \
-    render/qd3d11widget.cpp \
-    render/qdirect3d11widget.cpp \
-    render/dx11/cameraclass.cpp \
-    render/dx11/d3dclass.cpp \
-    render/dx11/inputclass.cpp \
-    render/dx11/textureclass.cpp \
-    render/dx11/textureshaderclass.cpp
+    $$PWD/render/videoframe.h \
+    $$PWD/render/qglvideowidget.cpp \
+    $$PWD/render/qlabelvideowidget.cpp \
+    $$PWD/render/qd3d11widget.cpp \
+    $$PWD/render/qdirect3d11widget.cpp \
+    $$PWD/render/dx11/cameraclass.cpp \
+    $$PWD/render/dx11/d3dclass.cpp \
+    $$PWD/render/dx11/inputclass.cpp \
+    $$PWD/render/dx11/textureclass.cpp \
+    $$PWD/render/dx11/textureshaderclass.cpp
 
 SOURCES += \
-    $$PWD/config.cpp \
-    $$PWD/croommanager.cpp \
+    $$PWD/config/config.cpp \
+    $$PWD/config/qdatamodel.cpp \
     $$PWD/main.cpp \  
-    $$PWD/qdouyuwidget.cpp \
-    $$PWD/qfilelistdelegate.cpp \
-    $$PWD/qfilelistview.cpp \    
-    $$PWD/qnetworkqueue.cpp \ 
-    $$PWD/qplayfilelistmodel.cpp \
-    $$PWD/qtoolwidgets.cpp \
-    $$PWD/widget.cpp \
+    $$PWD/ui/qtoolwidgets.cpp \
+    $$PWD/ui/widget.cpp \
+    $$PWD/ui/qinputurlwidget.cpp \
     $$PWD/framelesswidget/framelesswidget.cpp \
     $$PWD/framelesswidget/qdragborder.cpp \
     $$PWD/progress/qprogressslider.cpp \
-    $$PWD/qdatamodel.cpp \
-    $$PWD/qinputurlwidget.cpp \
+    $$PWD/platform/platform/qdouyuwidget.cpp \
     $$PWD/platform/platform/qlivelist.cpp \
     $$PWD/platform/platform/qlivelistmodel.cpp \
     $$PWD/platform/platform/qliveplatformmanager.cpp \
@@ -64,39 +60,43 @@ SOURCES += \
     $$PWD/platform/model/qdymodel.cpp \
     $$PWD/platform/model/qhuyamodel.cpp \
     $$PWD/platform/model/qlivedatamodel.cpp \
+    $$PWD/platform/model/qnetworkqueue.cpp \
+    $$PWD/platform/room/croommanager.cpp \
     $$PWD/platform/room/qpagewidget.cpp \
     $$PWD/platform/room/qroomlistdelegate.cpp \
     $$PWD/platform/room/qroomlistview.cpp \
-    $$PWD/platform/room/qroomlistviewmodel.cpp
+    $$PWD/platform/room/qroomlistviewmodel.cpp \
+    $$PWD/playlist/qfilelistdelegate.cpp \
+    $$PWD/playlist/qfilelistview.cpp \
+    $$PWD/playlist/qplayfilelistmodel.cpp
 
 HEADERS += \
-    $$PWD/config.h \
-    $$PWD/croommanager.h \
-    $$PWD/datadef.h \
-    $$PWD/qdouyuwidget.h \
-    $$PWD/qfilelistdelegate.h \
-    $$PWD/qfilelistview.h \
-    $$PWD/qnetworkqueue.h \   
-    $$PWD/qplayfilelistmodel.h \  
-    $$PWD/qtoolwidgets.h \
-    $$PWD/videoframe.h \
-    $$PWD/widget.h \
+    $$PWD/config/config.h \
+    $$PWD/config/qdatamodel.h \
+    $$PWD/ui/qtoolwidgets.h \
+    $$PWD/ui/widget.h \
+    $$PWD/ui/qinputurlwidget.h \
     $$PWD/framelesswidget/framelesswidget.h \
     $$PWD/framelesswidget/qdragborder.h \
     $$PWD/progress/qprogressslider.h \
-    $$PWD/qdatamodel.h \
-    $$PWD/qinputurlwidget.h \
+    $$PWD/platform/platform/qdouyuwidget.h \
     $$PWD/platform/platform/qlivelist.h \
     $$PWD/platform/platform/qlivelistmodel.h \
     $$PWD/platform/platform/qliveplatformmanager.h \
+    $$PWD/platform/model/datadef.h \
     $$PWD/platform/model/qegamemodel.h \
     $$PWD/platform/model/qdymodel.h \
     $$PWD/platform/model/qhuyamodel.h \
     $$PWD/platform/model/qlivedatamodel.h \
+    $$PWD/platform/model/qnetworkqueue.h \
+    $$PWD/platform/room/croommanager.h \
     $$PWD/platform/room/qpagewidget.h \
     $$PWD/platform/room/qroomlistdelegate.h \
     $$PWD/platform/room/qroomlistview.h \
-    $$PWD/platform/room/qroomlistviewmodel.h
+    $$PWD/platform/room/qroomlistviewmodel.h \
+    $$PWD/playlist/qplayfilelistmodel.h \
+    $$PWD/playlist/qfilelistdelegate.h \
+    $$PWD/playlist/qfilelistview.h
 
 INCLUDEPATH += \
     $$PWD \

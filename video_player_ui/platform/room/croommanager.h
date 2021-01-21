@@ -4,7 +4,7 @@
 #include <QVector>
 #include <QPixmap>
 #include <QMutex>
-#include "qnetworkqueue.h"
+#include "platform/model/qnetworkqueue.h"
 
 //#define ROOM_ICON_SAVE
 struct _DyRoom_

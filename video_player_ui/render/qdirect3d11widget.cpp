@@ -1,7 +1,7 @@
 #include "qdirect3d11widget.h"
 #include <QDebug>
 #include <QTime>
-#include "config.h"
+#include "config/config.h"
 #include "Log/Log.h"
 
 QDirect3D11Widget::QDirect3D11Widget(QWidget * parent)

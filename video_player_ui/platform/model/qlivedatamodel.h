@@ -7,7 +7,7 @@
 #include <QNetworkRequest>
 #include <QSemaphore>
 #include "qnetworkqueue.h"
-#include "croommanager.h"
+#include "platform/room/croommanager.h"
 #include "datadef.h"
 
 class QLiveDataModel : public QObject

@@ -23,12 +23,12 @@
 #include <QTimer>
 #include <QTime>
 #include <QToolTip>
-#include "qplayfilelistmodel.h"
-#include "qfilelistview.h"
+#include "playlist/qplayfilelistmodel.h"
+#include "playlist/qfilelistview.h"
 #include "progress/qprogressslider.h"
-#include "config.h"
-#include "qinputurlwidget.h"
-#include "qdouyuwidget.h"
+#include "config/config.h"
+#include "ui/qinputurlwidget.h"
+#include "platform/platform/qdouyuwidget.h"
 #include "platform/platform/qliveplatformmanager.h"
 #include "control/videocontrol.h"
 #ifdef Q_OS_WIN

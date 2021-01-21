@@ -15,7 +15,7 @@
 #include "video_player_core.h"
 #include "control/videocontrol.h"
 #include "qtoolwidgets.h"
-#include "qdatamodel.h"
+#include "config/qdatamodel.h"
 #include "Log/Log.h"
 #ifdef unix
 #include <unistd.h>

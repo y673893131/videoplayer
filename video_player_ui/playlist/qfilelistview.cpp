@@ -1,6 +1,6 @@
 #include "qfilelistview.h"
 #include "qplayfilelistmodel.h"
-#include "qdatamodel.h"
+#include "config/qdatamodel.h"
 #include "qfilelistdelegate.h"
 #include <QDebug>
 #include <QMouseEvent>

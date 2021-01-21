@@ -1,4 +1,4 @@
-#include "widget.h"
+#include "ui/widget.h"
 
 #include <QApplication>
 #include <QTranslator>

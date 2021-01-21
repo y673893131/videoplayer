@@ -6,7 +6,7 @@
 #include <QSqlRecord>
 #include <QFileInfo>
 #include <QTimer>
-#include "qplayfilelistmodel.h"
+#include "playlist/qplayfilelistmodel.h"
 #include "config.h"
 QDataModel *QDataModel::m_instance=nullptr;
 QDataModel *QDataModel::instance()

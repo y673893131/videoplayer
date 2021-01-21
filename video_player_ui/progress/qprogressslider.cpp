@@ -7,7 +7,6 @@
 #include <QBoxLayout>
 #include <QDebug>
 #include "framelesswidget/util.h"
-#include "qlabelvideowidget.h"
 
 QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, QWidget* grandParent)
     : QSlider(orientation, parent)

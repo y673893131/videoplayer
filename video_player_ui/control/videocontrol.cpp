@@ -1,6 +1,6 @@
 #include "videocontrol.h"
-#include "videoframe.h"
-#include "qtoolwidgets.h"
+#include "render/videoframe.h"
+#include "ui/qtoolwidgets.h"
 #include "Log/Log.h"
 #include <QApplication>
 #include <QFileInfo>

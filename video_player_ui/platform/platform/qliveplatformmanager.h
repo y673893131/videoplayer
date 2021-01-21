@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QButtonGroup>
 #include <QVector>
-#include "datadef.h"
+#include "platform/model/datadef.h"
 
 
 struct _platform_
