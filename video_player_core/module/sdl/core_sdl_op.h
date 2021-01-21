@@ -41,7 +41,7 @@ public:
     bool initResample(AVCodecContext* ctx);
     bool init(audioCallback cb, void* userdata);
     void setVol(int vol);
-    float getVol();
+    int getVol();
 
     void resampleFrame(AVFrame*, int& bufferSize);
 

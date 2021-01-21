@@ -132,9 +132,13 @@ void QDataModel::loadConfig()
     auto bCreate = query.exec("select config from config limit 0, 1;");
     if(bCreate)
     {
-        while(query.next())
+        if(query.next())
         {
             Config::instance()->init(query.value(0));
+        }
+        else
+        {
+            Config::instance()->init("");
         }
 
         query.clear();

@@ -98,7 +98,6 @@ private:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 private:

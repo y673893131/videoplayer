@@ -4,8 +4,8 @@ core_sdl_op::core_sdl_op()
     :nAudioId(-1)
     ,nBuffIndex(0)
     ,nBuffSize(0)
-    ,fVolPercent(1)
-    ,nVol(SDL_MIX_MAXVOLUME)
+    ,fVolPercent(0.5f)
+    ,nVol(SDL_MIX_MAXVOLUME / 2)
     ,swrCtx(nullptr)
 {
     pFrameReSample = av_frame_alloc();
@@ -89,12 +89,12 @@ bool core_sdl_op::init(audioCallback callback, void* userdata)
 void core_sdl_op::setVol(int vol)
 {
     fVolPercent = static_cast<float>(vol);
-    nVol = static_cast<int>(fVolPercent / 100 * SDL_MIX_MAXVOLUME);
+    nVol = static_cast<int>(vol / 100.0f * SDL_MIX_MAXVOLUME);
 }
 
-float core_sdl_op::getVol()
+int core_sdl_op::getVol()
 {
-    return fVolPercent;
+    return static_cast<int>(fVolPercent);
 }
 
 void core_sdl_op::resampleFrame(AVFrame *frame, int& bufferSize)

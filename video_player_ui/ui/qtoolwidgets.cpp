@@ -323,8 +323,6 @@ QWidget *QToolWidgets::CreateTitle(QWidget * parent)
     auto widget = new QWidget(parent);
     m_titleWd = widget;
     m_title = new QLabel(qApp->applicationName(), widget);
-    m_title->installEventFilter(this);
-    m_title->setMouseTracking(true);
     m_min = new QPushButton(widget);
     m_max = new QPushButton(widget);
     m_close = new QPushButton(widget);
@@ -341,7 +339,7 @@ QWidget *QToolWidgets::CreateTitle(QWidget * parent)
 
     auto layout = new QHBoxLayout(widget);
     layout->setSpacing(0);
-    layout->setMargin(10);
+    layout->setMargin(0);
     layout->addStretch();
     layout->addWidget(m_title);
     layout->addStretch();
@@ -380,7 +378,11 @@ QWidget *QToolWidgets::CreateTitle(QWidget * parent)
     connect(this, &QToolWidgets::play, [this](const QString& sUrl)
     {
         auto sName = sUrl.mid(sUrl.lastIndexOf('/') + 1);
-        m_title->setText(sName);
+        m_title->setToolTip(sName);
+        auto font = m_title->fontMetrics();
+        auto sText = font.elidedText(sName, Qt::ElideRight, m_title->width());
+        m_title->setText(sText);
+
     });
 
     return widget;
@@ -515,7 +517,6 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     layout->addWidget(fileList);
 
     volNum->setRange(0, 100);
-    volNum->setValue(50);
     volMute->setCheckable(true);
     auto playFunc = [play]
     {
@@ -1029,41 +1030,4 @@ void QToolWidgets::keyPressEvent(QKeyEvent *event)
     default:
         break;
     }
-}
-
-bool QToolWidgets::eventFilter(QObject *watched, QEvent *event)
-{
-    if(watched == m_title)
-    {
-        static bool hold = false;
-        static QTimer* timer = new QTimer;
-        timer->setInterval(500);
-        timer->setSingleShot(true);
-        connect(timer, &QTimer::timeout, [this]{ QToolTip::showText(QCursor::pos() + QPoint(0, 5), m_title->text(), this); });
-        switch (event->type()) {
-        case QEvent::Enter:
-            hold = true;
-            timer->start();
-            setCursor(Qt::CursorShape::WhatsThisCursor);
-            break;
-        case QEvent::Leave:
-            hold = false;
-            timer->stop();
-            setCursor(Qt::CursorShape::ArrowCursor);
-            QToolTip::hideText();
-            break;
-        case QEvent::MouseMove:
-            if(hold)
-            {
-                QToolTip::hideText();
-                timer->stop();
-                timer->start();
-            }
-            break;
-        default:
-            break;
-        }
-    }
-
-    return QWidget::eventFilter(watched, event);
 }
