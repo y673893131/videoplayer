@@ -9,7 +9,11 @@ class core_frame_convert
 {
 public:
     core_frame_convert();
+#ifdef FRAME_RGB
+    core_frame_convert(AVCodecContext* codec, AVPixelFormat format=AV_PIX_FMT_RGBA);
+#else
     core_frame_convert(AVCodecContext* codec, AVPixelFormat format=AV_PIX_FMT_YUV420P);
+#endif
     virtual ~core_frame_convert();
 
     void setSize(int w, int h);
@@ -19,8 +23,8 @@ public:
     void init(int width = 0, int height = 0);
     void uninit();
     void initFrame();
-    void scale(AVFrame* src, void* cb);
-    void scalePreview(AVFrame* src, void* cb);
+    void scale(AVFrame* src, video_interface* cb);
+    void scalePreview(AVFrame* src, video_interface* cb);
 private:
     AVFrame* frame;
     uint8_t* buffer;

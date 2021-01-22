@@ -23,6 +23,7 @@ public:
     void setVol(int);
     void setMute(bool bMute);
     void setChannel(int, int);
+    void setDecode(video_player_core::enum_decode_type);
     int state();
     video_player_core::enum_state state1();
 private:

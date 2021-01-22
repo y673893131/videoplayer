@@ -1,12 +1,15 @@
 CONFIG += c++11
 
-INCLUDEPATH += $$PWD/../vidoe_player_log
+INCLUDEPATH += $$PWD/../vidoe_player_log \
+    $$PWD/module/third
+
 LIBS += -L$$PWD/../bin -lvidoe_player_log
 
 SOURCES += \
     $$PWD/module/convert/core_frame_convert.cpp \
     $$PWD/module/decoder/core_decoder.cpp \
     $$PWD/module/decoder/core_decoder_audio.cpp \
+    $$PWD/module/decoder/core_decoder_hardware.cpp \
     $$PWD/module/decoder/core_decoder_subtitle.cpp \
     $$PWD/module/decoder/core_decoder_video.cpp \
     $$PWD/module/lock/core_graud_lock.cpp \
@@ -27,6 +30,7 @@ HEADERS += \
     $$PWD/module/convert/core_frame_convert.h \
     $$PWD/module/decoder/core_decoder.h \
     $$PWD/module/decoder/core_decoder_audio.h \
+    $$PWD/module/decoder/core_decoder_hardware.h \
     $$PWD/module/decoder/core_decoder_subtitle.h \
     $$PWD/module/decoder/core_decoder_video.h \
     $$PWD/module/lock/core_graud_lock.h \

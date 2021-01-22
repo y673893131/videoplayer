@@ -12,7 +12,7 @@ public:
 
     bool isOk();
     void init(const std::string& file);
-    void preview(const std::string& src, int64_t ms, void* cb);
+    void preview(const std::string& src, int64_t ms, video_interface* cb);
     void clear();
 
 private:

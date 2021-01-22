@@ -2,33 +2,36 @@
 #include "../util/core_util.h"
 
 core_media::core_media()
-    :_state(0)
+    :_cb(nullptr)
+    ,_state(0)
     ,_start_time(0)
     ,_seek_time(0)
     ,_pause_time(0)
     ,_seek_pos(0)
-    ,_cb(nullptr)
     ,_flag(0)
     ,_format_ctx(nullptr)
     ,video(nullptr)
     ,audio(nullptr)
     ,_vRead(0)
     ,_aRead(0)
-    ,_video_thread(nullptr)
+    ,_channel(0)
+    ,_channelSel(0)
+    ,_decodeType(video_player_core::decode_software)
     ,m_preview(nullptr)
+    ,_video_thread(nullptr)
 {
     setFlag(flag_bit_Stop);
     _audio_thread = core_thread_audio::instance();
 }
 
 core_media::core_media(const core_media &src)
-    :_state(src._state)
+    :_cb(src._cb)
+    ,_state(src._state)
     ,_src(src._src)
     ,_start_time(src._seek_time)
     ,_seek_time(static_cast<double>(src._seek_pos))
     ,_pause_time(src._pause_time)
     ,_seek_pos(static_cast<int64_t>(src._seek_time))
-    ,_cb(src._cb)
     ,_flag(src._flag)
     ,_format_ctx(src._format_ctx)
     ,video(nullptr)
@@ -38,15 +41,17 @@ core_media::core_media(const core_media &src)
     ,_aRead(src._aRead)
     ,_channel(0)
     ,_channelSel(0)
+    ,_decodeType(src._decodeType)
+    ,m_preview(nullptr)
     ,_audio_thread(src._audio_thread)
     ,_video_thread(nullptr)
-    , m_preview(nullptr)
 {
     init();
     setFlag(flag_bit_Stop, false);
     setFlag(flag_bit_pause, false);
     setFlag(flag_bit_need_pause, false);
     audio->setVol(src.audio->getVol());
+    video->setDecodeType(src.video->getDecodeType());
 }
 
 core_media::~core_media()
@@ -178,6 +183,12 @@ void core_media::setChannel(int channel, int sel)
     _channel = channel;
     _channelSel = sel;
     setFlag(flag_bit_channel_change, true);
+}
+
+void core_media::setDecode(video_player_core::enum_decode_type type)
+{
+    _decodeType = type;
+    setFlag(flag_bit_decode_change, true);
 }
 
 int core_media::state()
@@ -366,6 +377,11 @@ void core_media::decodeloop()
             channelChange();
         }
 
+        if(testFlag(flag_bit_decode_change))
+        {
+            decodeChange();
+        }
+
         if(aduio_pks.isMax() || video_pks.isMax() || (testFlag(flag_bit_pause) && !bSeek))
         {
             msleep(10);
@@ -419,7 +435,7 @@ void core_media::seek()
     if(info->video->isValid())
         sIndex = info->video->index();
     else if(info->audio->isValid())
-       sIndex = info->audio->index();
+        sIndex = info->audio->index();
 
     AVRational aVRational = {1, AV_TIME_BASE};
     if(sIndex >= 0)
@@ -474,6 +490,13 @@ void core_media::channelChange()
     setFlag(flag_bit_channel_change, false);
 }
 
+void core_media::decodeChange()
+{
+    msleep(10);
+    video->setDecodeType(_decodeType);
+    setFlag(flag_bit_decode_change, false);
+}
+
 bool core_media::push_frame(bool &bSeek)
 {
     int nRet = 0;
@@ -481,7 +504,6 @@ bool core_media::push_frame(bool &bSeek)
     auto& ctx = info->_format_ctx;
     auto& vIndex = info->video->index();
     auto& aIndex = info->audio->index();
-    auto& sIndex = info->subtitle->index();
 
     auto& vIndexs = info->video->indexs();
     auto& aIndexs = info->audio->indexs();
@@ -512,12 +534,18 @@ bool core_media::push_frame(bool &bSeek)
             {
                 info->audio->setClock(av_q2d(info->audio->stream->time_base) * pk.pts);
             }
-
-            av_packet_unref(&pk);
-            return true;
+        }
+        else
+        {
+            bSeek = checkSeekPkt(&pk);
         }
 
-        bSeek = checkSeekPkt(&pk);
+        av_packet_unref(&pk);
+        if(!bSeek)
+        {
+            Log(Log_Info, "seek: video_pts[%.3f] audio_pts[%.3f]", info->video->clock(), info->audio->clock());
+        }
+
         return true;
     }
 
@@ -556,10 +584,9 @@ bool core_media::checkSeekPkt(AVPacket *pk)
     if(_cb)
     {
         _cb->posChange(static_cast<int64_t>(pts * 1000));
-        video->scale(video->frame, _cb);
+        video->displayFrame(_cb);
     }
 
-    av_packet_unref(pk);
     _start_time = static_cast<double>(av_gettime() - _seek_pos);
     setFlag(flag_bit_read_finish, false);
 

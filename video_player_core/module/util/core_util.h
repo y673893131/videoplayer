@@ -11,6 +11,7 @@ enum flag_bit{
     flag_bit_read_finish,
     flag_bit_need_pause,
     flag_bit_channel_change,
+    flag_bit_decode_change,
 };
 
 namespace core_util

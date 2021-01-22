@@ -11,10 +11,10 @@ core_decoder_subtitle::~core_decoder_subtitle()
     uninit();
 }
 
-bool core_decoder_subtitle::init(AVFormatContext *format, int index)
+bool core_decoder_subtitle::init(AVFormatContext *formatCtx, int index)
 {
     uninit();
-    core_decoder::init(format, index);
+    core_decoder::init(formatCtx, index);
     INIT_NEW(&pSubtitle, AVSubtitle)
     return true;
 }

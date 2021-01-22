@@ -11,6 +11,7 @@ public:
     virtual bool start(core_media* pInfo);
 
 protected:
+    bool checkOpt();
     void setFlag(int bit, bool value = true);
     bool testFlag(int bit);
 protected:

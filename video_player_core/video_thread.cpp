@@ -104,6 +104,11 @@ void video_thread::setChannel(int channel, int sel)
     m_media->setChannel(channel, sel);
 }
 
+void video_thread::setDecode(video_player_core::enum_decode_type type)
+{
+    m_media->setDecode(type);
+}
+
 int video_thread::state()
 {
     return m_media->state();

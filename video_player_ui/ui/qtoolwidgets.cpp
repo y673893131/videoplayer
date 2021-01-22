@@ -44,6 +44,7 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     , m_index(0)
     , m_playMode(QPlayFileListModel::play_mode_local)
     , m_totalSeconds(0)
+    , m_curDecode(0)
 {
     init(parent);
 }
@@ -240,7 +241,7 @@ void QToolWidgets::onFull()
     }
 }
 
-void QToolWidgets::onSubtitle(const QString &str, int /*index*/)
+void QToolWidgets::onSubtitle(const QString &str, unsigned int /*index*/)
 {
     enum enum_sub_title
     {
@@ -853,9 +854,17 @@ void QToolWidgets::CreateMenu(QWidget *parent)
     menuChannel->addMenu(menuChannelAudio);
     menuChannel->addMenu(menuChannelSubtitle);
 
+    auto menuDecoder = new QMenu(tr("decoder"), parent);
+    auto groupDecoder = new QActionGroup(parent);
+    groupDecoder->addAction(QString("[%1]").arg(tr("software")))->setCheckable(true);
+    groupDecoder->addAction(QString("[%1] cuda").arg(tr("hardware")))->setCheckable(true);
+    groupDecoder->addAction(QString("[%1] qsv").arg(tr("hardware")))->setCheckable(true);
+    menuDecoder->addActions(groupDecoder->actions());
+
     menu->addSeparator();
     menu->addMenu(menuRender);
     menu->addMenu(menuChannel);
+    menu->addMenu(menuDecoder);
 
     actionAdjust->setCheckable(true);
     topWindow->setCheckable(true);
@@ -866,6 +875,7 @@ void QToolWidgets::CreateMenu(QWidget *parent)
     menuChannelVideo->setObjectName("menu1");
     menuChannelAudio->setObjectName("menu1");
     menuChannelSubtitle->setObjectName("menu1");
+    menuDecoder->setObjectName("menu1");
     actionAdjust->setChecked(GET_CONFIG_DATA(Config::Data_Adjust).toBool());
     topWindow->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
     connect(this, &QToolWidgets::showMenu, [menu]{ menu->popup(QCursor::pos());});
@@ -914,7 +924,15 @@ void QToolWidgets::CreateMenu(QWidget *parent)
         SET_CONFIG_DATA(action->text().replace(tr("(restart valid)"), ""), Config::Data_Render);
     });
 
-    connect(Config::instance(), &Config::loadConfig, [this, group]
+    connect(groupDecoder, &QActionGroup::triggered, [groupDecoder, this](QAction *action)
+    {
+        int sel = groupDecoder->actions().indexOf(action);
+        action->setChecked(true);
+        SET_CONFIG_DATA(sel, Config::Data_Decode);
+        emit setDecodeType(sel);
+    });
+
+    connect(Config::instance(), &Config::loadConfig, [this, group, groupDecoder]
     {
         m_curRender = GET_CONFIG_DATA(Config::Data_Render).toString();
         for (auto ac : group->actions())
@@ -925,6 +943,11 @@ void QToolWidgets::CreateMenu(QWidget *parent)
                 break;
             }
         }
+
+        m_curDecode = GET_CONFIG_DATA(Config::Data_Decode).toInt();
+        if(m_curDecode < groupDecoder->actions().size())
+            groupDecoder->actions()[m_curDecode]->setChecked(true);
+        emit setDecodeType(m_curDecode);
     });
 }
 

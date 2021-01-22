@@ -43,7 +43,7 @@ public:
     void setVol(int vol);
     int getVol();
 
-    void resampleFrame(AVFrame*, int& bufferSize);
+    void resampleFrame(AVFrame*, unsigned int& bufferSize);
 
     int initSDL();
     int openSDL();

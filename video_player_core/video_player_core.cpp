@@ -145,6 +145,20 @@ int video_player_core::_setStreamChannel(int index, int channel, int sel)
     return 0;
 }
 
+int video_player_core::_setDecodeType(int index, video_player_core::enum_decode_type type)
+{
+    Log(Log_Opt, "(%d)", type);
+    if(m_media)
+        m_media->setDecode(type);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+    {
+        pIndex->setDecode(type);
+    }
+
+    return 0;
+}
+
 int video_player_core::_state(int index)
 {
     Log(Log_Opt, "[%d]", index);

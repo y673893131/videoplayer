@@ -14,12 +14,12 @@ public:
 
     void setIndex(int) override;
     void setVol(int vol);
-    float getVol();
+    int getVol();
 
     core_sdl_op* sdl();
 
     void start();
-    bool decode(AVPacket* pk, int& bufferSize);
+    bool decode(AVPacket* pk, unsigned int& bufferSize);
 
 private:
     static core_sdl_op* s_sdl;

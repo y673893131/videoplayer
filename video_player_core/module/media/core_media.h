@@ -34,6 +34,7 @@ public:
     void setVol(int);
     void mute(bool bMute);
     void setChannel(int, int);
+    void setDecode(video_player_core::enum_decode_type type);
     int state();
     video_player_core::enum_state state1();
 
@@ -49,6 +50,7 @@ private:
     void seek();
     void cleanPkt(int channel = -1);
     void channelChange();
+    void decodeChange();
     bool push_frame(bool& bSeek);
     bool checkSeekPkt(AVPacket* pk);
 public:
@@ -66,6 +68,7 @@ private:
     std::vector<_stream_channel_info_*> _channels[channel_max];
     int _vRead, _aRead;
     int _channel, _channelSel;
+    video_player_core::enum_decode_type _decodeType;
 
     core_preview* m_preview;
     core_thread_audio* _audio_thread;

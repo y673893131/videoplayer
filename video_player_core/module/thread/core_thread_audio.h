@@ -12,8 +12,8 @@ public:
     static void sdl_audio_call(void *data, Uint8 *stream, int len);
 private:
     core_thread_audio();
-    void audio_call(Uint8 *stream, int len);
-    int audio_decode();
+    void audio_call(Uint8 *stream, unsigned int len);
+    unsigned int audio_decode();
 private:
     static core_thread_audio* s_instance;
 };

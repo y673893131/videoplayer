@@ -33,13 +33,13 @@ void core_thread_audio::sdl_audio_call(void *data, Uint8 *stream, int len)
     info->audio_call(stream, len);
 }
 
-void core_thread_audio::audio_call(Uint8 *stream, int len)
+void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
 {
     auto sdl = m_media->audio->sdl();
     auto& index = sdl->nBuffIndex;
     auto& size = sdl->nBuffSize;
     auto& buff = sdl->buff;
-    int decodeSize = 0, lenTMP = 0;
+    unsigned int decodeSize = 0, lenTMP = 0;
 
     while(len > 0)
     {
@@ -62,12 +62,12 @@ void core_thread_audio::audio_call(Uint8 *stream, int len)
         if(testFlag(flag_bit_mute) || testFlag(flag_bit_pause))
         {
             memset(buff + index, 0, lenTMP);
-            memcpy(stream, (uint8_t*)buff + index, lenTMP);
+            memcpy(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP);
         }
         else
         {
             memset(stream, 0, lenTMP);
-            SDL_MixAudioFormat(stream, (uint8_t*)buff + index, AUDIO_S16SYS, lenTMP, sdl->nVol);
+            SDL_MixAudioFormat(stream, reinterpret_cast<uint8_t*>(buff) + index, AUDIO_S16SYS, lenTMP, sdl->nVol);
         }
 
         len -= lenTMP;
@@ -76,9 +76,9 @@ void core_thread_audio::audio_call(Uint8 *stream, int len)
     }
 }
 
-int core_thread_audio::audio_decode()
+unsigned int core_thread_audio::audio_decode()
 {
-    int buffersize = 0;
+    unsigned int buffersize = 0;
     auto& pks = m_media->audio->pkts();
     auto sdl = m_media->audio->sdl();
     AVPacket pk;
@@ -96,17 +96,8 @@ int core_thread_audio::audio_decode()
         if(testFlag(flag_bit_pause))
             break;
 
-        if(testFlag(flag_bit_seek))
-        {
-            msleep(1);
+        if(!checkOpt())
             continue;
-        }
-
-        if(testFlag(flag_bit_channel_change))
-        {
-            msleep(1);
-            continue;
-        }
 
         if(pks.empty(pk))
         {

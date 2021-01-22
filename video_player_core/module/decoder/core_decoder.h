@@ -13,8 +13,9 @@ public:
     core_decoder();
     virtual ~core_decoder();
 
-    virtual bool init(AVFormatContext* formatCtx, int index);
+    virtual bool init(AVFormatContext*, int);
     virtual void uninit();
+    virtual bool decode(AVPacket* pk);
 
     bool check(int);
     bool isValid();
@@ -22,14 +23,13 @@ public:
     int& index();
     virtual void setIndex(int);
     std::set<int> &indexs();
+
     unsigned int pktSize();
     core_packets& pkts();
     void cleanPkt();
 
     double clock();
     void setClock(double clock);
-    bool checkSeekPkt(AVPacket *pk);
-    double get_frame_pts(AVFrame *frame);
 protected:
     int nStreamIndex;
     std::set<int> nStreamIndexs;

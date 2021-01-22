@@ -20,6 +20,29 @@ bool core_thread::start(core_media *pInfo)
     return true;
 }
 
+bool core_thread::checkOpt()
+{
+    if(testFlag(flag_bit_seek))
+    {
+        msleep(1);
+        return false;
+    }
+
+    if(testFlag(flag_bit_channel_change))
+    {
+        msleep(1);
+       return false;
+    }
+
+    if(testFlag(flag_bit_decode_change))
+    {
+        msleep(1);
+        return false;
+    }
+
+    return true;
+}
+
 void core_thread::setFlag(int bit, bool value)
 {
     m_media->setFlag(bit, value);

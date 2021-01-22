@@ -13,6 +13,8 @@ extern "C"
     #include "libavutil/pixfmt.h"
     #include "libavutil/opt.h"
     #include "libavutil/imgutils.h"
+    //need intel media sdk
+    #include "libavutil/hwcontext_qsv.h"
     #include "libswscale/swscale.h"
     #include "libswresample/swresample.h"
 

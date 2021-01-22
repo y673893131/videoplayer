@@ -21,6 +21,8 @@ typedef long long int64_t;
 #include <functional>
 #include <vector>
 
+//#define FRAME_RGB
+
 enum enum_stream_channel
 {
     channel_video = 0,
@@ -59,7 +61,7 @@ public:
     virtual void setVideoSize(int width, int hight) = 0;
     virtual void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
-    virtual void displaySubTitleCall(char*, int) = 0;
+    virtual void displaySubTitleCall(char*, unsigned int) = 0;
     virtual void previewDisplayCall(void* data, int width, int height) = 0;
     virtual void startCall(int) = 0;
     virtual void endCall(int) = 0;
@@ -76,6 +78,12 @@ public:
         state_stopped
     };
 
+    enum enum_decode_type
+    {
+        decode_software,
+        decode_cuda,
+        decode_qsv
+    };
 public:
     video_player_core(const std::string& logDir);
     virtual ~video_player_core();
@@ -93,6 +101,7 @@ public:
     int _setMute(int, bool bMute);
     int _setsize(int index, int w, int h);
     int _setStreamChannel(int index, int channel, int sel);
+    int _setDecodeType(int index, enum_decode_type type);
     int _state(int);
     bool _cov(void *indata, void* outdata, int w, int h, int outsize);
     enum_state _getState(int);

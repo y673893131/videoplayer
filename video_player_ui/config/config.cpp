@@ -17,6 +17,7 @@ Config::Config()
     m_obj["is_top_window"] = false;
     m_obj["is_adjust_frame"] = true;
     m_obj["render"] = "opengl";
+    m_obj["decode"] = 0;
 }
 
 void Config::init(const QVariant &va)
@@ -46,6 +47,8 @@ QVariant Config::getData(Config::Data_Type type) const
         return m_obj.value("is_adjust_frame");
     case Data_Render:
         return m_obj.value("render");
+    case Data_Decode:
+        return m_obj.value("decode");
     }
 
     return QVariant();
@@ -72,6 +75,9 @@ void Config::setData(const QVariant &value, Config::Data_Type type)
         break;
     case Data_Render:
         m_obj["render"] = value.toString();
+        break;
+    case Data_Decode:
+        m_obj["decode"] = value.toInt();
         break;
     }
 

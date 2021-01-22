@@ -41,6 +41,7 @@ void QVideoControl::setToolBar(QToolWidgets *toolWidget)
     connect(m_toolbar, &QToolWidgets::setVol, this, &QVideoControl::onSetVol);
     connect(m_toolbar, &QToolWidgets::mute, this, &QVideoControl::onSetMute);
     connect(m_toolbar, &QToolWidgets::activeChannel, this, &QVideoControl::onActiveChannel);
+    connect(m_toolbar, &QToolWidgets::setDecodeType, this, &QVideoControl::onSetDecodeType);
 
     connect(this, &QVideoControl::start, m_toolbar, &QToolWidgets::start);
     connect(this, &QVideoControl::end, m_toolbar, &QToolWidgets::stop);
@@ -135,6 +136,11 @@ void QVideoControl::onActiveChannel(int channel, int index)
     m_core->_setStreamChannel(m_toolbar->index(), channel, index);
 }
 
+void QVideoControl::onSetDecodeType(int type)
+{
+    m_core->_setDecodeType(m_toolbar->index(), static_cast<video_player_core::enum_decode_type>(type));
+}
+
 void QVideoControl::waittingStoped()
 {
     int index = m_toolbar->index();
@@ -193,7 +199,7 @@ void QVideoControl::displayStreamChannelInfo(enum_stream_channel channel, const 
     emit streamInfo(list, static_cast<int>(channel), select);
 }
 
-void QVideoControl::displaySubTitleCall(char * str, int index)
+void QVideoControl::displaySubTitleCall(char * str, unsigned int index)
 {
 //    qDebug() << QString::fromUtf8(str) << index;
     emit subtitle(QString::fromUtf8(str), index);

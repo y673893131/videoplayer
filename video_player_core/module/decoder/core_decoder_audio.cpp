@@ -43,7 +43,7 @@ void core_decoder_audio::setVol(int vol)
     s_sdl->setVol(vol);
 }
 
-float core_decoder_audio::getVol()
+int core_decoder_audio::getVol()
 {
     return s_sdl->getVol();
 }
@@ -58,7 +58,7 @@ void core_decoder_audio::start()
     s_sdl->startSDL();
 }
 
-bool core_decoder_audio::decode(AVPacket *pk, int& bufferSize)
+bool core_decoder_audio::decode(AVPacket *pk, unsigned int& bufferSize)
 {
     if(nStreamIndex != pk->stream_index)
     {

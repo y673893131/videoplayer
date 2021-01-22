@@ -47,7 +47,7 @@ void core_preview::init(const std::string& file)
     }
 }
 
-void core_preview::preview(const std::string& src, int64_t ms, void* cb)
+void core_preview::preview(const std::string& src, int64_t ms, video_interface* cb)
 {
     Log(Log_Info, "%I64d [thread_id]:%d", ms, core_util::getThreadId());
     init(src);

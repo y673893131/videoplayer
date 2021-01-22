@@ -13,7 +13,6 @@ public:
 private:
     void threadCall();
     bool checkSubTitle(AVPacket *pkt);
-    double get_video_pts(AVFrame* frame);
 };
 
 #endif // CORE_THREAD_VIDEO_H

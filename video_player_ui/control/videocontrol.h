@@ -25,7 +25,7 @@ signals:
     void videoSizeChanged(int, int);
     void frameRate(int);
     void appendFrame(void*);
-    void subtitle(const QString&, int);
+    void subtitle(const QString&, unsigned int);
     void streamInfo(const QStringList&, int, int);
 private slots:
     void onStatFrameRate();
@@ -39,6 +39,7 @@ private slots:
     void onSetVol(int);
     void onSetMute(bool);
     void onActiveChannel(int, int);
+    void onSetDecodeType(int);
 private:
     Q_DISABLE_COPY(QVideoControl)
 
@@ -49,7 +50,7 @@ public:
     void setVideoSize(int width, int hight) override;
     void displayCall(void *data, int width, int height) override;
     void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) override;
-    void displaySubTitleCall(char *, int) override;
+    void displaySubTitleCall(char *, unsigned int) override;
     void previewDisplayCall(void *data, int width, int height) override;
     void startCall(int) override;
     void endCall(int) override;

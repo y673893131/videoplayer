@@ -71,13 +71,14 @@ signals:
     void getPreview(int);
     void _preview(void*, int, int);
     void activeChannel(int, int);
+    void setDecodeType(int);
 public slots:
     void onLoadFile();
     void onSelectMode(int);
     void onLeftPress();
     void onMax();
     void onFull();
-    void onSubtitle(const QString&, int);
+    void onSubtitle(const QString&, unsigned int);
     void onStreamInfo(const QStringList&, int, int);
 private:
     void init(QWidget* parent);
@@ -113,6 +114,7 @@ private:
     QDataModel* m_data;
     QLabel* m_title;
     QString m_curRender;
+    int m_curDecode;
 
     QVideoControl* m_contorl;
     sub_title_info m_subtitle;
