@@ -1,10 +1,16 @@
 #ifndef Q_DIRECT3D11_WIDGET_H
 #define Q_DIRECT3D11_WIDGET_H
 
-#include "qd3d11widget.h"
-#include "videoframe.h"
+#include "native/qnativewidget.h"
 
-class QDirect3D11Widget : public QD3D11Widget
+#include <D3D11.h>
+#include <D3DX11.h>
+#include <D3Dcompiler.h>
+#include <D3DX10math.h>
+#include "dx11/inputclass.h"
+#include "dx11/graphicsclass.h"
+
+class QDirect3D11Widget : public QNativeWidget
 {
     Q_OBJECT
 
@@ -13,17 +19,19 @@ public:
     virtual ~QDirect3D11Widget() override;
 
 private:
+    bool initialize() override;
+    void release();
     void render() override;
 
 public slots:
     void onViewAdjust(bool);
-    void onAppendFrame(void*);
     void onVideoSizeChanged(int,int);
     void onStart();
     void onStop();
 private:
-    _video_frame_* m_pFrame;
-    bool m_bViewAdjust, m_bStoped;
+    GraphicsClass* m_pGraphics;
+
+    bool m_bStoped;
 };
 
 #endif /*Q_DIRECT3D11_WIDGET_H*/

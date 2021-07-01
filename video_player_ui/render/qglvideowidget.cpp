@@ -15,6 +15,7 @@ QGLVideoWidget::QGLVideoWidget(QWidget *parent)
         m_bViewAdjust = GET_CONFIG_DATA(Config::Data_Adjust).toBool();
         qDebug() << "m_bViewAdjust" << m_bViewAdjust;
     });
+    setWindowFlag(Qt::FramelessWindowHint);
 }
 
 QGLVideoWidget::~QGLVideoWidget()

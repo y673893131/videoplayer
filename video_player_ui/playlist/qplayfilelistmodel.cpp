@@ -208,7 +208,7 @@ void QPlayFileListModel::onFilter(const QString &sFilter)
 QPlayFileListModel::QPlayFileListModel(QObject *parent)
     : QAbstractListModel(parent), m_nPlayMode(play_mode_local)
 {
-    m_itemSize = CALC_WIDGET_SIZE(nullptr, 200.0f / 1920, 20.0f / 1080);
+    m_itemSize = CALC_WIDGET_SIZE(nullptr, 200, 20);
     m_worker = new QWorker(this);
 //    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
     connect(this, &QPlayFileListModel::liveflush, [=]{

@@ -5,6 +5,7 @@
 #include <QSemaphore>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QDebug>
 
 QNetWorkQueue::QNetWorkQueue(QObject *parent)
     : QObject(parent), m_bClear(false)
@@ -45,6 +46,7 @@ void QNetWorkQueue::threadFunc()
 {
     QEventLoop loop;
     m_net = new QNetworkAccessManager();
+
     connect(m_net, &QNetworkAccessManager::finished, &loop, &QEventLoop::quit);
     while (1) {
         m_sem->acquire();
@@ -57,6 +59,9 @@ void QNetWorkQueue::threadFunc()
                 reply = m_net->get(*req->req);
             else
                 reply = m_net->post(*req->req, req->sData);
+            auto error = reply->error();
+            if(error != QNetworkReply::NoError)
+                qDebug() << reply->errorString() << error;
             loop.exec();
             req->call(reply);
             reply->close();

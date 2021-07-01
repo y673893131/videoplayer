@@ -99,6 +99,7 @@ int core_sdl_op::getVol()
 
 void core_sdl_op::resampleFrame(AVFrame *frame, unsigned int& bufferSize)
 {
+    checkSDL();
     if(pFrameReSample->nb_samples != frame->nb_samples)
     {
         auto delay = swr_get_delay(swrCtx, out.rate) + frame->nb_samples;
@@ -114,6 +115,11 @@ void core_sdl_op::resampleFrame(AVFrame *frame, unsigned int& bufferSize)
                            const_cast<const uint8_t**>(frame->data), frame->nb_samples);
     bufferSize = static_cast<unsigned int>(len * target.channels * av_get_bytes_per_sample(out.fmt));
     return;
+}
+
+bool core_sdl_op::checkSDL()
+{
+    return nAudioId >= 0;
 }
 
 int core_sdl_op::initSDL()
@@ -133,7 +139,7 @@ int core_sdl_op::openSDL()
         if(nAudioId > 0) return nAudioId;
     }
 
-    Log(Log_Warning, "sdl open failed, audio devices count:%d, %s", num, SDL_GetError());
+//    Log(Log_Warning, "sdl open failed, audio devices count:%d, %s", num, SDL_GetError());
     return -1;
 }
 

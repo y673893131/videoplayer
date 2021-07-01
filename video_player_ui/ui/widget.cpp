@@ -29,6 +29,10 @@ Widget::Widget(QWidget *parent)
     : QFrameLessWidget(parent)
 {
     init();
+//    setDragSelf(true);
+//    setAreo(reinterpret_cast<void*>(winId()));
+//    setShadow(reinterpret_cast<void*>(winId()));
+//    setStyleSheet("background: transparent;");
 }
 
 Widget::~Widget()
@@ -59,7 +63,7 @@ void Widget::initResource()
 {
     m_render = new QRenderFactory(this);
 //    m_video = new VIDEO_TYPE(this);
-    m_toolbar = new QToolWidgets(this);
+    m_toolbar = new QToolWidgets(m_render->renderWidget());
     m_toolbar->show();
     m_control = new QVideoControl(this);
     m_control->setToolBar(m_toolbar);
@@ -75,9 +79,10 @@ void Widget::initResource()
 void Widget::initConnect()
 {
     auto renderWd = m_render->renderWidget();
-    connect(this, &Widget::rightClicked, m_toolbar, &QToolWidgets::showMenu);
+    connect(this, &Widget::rightClicked, m_toolbar, &QToolWidgets::showMenu, Qt::QueuedConnection);
     connect(this, &Widget::leftPress, m_toolbar, &QToolWidgets::onLeftPress);
     connect(this, &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
+    connect(this, SIGNAL(leftDoubleClicked()), m_toolbar, SLOT(onFull()));
 
     connect(m_control, SIGNAL(appendFrame(void*)), renderWd, SLOT(onAppendFrame(void*)), Qt::QueuedConnection);
     connect(m_control, SIGNAL(start(int)), renderWd, SLOT(onStart()));
@@ -86,6 +91,7 @@ void Widget::initConnect()
 
     connect(m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
     connect(m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
+    connect(m_toolbar, &QToolWidgets::showMin, this, &Widget::showMinimized);
     connect(m_toolbar, &QToolWidgets::exit, this, &Widget::onExit);
     connect(m_toolbar, &QToolWidgets::topWindow, this, &Widget::onTopWindow);
     connect(m_toolbar, SIGNAL(viewAdjust(bool)), renderWd, SLOT(onViewAdjust(bool)));
@@ -106,13 +112,13 @@ void Widget::flushInitSize()
 {
     if(m_render->isUpdate())
     {
-        CALC_WIDGET_SIZE(m_toolbar, 0.5f, 0.7f);
+        CALC_WIDGET_SIZE(m_toolbar, 960, 756);
         CENTER_DESKTOP(m_toolbar);
     }
     else
     {
         QTimer::singleShot(0, [this]{
-            CALC_WIDGET_SIZE(m_toolbar, 0.5f, 0.7f);
+            CALC_WIDGET_SIZE(m_toolbar, 960, 756);
             CENTER_DESKTOP(m_toolbar);
         });
     }
@@ -213,7 +219,7 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
     {
         auto file = urls.begin()->toLocalFile();
         QStringList types;
-        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls";
+        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3";
         if(checkFile(file, types))
             event->accept();
     }

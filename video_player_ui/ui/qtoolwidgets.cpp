@@ -45,6 +45,7 @@ QToolWidgets::QToolWidgets(QWidget *parent)
     , m_playMode(QPlayFileListModel::play_mode_local)
     , m_totalSeconds(0)
     , m_curDecode(0)
+    , m_bSubtitleModify(false)
 {
     init(parent);
 }
@@ -58,12 +59,12 @@ void QToolWidgets::init(QWidget *parent)
 
 void QToolWidgets::initStyle()
 {
-    setWindowFlags(Qt::FramelessWindowHint | Qt::Window /*| Qt::SubWindow*/);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
 #ifdef Q_OS_WIN
     auto hwnd = reinterpret_cast<HWND>(this->winId());
-    setAreo(hwnd);
-    setShadow(hwnd);
+//    setAreo(hwnd);
+//    setShadow(hwnd);
 #endif
 }
 
@@ -144,12 +145,12 @@ void QToolWidgets::initUi(QWidget *parent)
 
 void QToolWidgets::initSize()
 {
-    CALC_WIDGET_WIDTH(m_livePlatformWd, 200.0f / 1920);
-    CALC_WIDGET_WIDTH(m_filelistWd, 200.0f / 1920);
-    CALC_WIDGET_WIDTH(m_title, 100.0f / 1920);
-    CALC_WIDGET_HEIGHT(m_titleWd, 60.0f / 1920);
-    CALC_WIDGET_HEIGHT(m_toolWd, 150.0f / 1920);
-    CALC_WIDGET_HEIGHT(m_subtitleWd, 150.0f / 1920);
+    CALC_WIDGET_WIDTH(m_livePlatformWd, 200);
+    CALC_WIDGET_WIDTH(m_filelistWd, 200);
+    CALC_WIDGET_WIDTH(m_title, 800);
+    CALC_WIDGET_HEIGHT(m_titleWd, 40);
+    CALC_WIDGET_HEIGHT(m_toolWd, 85);
+    CALC_WIDGET_HEIGHT(m_subtitleWd, 85);
 }
 
 int QToolWidgets::index()
@@ -171,7 +172,7 @@ void QToolWidgets::onLoadFile()
         this,
         QString(),
         path,
-        "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls)");
+        "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls);;mp3 (*.mp3)");
     dialog.setFileMode(QFileDialog::ExistingFiles);
     dialog.show();
     auto desktopSize = qApp->desktop()->size();
@@ -257,6 +258,12 @@ void QToolWidgets::onSubtitle(const QString &str, unsigned int /*index*/)
         return;
     }
 
+    if(m_bSubtitleModify)
+    {
+        m_bSubtitleModify = false;
+        m_subtitle.titls.clear();
+    }
+
     auto tmBeg = UTIL->getMs(list[Sub_Titl_Time_Begin]);
     auto tmEnd = UTIL->getMs(list[Sub_Titl_Time_End]);
 
@@ -294,6 +301,12 @@ void QToolWidgets::onSubtitle(const QString &str, unsigned int /*index*/)
     {
         m_subtitles[1]->clear();
     }
+
+    m_subtitles[0]->setVisible(true);
+    if(!m_subtitles[1]->text().isEmpty())
+        m_subtitles[1]->setVisible(true);
+    m_timerDisplay->stop();
+    m_timerDisplay->start();
 }
 
 void QToolWidgets::onStreamInfo(const QStringList &list, int nChannel, int nDefault)
@@ -319,6 +332,12 @@ void QToolWidgets::onStreamInfo(const QStringList &list, int nChannel, int nDefa
     menu->addActions(actions->actions());
 }
 
+void QToolWidgets::onHideSubTitle()
+{
+    for(auto it : m_subtitles)
+        it->hide();
+}
+
 QWidget *QToolWidgets::CreateTitle(QWidget * parent)
 {
     auto widget = new QWidget(parent);
@@ -341,20 +360,16 @@ QWidget *QToolWidgets::CreateTitle(QWidget * parent)
     auto layout = new QHBoxLayout(widget);
     layout->setSpacing(0);
     layout->setMargin(0);
-    layout->addStretch();
+//    layout->addStretch();
+    layout->addSpacing(10);
     layout->addWidget(m_title);
     layout->addStretch();
     layout->addWidget(m_min);
     layout->addWidget(m_max);
     layout->addWidget(m_close);
 
-    connect(m_min, &QPushButton::clicked, [this]
-    {
-        parentWidget()->showMinimized();
-    });
-
+    connect(m_min, &QPushButton::clicked, this, &QToolWidgets::showMin);
     connect(m_max, &QPushButton::clicked, this, &QToolWidgets::onMax);
-    connect(parentWidget(), SIGNAL(leftDoubleClicked()), this, SLOT(onFull()));
     connect(m_close, &QPushButton::clicked, this, &QToolWidgets::exit);
     connect(this, &QToolWidgets::hideOrShow, [widget, this](bool bHide)
     {
@@ -456,6 +471,7 @@ QBoxLayout *QToolWidgets::CreateProcessbar(QWidget *parent)
     });
 
     connect(m_process, &QProgressSlider::gotoPos, this, &QToolWidgets::setSeekPos);
+    connect(m_process, &QProgressSlider::gotoPos, this, &QToolWidgets::onHideSubTitle);
     connect(m_process, &QProgressSlider::getPreview, this, &QToolWidgets::getPreview);
     connect(this, &QToolWidgets::_preview, m_process, &QProgressSlider::onPreview);
 
@@ -490,15 +506,15 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     time->setObjectName("label_frame_time");
     framRate->setObjectName("label_frame_rate");
 
-    auto space = CALC_WIDGET_WIDTH(nullptr, 10.0f / 1920);
-    auto margin = CALC_WIDGET_WIDTH(nullptr, 15.0f / 1920);
-    auto btnSize = CALC_WIDGET_SIZE(nullptr, 50.0f / 1920, 50.0f / 1080);
+    auto space = CALC_WIDGET_WIDTH(nullptr, 10);
+    auto margin = CALC_WIDGET_WIDTH(nullptr, 15);
+    auto btnSize = CALC_WIDGET_SIZE(nullptr, 50, 50);
     stop->setFixedSize(btnSize / 5 * 2);
     prev->setFixedSize(btnSize);
     play->setFixedSize(btnSize);
     next->setFixedSize(btnSize);
     volMute->setFixedSize(btnSize / 2);
-    CALC_WIDGET_WIDTH(volNum, 100.0f / 1920);
+    CALC_WIDGET_WIDTH(volNum, 100);
     fileList->setFixedSize(btnSize / 5 * 3);
 
     auto layout = new QHBoxLayout(widget);
@@ -788,10 +804,15 @@ QWidget *QToolWidgets::CreateSubTitle(QWidget *parent)
 {
     auto widget = new QWidget(parent);
     m_subtitleWd = widget;
+    m_timerDisplay = new QTimer(this);
+    m_timerDisplay->setInterval(4000);
+    m_timerDisplay->setSingleShot(true);
     auto ch = new QLabel(widget);
     auto other = new QLabel(widget);
     m_subtitles.push_back(ch);
     m_subtitles.push_back(other);
+    ch->setWordWrap(true);
+    other->setWordWrap(true);
     ch->setAlignment(Qt::AlignCenter);
     other->setAlignment(Qt::AlignCenter);
 
@@ -804,15 +825,15 @@ QWidget *QToolWidgets::CreateSubTitle(QWidget *parent)
     layout->setMargin(0);
     layout->addWidget(ch);
     layout->addWidget(other);
-    layout->addSpacing(CALC_WIDGET_HEIGHT(nullptr, 20.0f / 1920));
-    connect(this, &QToolWidgets::setPosSeconds, this, [this](int pos)
-    {
-        bool bVisible = (m_subtitle.tmBeg < pos && m_subtitle.tmEnd > pos);
-        for (auto it : m_subtitles)
-        {
-            it->setVisible(bVisible);
-        }
-    });
+    layout->addSpacing(CALC_WIDGET_HEIGHT(nullptr, 15));
+//    connect(this, &QToolWidgets::setPosSeconds, this, [this](int pos)
+//    {
+//        bool bVisible = (m_subtitle.tmBeg < pos && m_subtitle.tmEnd > pos);
+//        for (auto it : m_subtitles)
+//        {
+//            it->setVisible(bVisible);
+//        }
+//    });
 
     return widget;
 }
@@ -847,6 +868,10 @@ void QToolWidgets::CreateMenu(QWidget *parent)
         {
             auto index = channelGroup->actions().indexOf(ac);
             emit activeChannel(n, index);
+            if(n == channel_subtitle)
+            {
+                m_bSubtitleModify = true;
+            }
         });
     }
 
@@ -956,7 +981,12 @@ void QToolWidgets::mousePressEvent(QMouseEvent *event)
     QWidget::mousePressEvent(event);
     if(event->buttons() & Qt::RightButton)
         emit showMenu();
-    if(event->button() == Qt::LeftButton)
+}
+
+void QToolWidgets::mouseMoveEvent(QMouseEvent *event)
+{
+    QWidget::mouseMoveEvent(event);
+    if(event->buttons() == Qt::LeftButton)
     {
 #ifdef Q_OS_WIN
         onLeftPress();
@@ -991,7 +1021,7 @@ bool QToolWidgets::nativeEventFilter(const QByteArray &eventType, void *message,
         // resize box
         // 因为设置了WA_TranslucentBackground，不能捕获到鼠标的消息（用于缩放），需要转发给自己
         // 如果不设置WA_TranslucentBackground，背景无法穿透，不能看到视频界面
-        if((isActiveWindow() || (parentWidget() && parentWidget()->isActiveWindow())) && (msg->message == WM_NCHITTEST || msg->message == WM_NCLBUTTONDOWN))
+        if((isActiveWindow() || (parentWidget() && parentWidget()->isActiveWindow())) && (msg->message == WM_NCHITTEST || msg->message == WM_NCLBUTTONDOWN || msg->message == WM_KEYDOWN))
         {
             msg->hwnd = reinterpret_cast<HWND>(winId());
         }
@@ -1013,6 +1043,10 @@ void QToolWidgets::resizeEvent(QResizeEvent *event)
     UTIL->setWindowEllispeFrame(this, 0, 0);
     emit _resize(event->size());
     m_subtitleWd->setFixedWidth(width());
+    for(auto it : m_subtitles)
+    {
+        it->setFixedWidth(m_subtitleWd->width());
+    }
     m_subtitleWd->move(0, height() - m_subtitleWd->height());
 }
 

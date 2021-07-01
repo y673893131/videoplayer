@@ -157,9 +157,9 @@ bool core_thread_video::checkSubTitle(AVPacket *pkt)
             subtitleString = pSubtitle->rects[i]->ass;
             m_media->_cb->displaySubTitleCall(subtitleString, i);
         }
-
-        avsubtitle_free(pSubtitle);
     }
 
+    if(pSubtitle)
+        avsubtitle_free(pSubtitle);
     return true;
 }

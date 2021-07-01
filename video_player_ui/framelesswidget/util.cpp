@@ -15,13 +15,14 @@ CUtil *CUtil::instance()
 
 CUtil::CUtil()
 {
+    m_baseSize = QSize(1920, 1080);
     m_desktopSize = qApp->desktop()->availableGeometry().size();
 }
 
-QSize CUtil::setDesktopPercent(QWidget* widget, float x, float y)
+QSize CUtil::setDesktopPercent(QWidget* widget, int w, int h)
 {
-    auto xNew = static_cast<int>(x * m_desktopSize.width());
-    auto yNew = static_cast<int>(y * m_desktopSize.height());
+    auto xNew = static_cast<int>(w * m_desktopSize.width() / (m_baseSize.width() * 1.0f));
+    auto yNew = static_cast<int>(h * m_desktopSize.height() / (m_baseSize.height() * 1.0f));
     if(widget)
     {
 //        widget->setMinimumSize(xNew, yNew);
@@ -32,9 +33,9 @@ QSize CUtil::setDesktopPercent(QWidget* widget, float x, float y)
     return QSize(xNew, yNew);
 }
 
-int CUtil::setDesktopPercentWidth(QWidget *widget, float percent)
+int CUtil::setDesktopPercentWidth(QWidget *widget, int w)
 {
-    auto xNew = static_cast<int>(percent * m_desktopSize.width());
+    auto xNew = static_cast<int>(w * m_desktopSize.width() / (m_baseSize.width() * 1.0f));
     if(widget)
     {
         widget->setFixedWidth(xNew);
@@ -43,9 +44,9 @@ int CUtil::setDesktopPercentWidth(QWidget *widget, float percent)
     return xNew;
 }
 
-int CUtil::setDesktopPercentHeight(QWidget *widget, float percent)
+int CUtil::setDesktopPercentHeight(QWidget *widget, int h)
 {
-    auto yNew = static_cast<int>(percent * m_desktopSize.height());
+    auto yNew = static_cast<int>(h * m_desktopSize.height() / (m_baseSize.height() * 1.0f));
     if(widget)
     {
         widget->setFixedHeight(yNew);

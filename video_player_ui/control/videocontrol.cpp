@@ -105,6 +105,7 @@ void QVideoControl::onContinue()
 
 void QVideoControl::onSeekPos(int value)
 {
+    qDebug() << __FUNCTION__ << value;
     m_core->_seek(m_toolbar->index(), value);
 //    m_seekPos = value;
 //    m_seekTimer->stop();

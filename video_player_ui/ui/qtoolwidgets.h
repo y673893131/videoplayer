@@ -45,6 +45,7 @@ public:
     int index();
     void setExists(bool);
 signals:
+    void showMin();
     void exit();
     void play(const QString& = QString());
     void pause();
@@ -80,6 +81,7 @@ public slots:
     void onFull();
     void onSubtitle(const QString&, unsigned int);
     void onStreamInfo(const QStringList&, int, int);
+    void onHideSubTitle();
 private:
     void init(QWidget* parent);
     void initStyle();
@@ -96,11 +98,13 @@ private:
 
     void CreateMenu(QWidget *parent);
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+
 private:
     QProgressSlider* m_process;
     QWidget* m_backWd,* m_titleWd, * m_livePlatformWd,* m_filelistWd, *m_subtitleWd, *m_toolWd;
@@ -119,6 +123,8 @@ private:
     QVideoControl* m_contorl;
     sub_title_info m_subtitle;
     std::vector<QLabel*> m_subtitles;
+    QTimer* m_timerDisplay;
+    bool m_bSubtitleModify;
 
     std::vector<QMenu*> m_channelMenus;
     std::vector<QActionGroup*> m_channelActions;

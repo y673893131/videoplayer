@@ -492,9 +492,9 @@ void core_media::channelChange()
 
 void core_media::decodeChange()
 {
-    msleep(10);
-    video->setDecodeType(_decodeType);
-    setFlag(flag_bit_decode_change, false);
+    msleep(30);
+    if(video->setDecodeType(_decodeType))
+        setFlag(flag_bit_decode_change, false);
 }
 
 bool core_media::push_frame(bool &bSeek)

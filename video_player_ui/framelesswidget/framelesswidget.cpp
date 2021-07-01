@@ -44,6 +44,7 @@ void QFrameLessWidget::setDragSelf(bool bDrag)
 
     if(bDrag)
     {
+        qDebug() << __FUNCTION__ << this;
         connect(this, &QFrameLessWidget::leftPress, this, func);
     }
 #endif
@@ -77,14 +78,14 @@ void QFrameLessWidget::setDoubleClickMax()
 
 void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
 {
-    if(event->button() == Qt::LeftButton)
-    {
-#ifdef unix
-        m_dragBorder->setStartPos(pos(), event->globalPos());
-#else
-        emit leftPress();
-#endif
-    }
+//    if(event->button() == Qt::LeftButton)
+//    {
+//#ifdef unix
+//        m_dragBorder->setStartPos(pos(), event->globalPos());
+//#else
+//        emit leftPress();
+//#endif
+//    }
     if(event->button() == Qt::RightButton)
     {
         emit rightClicked();
@@ -101,13 +102,15 @@ void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
 void QFrameLessWidget::paintEvent(QPaintEvent *event)
 {
-    Q_UNUSED(event)
+//    Q_UNUSED(event)
     if(!m_bkImg.isNull())
     {
         QPainter painter(this);
         painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
         painter.drawImage(0, 0, m_bkImg.scaled(this->size()));
     }
+
+    QWidget::paintEvent(event);
 }
 
 bool QFrameLessWidget::nativeEvent(const QByteArray &eventType, void *message, long *result)
@@ -169,7 +172,15 @@ void QFrameLessWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void QFrameLessWidget::mouseMoveEvent(QMouseEvent *event)
 {
-//    QWidget::mouseMoveEvent(event);
+    QWidget::mouseMoveEvent(event);
+    if(event->buttons() == Qt::LeftButton)
+    {
+#ifdef unix
+        m_dragBorder->setStartPos(pos(), event->globalPos());
+#else
+        emit leftPress();
+#endif
+    }
 #ifdef unix
     if(event->buttons() == Qt::LeftButton)
     {

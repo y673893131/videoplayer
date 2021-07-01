@@ -5,22 +5,44 @@
 #include "Log/Log.h"
 
 QDirect3D11Widget::QDirect3D11Widget(QWidget * parent)
-    : QD3D11Widget(parent)
-    , m_pFrame(Q_NULLPTR)
-    , m_bViewAdjust(true)
+    : QNativeWidget(parent)
     , m_bStoped(true)
 {
-    connect(this, &QDirect3D11Widget::flush, this, &QDirect3D11Widget::onFrame);
-    connect(Config::instance(), &Config::loadConfig, [this]
-    {
-        m_bViewAdjust = GET_CONFIG_DATA(Config::Data_Adjust).toBool();
-        qDebug() << "m_bViewAdjust" << m_bViewAdjust;
-    });
 }
 
 QDirect3D11Widget::~QDirect3D11Widget()
 {
     release();
+}
+
+bool QDirect3D11Widget::initialize()
+{
+    // Create the graphics object.  This object will handle rendering all the graphics for this application.
+    m_pGraphics = new GraphicsClass;
+    if(!m_pGraphics)
+    {
+        return false;
+    }
+
+    // Initialize the graphics object.
+    auto result = m_pGraphics->Initialize(m_width, m_height, reinterpret_cast<HWND>(winId()));
+    if(!result)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void QDirect3D11Widget::release()
+{
+    // Release the graphics object.
+    if(m_pGraphics)
+    {
+        m_pGraphics->Shutdown();
+        delete m_pGraphics;
+        m_pGraphics = 0;
+    }
 }
 
 void QDirect3D11Widget::render()
@@ -34,13 +56,6 @@ void QDirect3D11Widget::render()
 void QDirect3D11Widget::onViewAdjust(bool)
 {
 
-}
-
-void QDirect3D11Widget::onAppendFrame(void *frame)
-{
-    if(m_pFrame) delete m_pFrame;
-    m_pFrame = reinterpret_cast<_video_frame_*>(frame);
-    emit flush();
 }
 
 void QDirect3D11Widget::onVideoSizeChanged(int width, int height)

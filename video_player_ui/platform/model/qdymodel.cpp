@@ -9,7 +9,7 @@
 #include <QScriptEngine>
 #include <QCryptographicHash>
 #include <QEventLoop>
-
+#include <QDateTime>
 QDyModel::QDyModel(QObject *parent)
     : QLiveDataModel(parent)
 {
@@ -22,6 +22,7 @@ void QDyModel::initClass()
     {
         QStringList names,urls;
         auto data = QString(response->readAll());
+        qDebug() << data;
         QString sKey = "Aside-menu-block";
         int nPos = data.indexOf(sKey);
         while(nPos > 0)

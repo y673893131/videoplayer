@@ -20,19 +20,19 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
     m_timeWidget->setObjectName("time_wd");
     m_time->setObjectName("label_time");
     auto layout = new QVBoxLayout(m_timeWidget);
-    auto margin = CALC_WIDGET_WIDTH(nullptr, 5.0f / 1920);
+    auto margin = CALC_WIDGET_WIDTH(nullptr, 5);
     layout->setAlignment(Qt::AlignCenter);
     layout->setMargin(0);
     layout->addWidget(m_time);
-    CALC_WIDGET_SIZE(m_timeWidget, 65.0f / 1920, 26.0f / 1080);
+    CALC_WIDGET_SIZE(m_timeWidget, 65, 26);
     UTIL->setWindowEllispeFrame(m_timeWidget, margin / 2, margin / 2);
-    auto size = CALC_WIDGET_SIZE(nullptr, -20.0f / 1920, 35.0f / 1080);
+    auto size = CALC_WIDGET_SIZE(nullptr, -20, 35);
     m_timePt.setX(size.width());
     m_timePt.setY(size.height());
 
     m_preview = new QLabel(grandParent);
     m_preview->setWindowFlags(Qt::FramelessWindowHint | Qt::ToolTip);
-    CALC_WIDGET_SIZE(m_preview, 200.0f / 1920, 150.0f / 1080);
+    CALC_WIDGET_SIZE(m_preview, 200, 150);
     UTIL->setWindowEllispeFrame(m_preview, margin, margin);
     m_preview->hide();
     m_preview->setObjectName("label_preview");

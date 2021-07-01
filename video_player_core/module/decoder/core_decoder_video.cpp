@@ -33,7 +33,10 @@ bool core_decoder_video::init(AVFormatContext *formatCtx, int index)
     }
 
     if(!bRet)
+    {
+//        uninit();
         return false;
+    }
 
     INIT_NEW(&m_convert, core_frame_convert)
     m_convert->setsrcCodec(pCodecContext);

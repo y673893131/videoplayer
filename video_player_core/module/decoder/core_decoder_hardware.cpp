@@ -50,6 +50,8 @@ bool core_decoder_hardware::initCuda(AVFormatContext *formatCtx, int index)
     auto ret = av_hwdevice_ctx_create(&m_buffer, m_devType, nullptr, nullptr, 0);
     if(ret < 0)
     {
+        avcodec_free_context(&pCodecContext);
+        pCodecContext = nullptr;
         char buf[1024] = {};
         av_strerror(ret, buf, 1024);
         Log(Log_Err, "av_hwdevice_ctx_create failed![%s]", buf);
@@ -90,6 +92,8 @@ void core_decoder_hardware::uninit()
 
 bool core_decoder_hardware::decode(AVPacket *pk)
 {
+    if(!m_hwframe)
+        return false;
     auto ret = avcodec_send_packet(pCodecContext, pk);
     if(ret != 0 && ret != AVERROR(EAGAIN))
     {

@@ -13,6 +13,15 @@ HEADERS += \
     $$PWD/framelesswidget/util.h \
     $$PWD/render/dx11/bitmapclass.h \
     $$PWD/render/dx11/graphicsclass.h \
+    $$PWD/render/native/qnativewidget.h \
+#    $$PWD/render/opengl/GLFW/include/glfw3.h \
+#    $$PWD/render/opengl/GLFW/include/glfw3native.h \
+#    $$PWD/render/opengl/Shader.h \
+#    $$PWD/render/opengl/glew/include/GL/eglew.h \
+#    $$PWD/render/opengl/glew/include/GL/glew.h \
+#    $$PWD/render/opengl/glew/include/GL/glxew.h \
+#    $$PWD/render/opengl/glew/include/GL/wglew.h \
+#    $$PWD/render/opengl/qopenglcustomwidget.h \
     $$PWD/render/qrenderfactory.h \
     $$PWD/render/qglvideowidget.h \
     $$PWD/render/qlabelvideowidget.h \
@@ -30,6 +39,9 @@ SOURCES += \
     $$PWD/framelesswidget/util.cpp \
     $$PWD/render/dx11/bitmapclass.cpp \
     $$PWD/render/dx11/graphicsclass.cpp \
+    $$PWD/render/native/qnativewidget.cpp \
+#    $$PWD/render/opengl/Shader.cpp \
+#    $$PWD/render/opengl/qopenglcustomwidget.cpp \
     $$PWD/render/qrenderfactory.cpp \
     $$PWD/render/videoframe.h \
     $$PWD/render/qglvideowidget.cpp \
@@ -102,13 +114,32 @@ INCLUDEPATH += \
     $$PWD \
     $$PWD/../vidoe_player_log \
     $$PWD/../video_player_core
+
 LIBS += -L$$PWD/../bin -lvidoe_player_log -lvideo_player_core
+
+CONFIG += debug_and_release
+
+#QMAKE_LFLAGS_DEBUG += /NODEFAULTLIB:libcmtd.lib
 
 win32-g++ {
     LIBS += -lopengl32 -lglu32
+#    CONFIG(debug, debug|release) {
+#        LIBS += -L$$PWD/render/opengl/GLFW/lib/debug -lglfw3
+#    }else{
+#        LIBS += -L$$PWD/render/opengl/GLFW/lib/release -lglfw3
+#    }
+
+#    LIBS += -L$$PWD/render/opengl/glew/lib -lglew32s
 }
 win32-msvc*{
     LIBS += opengl32.lib glu32.lib glmf32.lib
+#    CONFIG(debug, debug|release) {
+#        LIBS += -L$$PWD/render/opengl/GLFW/lib/debug -lglfw3
+#    }else{
+#        LIBS += -L$$PWD/render/opengl/GLFW/lib/release -lglfw3
+#    }
+
+#    LIBS += -L$$PWD/render/opengl/glew/lib -lglew32s
 }
 
 DESTDIR = $$PWD/../bin

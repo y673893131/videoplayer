@@ -45,6 +45,7 @@ public:
 
     void resampleFrame(AVFrame*, unsigned int& bufferSize);
 
+    bool checkSDL();
     int initSDL();
     int openSDL();
     void closeSDL();

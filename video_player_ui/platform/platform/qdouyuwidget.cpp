@@ -84,7 +84,7 @@ void QDouyuWidget::initUi(QWidget */*parent*/)
     layoutContent->addLayout(layoutLeft);
     layoutContent->addLayout(layoutRight);
 
-    CALC_WIDGET_WIDTH(liveList, 0.1f);
+    CALC_WIDGET_WIDTH(liveList, 190);
 
     connect(m_close, &QPushButton::clicked, this, &QFrameLessWidget::hide);
 
@@ -140,6 +140,6 @@ bool QDouyuWidget::isValid()
 
 void QDouyuWidget::showEvent(QShowEvent *event)
 {
-    CALC_WIDGET_SIZE(this, 0.7f, 0.8f);
+    CALC_WIDGET_SIZE(this, 1344, 864);
     QFrameLessWidget::showEvent(event);
 }

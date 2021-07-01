@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QEventLoop>
+#include <QDebug>
 
 QEGameModel::QEGameModel(QObject* parent)
     :QLiveDataModel(parent)
@@ -41,6 +42,7 @@ void QEGameModel::loadGameRooms(const QString &url)
 
     auto request = new QNetworkRequest();
     request->setUrl(QUrl(sUrl));
+    qDebug() << sUrl;
     appendRequest(request, func);
 }
 

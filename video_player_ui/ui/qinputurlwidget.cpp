@@ -52,21 +52,22 @@ QInputUrlWidget::QInputUrlWidget(QWidget *parent)
     layoutBtn->addWidget(cancel);
     layoutBtn->addStretch();
 
-    CALC_WIDGET_HEIGHT(title_widget, 0.04f);
-    CALC_WIDGET_SIZE(sure, 0.05f, 0.03f);
-    CALC_WIDGET_SIZE(cancel, 0.05f, 0.03f);
+    CALC_WIDGET_SIZE(this, 280, 150);
+    CALC_WIDGET_HEIGHT(title_widget, 40);
+    CALC_WIDGET_SIZE(sure, 100, 30);
+    CALC_WIDGET_SIZE(cancel, 100, 30);
 
     connect(sure, &QPushButton::clicked, [this, url]
     {
         if(url->text().isEmpty())
             return ;
         emit inputUrl(url->text());
-        close();
+        hide();
     });
 
     connect(cancel, &QPushButton::clicked, [this]
     {
-        close();
+        hide();
     });
 
     connect(this, &QInputUrlWidget::showInit, [=]
@@ -77,13 +78,9 @@ QInputUrlWidget::QInputUrlWidget(QWidget *parent)
             url->setFocus();
         });
 
-        show();
+
+        this->show();
+        this->raise();
         CENTER_WIDGET(this);
     });
-}
-
-void QInputUrlWidget::showEvent(QShowEvent *event)
-{
-    CALC_WIDGET_SIZE(this, 0.18f, 0.15f);
-    QFrameLessWidget::showEvent(event);
 }

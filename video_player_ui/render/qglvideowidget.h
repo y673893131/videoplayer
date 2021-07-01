@@ -45,7 +45,7 @@ class QGLVideoWidget : public QOpenGLWidget, public QOpenGLFunctions
 
 public:
     QGLVideoWidget(QWidget *parent = nullptr);
-    virtual ~QGLVideoWidget();
+    virtual ~QGLVideoWidget() override;
 
 signals:
     void appendFrame(void*);
@@ -62,9 +62,9 @@ public slots:
     void onStart();
     void onStop();
 protected:
-    void initializeGL();
-    void resizeGL(int w, int h);
-    void paintGL();
+    void initializeGL() override;
+    void resizeGL(int w, int h) override;
+    void paintGL() override;
 
     void initViewScale();
     void scaleViewCalc(bool bFlush = false);
