@@ -162,7 +162,8 @@ void core_decoder_hardware::calcClock()
     }
 
     pts_video *= av_q2d(stream->time_base);
-    _clock = pts_video;
+    //_clock = pts_video;
+    setClock(pts_video);
 }
 
 AVPixelFormat core_decoder_hardware::getFormatCUDA(AVCodecContext *ctx, const AVPixelFormat *srcFormat)

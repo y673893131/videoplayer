@@ -4,6 +4,10 @@ win32
 {
     INCLUDEPATH += F:/DX11/Include
     LIBS += -LF:/DX11/lib/x86 -ld3d11 -ld3dx11 -ld3dcompiler
+
+#    Tips: admin need administrator startup QtCreator
+#    QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"
+#    QMAKE_LFLAGS += /SUBSYSTEM:WINDOWS,\"5.01\"
 }
 
 # ui

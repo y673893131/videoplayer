@@ -12,7 +12,7 @@ QRoomListViewModel::QRoomListViewModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_room(nullptr)
 {
-    m_itemSize = CALC_SIZE(300.0f / 1920, 260.0f / 1080);
+    m_itemSize = CALC_SIZE(300, 260);
 }
 
 QVariant QRoomListViewModel::headerData(int /*section*/, Qt::Orientation /*orientation*/, int /*role*/) const

@@ -61,6 +61,7 @@ void QEGameModel::loadGameRoomPage(const QString &url, int pg)
         auto liveData = data1.value("live_data").toObject();
         auto arr = liveData.value("live_list").toArray();
         waitClearRooms();
+
         for(auto it : arr)
         {
             auto arrObj = it.toObject();

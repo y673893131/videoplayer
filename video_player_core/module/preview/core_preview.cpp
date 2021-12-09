@@ -66,7 +66,7 @@ void core_preview::preview(const std::string& src, int64_t ms, video_interface* 
     avcodec_flush_buffers(ctx);
     AVPacket pk;
     int ret = 0;
-    bool bFirst = false;
+    bool bFirstIFrame = false;
     while(1)
     {
         ret = av_read_frame(pFormatCtx, &pk);
@@ -76,13 +76,13 @@ void core_preview::preview(const std::string& src, int64_t ms, video_interface* 
             continue;
         }
 
-        if(!bFirst && !(pk.flags & AV_PKT_FLAG_KEY))
+        if(!bFirstIFrame && !(pk.flags & AV_PKT_FLAG_KEY))
         {
             av_packet_unref(&pk);
             continue;
         }
 
-        bFirst = true;
+        bFirstIFrame = true;
 
         ret = avcodec_send_packet(ctx, &pk);
         if( ret != 0 && ret != AVERROR(EAGAIN) )
@@ -103,6 +103,8 @@ void core_preview::preview(const std::string& src, int64_t ms, video_interface* 
         }
     }
 
+    std::string sData = "seek:" + std::to_string(pk.pts) + "\n";
+    OutputDebugStringA(sData.c_str());
     av_packet_unref(&pk);
     outFrame->scalePreview(frame, cb);
 }

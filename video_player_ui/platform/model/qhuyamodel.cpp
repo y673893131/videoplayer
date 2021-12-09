@@ -9,6 +9,9 @@
 #include <QScriptEngine>
 #include <QCryptographicHash>
 #include <QEventLoop>
+
+#define _OUTPUT_DEBUG
+
 QHuYaModel::QHuYaModel(QObject *parent)
     : QLiveDataModel(parent)
 {
@@ -130,23 +133,47 @@ void QHuYaModel::loadGameRoomPage(const QString &url, int nPage)
     appendRequest(request, func);
 }
 
+#include <QFile>
 void QHuYaModel::getPreviewUrl(const QString &sRid)
 {
     auto func = [=](QNetworkReply *response)
     {
         QString text = QString::fromUtf8(response->readAll());
-        QRegExp re("\"stream\": \"(.*)/(.*)==");
+
+
+        QRegExp re("\"stream\": \"(.*)/(.*)\"");
         re.setMinimal(true);
         re.indexIn(text);
-        QString data = QString::fromUtf8(QByteArray::fromBase64(re.cap(2).toUtf8()));
-        QRegExp re1("\"sStreamName\":\"(.*)\"");
-        re1.setMinimal(true);
-        re1.indexIn(data);
-        auto sLiveUrl = QString("rtmp://tx.flv.huya.com/src/%1").arg(re1.cap(1));
-        emit play(sLiveUrl);
+        int n = 0;
+        for(auto it : re.capturedTexts())
+        {
+            QString data = QString::fromUtf8(QByteArray::fromBase64(it.toUtf8()));
+
+#ifdef _OUTPUT_DEBUG
+        QFile f;
+        f.setFileName(QString("D://%1.html").arg(n++));
+        f.open(QFile::ReadWrite | QFile::Truncate);
+        f.write(data.toUtf8());
+        f.close();
+        qDebug() << "[preview]" << data.length();
+#endif
+
+            QRegExp re1("\"sStreamName\":\"(.*)\"");
+            re1.setMinimal(true);
+            if(-1 == re1.indexIn(data))
+                continue;
+
+            auto realUrl = re1.cap(1);
+            auto sLiveUrl = QString("rtmp://tx.flv.huya.com/src/%1").arg(realUrl);
+            emit play(sLiveUrl);
+            return;
+        }
     };
 
     auto url = QString("https://www.huya.com/%1").arg(sRid);
+#ifdef _OUTPUT_DEBUG
+    qDebug() << "start get preview url:" << url;
+#endif
     auto request = new QNetworkRequest();
     request->setUrl(QUrl(url));
     appendRequest(request, func);

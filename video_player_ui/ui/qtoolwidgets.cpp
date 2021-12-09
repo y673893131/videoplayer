@@ -244,6 +244,7 @@ void QToolWidgets::onFull()
 
 void QToolWidgets::onSubtitle(const QString &str, unsigned int /*index*/)
 {
+//    qDebug() << str << index;
     enum enum_sub_title
     {
         Sub_Titl_Time_Begin = 1,
@@ -600,7 +601,7 @@ QWidget *QToolWidgets::CreateToolbar(QWidget *parent)
     connect(this, &QToolWidgets::selectMode, [stop, prev, play, next](int mode)
     {
         bool bShow = (mode == QPlayFileListModel::play_mode_local);
-        stop->setVisible(bShow);
+//        stop->setVisible(bShow);
         prev->setVisible(bShow);
 //        play->setVisible(bShow);
         next->setVisible(bShow);
@@ -835,6 +836,7 @@ QWidget *QToolWidgets::CreateSubTitle(QWidget *parent)
 //        }
 //    });
 
+    connect(m_timerDisplay, &QTimer::timeout, this, [=]{ ch->clear(); other->clear(); });
     return widget;
 }
 

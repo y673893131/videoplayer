@@ -5,8 +5,11 @@
 #include <functional>
 #include "Log/Log.h"
 
+//#define _DESKTOP_
+
 extern "C"
 {
+    #include "libavdevice/avdevice.h"
     #include "libavcodec/avcodec.h"
     #include "libavformat/avformat.h"
     #include "libavutil/time.h"

@@ -60,6 +60,8 @@ void QNetWorkQueue::threadFunc()
             else
                 reply = m_net->post(*req->req, req->sData);
             auto error = reply->error();
+//            qDebug() << req->req->url();
+//            qDebug() << reply->error();
             if(error != QNetworkReply::NoError)
                 qDebug() << reply->errorString() << error;
             loop.exec();

@@ -9,8 +9,8 @@ IDI_ICON1 ICON DISCARDABLE "Resources/app.ico"
     #endif
 
     VS_VERSION_INFO VERSIONINFO
-        FILEVERSION 1,0,0,17
-        PRODUCTVERSION 1,0,0,17
+        FILEVERSION 1,0,0,18
+        PRODUCTVERSION 1,0,0,18
         FILEFLAGSMASK 0x3fL
     #ifdef _DEBUG
         FILEFLAGS VS_FF_DEBUG
@@ -27,8 +27,8 @@ IDI_ICON1 ICON DISCARDABLE "Resources/app.ico"
                 BEGIN
                     VALUE "CompanyName", ""
                     VALUE "FileDescription", "vPlay"
-                    VALUE "FileVersion", "1.0.0.2\0"
-                    VALUE "ProductVersion", "1.0.0.2\0"
+                    VALUE "FileVersion", "1.0.0.3\0"
+                    VALUE "ProductVersion", "1.0.0.3\0"
                     VALUE "LegalCopyright", "\0"
                     VALUE "LegalTrademarks", ""
                     VALUE "OriginalFilename", "vPlay.exe\0"

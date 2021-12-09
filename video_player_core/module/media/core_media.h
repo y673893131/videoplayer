@@ -44,6 +44,7 @@ public:
     int audioIndex();
     void decodeloop();
 private:
+    static int interruptCallback(void* ctx);
     void setFlag(int bit, bool value = true);
     bool testFlag(int bit);
     void setState(int state);

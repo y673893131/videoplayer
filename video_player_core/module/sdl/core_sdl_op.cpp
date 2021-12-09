@@ -61,7 +61,7 @@ bool core_sdl_op::initResample(AVCodecContext* ctx)
 bool core_sdl_op::init(audioCallback callback, void* userdata)
 {
     int nRet = 0;
-    if(SDL_WasInit(nRet))
+    if(SDL_WasInit(SDL_INIT_AUDIO))
     {
         return true;
     }
@@ -130,14 +130,24 @@ int core_sdl_op::initSDL()
 
 int core_sdl_op::openSDL()
 {
-    auto num = SDL_GetNumAudioDevices(0);
-    for(int i = 0; i <= num; ++i)
+    if (SDL_OpenAudio(&target, NULL)<0)
     {
-        auto name = SDL_GetAudioDeviceName(i, 0);
-        nAudioId = SDL_OpenAudioDevice(name, false, &target, &spec, 0);
-        Log(Log_Info, "audio device id=%d name%d=%s!", nAudioId, i, name);
-        if(nAudioId > 0) return nAudioId;
+        return -1;
     }
+    else
+    {
+        return 0;
+    }
+
+//    auto num = SDL_GetNumAudioDevices(0);
+//    for(int i = 0; i <= num; ++i)
+//    {
+//        auto name = SDL_GetAudioDeviceName(i, 0);
+//        Log(Log_Info, "audio device name[%d]=%s start!", i, name);
+//        nAudioId = SDL_OpenAudioDevice(name, false, &target, &spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+//        Log(Log_Info, "audio device id=%d name%d=%s!", nAudioId, i, name);
+//        if(nAudioId > 0) return nAudioId;
+//    }
 
 //    Log(Log_Warning, "sdl open failed, audio devices count:%d, %s", num, SDL_GetError());
     return -1;
@@ -149,9 +159,13 @@ void core_sdl_op::closeSDL()
     if(nAudioId > 0)
     {
         Log(Log_Info, "sdl close:%d, thread:%d, 0x%p", nAudioId, std::this_thread::get_id(), this);
-        SDL_LockAudioDevice(nAudioId);
-        SDL_CloseAudioDevice(nAudioId);
-        SDL_UnlockAudioDevice(nAudioId);
+//        SDL_LockAudioDevice(nAudioId);
+//        SDL_CloseAudioDevice(nAudioId);
+//        SDL_UnlockAudioDevice(nAudioId);
+
+        SDL_LockAudio();
+        SDL_CloseAudio();
+        SDL_UnlockAudio();
         Log(Log_Info, "sdl close:successed, thread: %d", std::this_thread::get_id());
         nAudioId = -1;
     }
@@ -159,20 +173,26 @@ void core_sdl_op::closeSDL()
 
 void core_sdl_op::startSDL()
 {
-    if(nAudioId > 0)
-    {
-        SDL_LockAudioDevice(nAudioId);
-        SDL_PauseAudioDevice(nAudioId, 0);
-        SDL_UnlockAudioDevice(nAudioId);
-    }
+    SDL_LockAudio();
+    SDL_PauseAudio(0);
+    SDL_UnlockAudio();
+//    if(nAudioId > 0)
+//    {
+//        SDL_LockAudioDevice(nAudioId);
+//        SDL_PauseAudioDevice(nAudioId, 0);
+//        SDL_UnlockAudioDevice(nAudioId);
+//    }
 }
 
 void core_sdl_op::pauseSDL()
 {
-    if(nAudioId > 0)
-    {
-        SDL_LockAudioDevice(nAudioId);
-        SDL_PauseAudioDevice(nAudioId, 1);
-        SDL_UnlockAudioDevice(nAudioId);
-    }
+    SDL_LockAudio();
+    SDL_PauseAudio(1);
+    SDL_UnlockAudio();
+//    if(nAudioId > 0)
+//    {
+//        SDL_LockAudioDevice(nAudioId);
+//        SDL_PauseAudioDevice(nAudioId, 1);
+//        SDL_UnlockAudioDevice(nAudioId);
+//    }
 }

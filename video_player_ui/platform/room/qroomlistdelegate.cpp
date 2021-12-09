@@ -26,7 +26,6 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     painter->setRenderHints(QPainter::SmoothPixmapTransform, true);
     auto rc = viewOption.rect;
     auto info = reinterpret_cast<_DyRoom_*>(index.data(QRoomListViewModel::room_info_role).value<void*>());
-//    qDebug() << index << rc;
     int borderWidth = 2;
     int offset = borderWidth;
     int padding = 3;

@@ -215,6 +215,21 @@ void av_log_call(void* /*ptr*/, int level, const char* fmt, va_list vl)
     }
 }
 
+int core_media::interruptCallback(void* para)
+{
+    if(!para)
+        return 0;
+    auto pThis = reinterpret_cast<core_media*>(para);
+    if(pThis->testFlag(flag_bit_Stop))
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 bool core_media::open(int index)
 {
     av_log_set_callback(&av_log_call);
@@ -229,10 +244,20 @@ bool core_media::open(int index)
     _cb->startCall(index);
     // allocate context
     _format_ctx = avformat_alloc_context();
+    _format_ctx->interrupt_callback.callback = interruptCallback;
+    _format_ctx->interrupt_callback.opaque = this;
     auto& pFormatCtx = _format_ctx;
     Log(Log_Info, "start open input. thread:%d", core_util::getThreadId());
     // open file
-    if((ret = avformat_open_input(&pFormatCtx, _src.c_str(), nullptr, nullptr)) < 0)
+#ifdef _DESKTOP_
+//    AVInputFormat *ifmt=av_find_input_format("gdigrab");
+//    ret = avformat_open_input(&pFormatCtx, "desktop", ifmt, nullptr);
+    AVInputFormat *ifmt=av_find_input_format("dshow");
+    ret = avformat_open_input(&pFormatCtx, "video=Full HD webcam", ifmt, nullptr);
+#else
+    ret = avformat_open_input(&pFormatCtx, _src.c_str(), nullptr, nullptr);
+#endif
+    if(ret < 0)
     {
         char buf[1024] = {};
         av_strerror(ret, buf, 1024);
@@ -329,6 +354,7 @@ bool core_media::open(int index)
         _audio_thread->start(this);
 
     decodeloop();
+    Log(Log_Info, "down.");
     return true;
 media_start_end:
     Log(Log_Info, "finished.");

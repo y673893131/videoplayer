@@ -22,6 +22,10 @@ video_player_core::~video_player_core()
 int video_player_core::_init()
 {
 #ifndef AVFORMAT_STATIC_REGISTER
+#ifdef _DESKTOP_
+    avdevice_register_all();
+#endif
+    avcodec_register_all();
     av_register_all();
 #endif
     Log(Log_Info, "avformat_network_init()=%d", avformat_network_init());
