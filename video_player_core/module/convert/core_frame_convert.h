@@ -20,11 +20,13 @@ public:
     int width();
     int height();
     void setsrcCodec(AVCodecContext* codec);
+    AVCodecContext* src();
     void init(int width = 0, int height = 0);
     void uninit();
     void initFrame();
     void scale(AVFrame* src, video_interface* cb);
     void scalePreview(AVFrame* src, video_interface* cb);
+    void scaleFrame(AVFrame* src, video_interface* cb);
 private:
     AVFrame* frame;
     uint8_t* buffer;

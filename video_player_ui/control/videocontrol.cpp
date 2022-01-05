@@ -2,17 +2,30 @@
 #include "render/videoframe.h"
 #include "ui/qtoolwidgets.h"
 #include "Log/Log.h"
+#include <QMetaType>
 #include <QApplication>
 #include <QFileInfo>
 #include <thread>
 #include <QTime>
 #include <QDebug>
 
+QVideoControl* QVideoControl::s_instance=nullptr;
+
+QVideoControl* QVideoControl::instance()
+{
+    return s_instance;
+}
+
 QVideoControl::QVideoControl(QObject* parent)
     : QObject(parent)
     , m_frameCount(0)
     , m_seekPos(0)
 {
+    setObjectName("video_control");
+    //const QMap<int, QString>&
+    qRegisterMetaType<QMap<int, QString>>("QMap<int, QString>");
+    qRegisterMetaType<QMap<int, QString>>("QMap<int, QString>&");
+
     m_core = new video_player_core(qApp->applicationDirPath().toStdString());
     m_core->_init();
     m_core->_setCallBack(this);
@@ -27,29 +40,17 @@ QVideoControl::QVideoControl(QObject* parent)
     connect(m_frameRateTimer, &QTimer::timeout, this, &QVideoControl::onStatFrameRate, Qt::QueuedConnection);
     connect(this, &QVideoControl::start, m_frameRateTimer, static_cast<void(QTimer::*)()>(&QTimer::start), Qt::QueuedConnection);
     connect(this, &QVideoControl::end, m_frameRateTimer, &QTimer::stop, Qt::QueuedConnection);
+
+    s_instance = this;
 }
 
 void QVideoControl::setToolBar(QToolWidgets *toolWidget)
 {
     m_toolbar = toolWidget;
-    connect(m_toolbar, &QToolWidgets::play, this, &QVideoControl::onStart);
-    connect(m_toolbar, &QToolWidgets::pause, this, &QVideoControl::onPause);
-    connect(m_toolbar, &QToolWidgets::continuePlay, this, &QVideoControl::onContinue);
-    connect(m_toolbar, &QToolWidgets::stop, this, &QVideoControl::onStoped);
-    connect(m_toolbar, &QToolWidgets::setSeekPos, this, &QVideoControl::onSeekPos);
-    connect(m_toolbar, &QToolWidgets::getPreview, this, &QVideoControl::onSeekPosImg);
-    connect(m_toolbar, &QToolWidgets::setVol, this, &QVideoControl::onSetVol);
-    connect(m_toolbar, &QToolWidgets::mute, this, &QVideoControl::onSetMute);
-    connect(m_toolbar, &QToolWidgets::activeChannel, this, &QVideoControl::onActiveChannel);
-    connect(m_toolbar, &QToolWidgets::setDecodeType, this, &QVideoControl::onSetDecodeType);
+    connect(m_toolbar, &QToolWidgets::load, this, &QVideoControl::onStart);
 
     connect(this, &QVideoControl::start, m_toolbar, &QToolWidgets::start);
-    connect(this, &QVideoControl::end, m_toolbar, &QToolWidgets::stop);
-    connect(this, &QVideoControl::setPos, m_toolbar, &QToolWidgets::setPosSeconds);
     connect(this, &QVideoControl::total, m_toolbar, &QToolWidgets::setTotalSeconds);
-    connect(this, &QVideoControl::frameRate, m_toolbar, &QToolWidgets::frameRate);
-    connect(this, &QVideoControl::subtitle, m_toolbar, &QToolWidgets::onSubtitle);
-    connect(this, &QVideoControl::streamInfo, m_toolbar, &QToolWidgets::onStreamInfo);
 }
 
 void QVideoControl::onStatFrameRate()
@@ -70,9 +71,7 @@ void QVideoControl::onStart(const QString &filename)
     {
         if(m_core->_getState(m_toolbar->index()) == video_player_core::state_paused)
         {
-            qDebug() << "[countinue]";
-            m_core->_continue(m_toolbar->index());
-            return;
+            onStoped();
         }
     }
 
@@ -83,6 +82,7 @@ void QVideoControl::onStart(const QString &filename)
 
     qDebug() << "[play]" << filename;
     Log(Log_Info, "[play] %s", filename.toLocal8Bit().toStdString().c_str());
+//    emit play(filename);
     m_core->_play();
 }
 
@@ -105,11 +105,16 @@ void QVideoControl::onContinue()
 
 void QVideoControl::onSeekPos(int value)
 {
-    qDebug() << __FUNCTION__ << value;
     m_core->_seek(m_toolbar->index(), value);
 //    m_seekPos = value;
 //    m_seekTimer->stop();
-//    m_seekTimer->start();
+    //    m_seekTimer->start();
+}
+
+void QVideoControl::onJumpPos(int value)
+{
+    if(!m_core->_seekJump(m_toolbar->index(), value))
+        emit jumpFailed();
 }
 
 void QVideoControl::onDoSeekPos()
@@ -139,7 +144,33 @@ void QVideoControl::onActiveChannel(int channel, int index)
 
 void QVideoControl::onSetDecodeType(int type)
 {
-    m_core->_setDecodeType(m_toolbar->index(), static_cast<video_player_core::enum_decode_type>(type));
+    m_core->_setDecodeType(m_toolbar->index(), type);
+}
+
+void QVideoControl::onSetCapture(bool bCap)
+{
+    m_core->_setCapture(m_toolbar->index(), bCap);
+}
+
+void QVideoControl::onSoundTrack(int nSountTrack)
+{
+    m_core->_setAudioChannel(m_toolbar->index(), (audio_channel_type)nSountTrack);
+}
+
+void QVideoControl::onSpeed(int type)
+{
+    m_core->_setSpeedType(m_toolbar->index(), type);
+}
+
+void QVideoControl::supportHWDecoder(const std::map<int, std::string> &devs)
+{
+    QMap<int, QString> tmps;
+    for(auto it : devs)
+    {
+        tmps[it.first] = QString::fromStdString(it.second);
+    }
+
+    emit support(tmps);
 }
 
 void QVideoControl::waittingStoped()
@@ -156,11 +187,19 @@ void QVideoControl::waittingStoped()
     }
 }
 
-void QVideoControl::totalTime(const int64_t t)
+bool QVideoControl::isPlaying()
+{
+    int index = m_toolbar->index();
+    int state = m_core->_state(index);
+    return (state == video_player_core::state_running);
+}
+
+void QVideoControl::totalTime(const int64_t t, const char* sName)
 {
     auto tm = QTime::fromMSecsSinceStartOfDay(static_cast<int>(t / 1000));
     qDebug() << "total:" << tm.toString("HH:mm:ss");
     emit total(static_cast<int>(t / 1000));
+    emit play(sName);
 }
 
 void QVideoControl::posChange(const int64_t t)
@@ -200,15 +239,15 @@ void QVideoControl::displayStreamChannelInfo(enum_stream_channel channel, const 
     emit streamInfo(list, static_cast<int>(channel), select);
 }
 
-void QVideoControl::displaySubTitleCall(char * str, unsigned int index)
+void QVideoControl::displaySubTitleCall(char * str, unsigned int index, int type)
 {
 //    qDebug() << QString::fromUtf8(str) << index;
-    emit subtitle(QString::fromUtf8(str), index);
+    emit subtitle(QString::fromUtf8(str), index, type);
 }
 
 void QVideoControl::previewDisplayCall(void *data, int width, int height)
 {
-    emit m_toolbar->_preview(data, width, height);
+    emit preview(data, width, height);
 }
 
 void QVideoControl::startCall(int index)
@@ -220,5 +259,6 @@ void QVideoControl::startCall(int index)
 void QVideoControl::endCall(int index)
 {
     qDebug() << "[video] end:" << index;
-    emit end(index);
+    if(index >= m_toolbar->index())
+        emit end(index);
 }

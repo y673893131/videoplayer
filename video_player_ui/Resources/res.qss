@@ -32,7 +32,7 @@ QLabel#label_frame_time
 QLabel#label_frame_rate
 {
     background: transparent;
-    color: red;
+    color: white;
     font: bold 13px "Microsoft Yahei";
 }
 
@@ -86,7 +86,8 @@ QListView#list_file:item:selected
 }
 
 QListView#list_file:item:hover,
-QListView#list_file:item:hover:!active
+QListView#list_file:item:hover:!active,
+QListView#list_file:item:hover:!focus
 {
     color: #FF5C38;
     background: rgba(128,128,128,128);
@@ -113,7 +114,6 @@ QPushButton#btn_play
 QPushButton#btn_play::hover
 {
         image:url(:/res/play_black);
-        background: white;
 }
 QPushButton#btn_pause
 {
@@ -124,7 +124,6 @@ QPushButton#btn_pause
 QPushButton#btn_pause::hover
 {
         image:url(:/res/pause_black);
-        background: white;
 }
 
 QPushButton#btn_prev
@@ -136,7 +135,6 @@ QPushButton#btn_prev
 QPushButton#btn_prev::hover
 {
         border-image:url(:/res/prev_black);
-        background: white;
 }
 QPushButton#btn_next
 {
@@ -147,7 +145,6 @@ QPushButton#btn_next
 QPushButton#btn_next::hover
 {
         image:url(:/res/next_black);
-        background: white;
 }
 
 QPushButton#btn_volume
@@ -208,10 +205,11 @@ QLineEdit#file_search_edit:hover
 
 QPushButton#btn_mode
 {
-        background: rgba(23, 26, 29, 128);
-        font: 15px "Microsoft YaHei";
-        border: 0px;
-        color: #858585;
+    background: rgba(23, 26, 29, 128);
+    font: 15px "Microsoft YaHei";
+    border: 0px;
+    color: #858585;
+    outline: none;
 }
 
 QPushButton#btn_mode:checked
@@ -282,39 +280,39 @@ QSlider#slider_pro
 
 QSlider#slider_pro::add-page:Horizontal
 {
-   background-color: rgba(240,240,240, 100);
+   background-color: rgba(240, 240, 240, 50);
    border-radius: 2px;
    height:4px;
 }
 QSlider#slider_pro::sub-page:Horizontal
 {
-   background-color: rgba(214, 132, 58, 100);
+   background-color: rgba(255, 45, 45, 50);
    border-radius: 2px;
    height:4px;
 }
 QSlider#slider_pro::groove:Horizontal
 {
    background: rgba(240,240,240,128);
-   border-radius: 2px;
-   height: 4px;
-   margin: 0px 2px;
+   border-radius: 1px;
+   height: 2px;
+   margin: 0px 1px;
 }
 QSlider#slider_pro::groove:Horizontal:hover
 {
    background: rgba(240, 240, 240, 128);
    border-radius: 4px;
-   height:8px;
+   height:4px;
 }
 
 QSlider#slider_pro::handle:Horizontal
 {
-    height: 8px;
-    width: 8px;
+    height: 6px;
+    width: 6px;
     /*background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0.6 #D6843A,stop:0.778409 #FFFFFF);*/
-    background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 #FF4F4A, stop:1 rgba(255,79,74,0));
-    /*background: #FF4F4A;*/
-    border-radius: 4px;
-    margin: -2px 0px;
+    /*background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 #FF5740, stop:0.5 #FF5740,radius:0.5,stop:0.501 rgba(255,87,64,50),stop:1 rgba(255,87,64,50));*/
+    background: #FF4F4A;
+    border-radius: 3px;
+    margin: -3px -3px;
 }
 
 QSlider#slider_pro::handle:Horizontal:disabled
@@ -698,4 +696,12 @@ QLabel#sub_title_other
     background: transparent;
     font: bold 14px "Microsoft YaHei";
     color: lightgray;
+}
+
+QLabel#output_info
+{
+    background: transparent;
+    font: bold 18px "Microsoft YaHei";
+    color: rgba(255,255,255,128);
+    margin: 10px;
 }

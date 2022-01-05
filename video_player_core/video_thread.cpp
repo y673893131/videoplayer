@@ -39,7 +39,7 @@ video_thread *video_thread::index(size_t index)
 {
     if(m_threads.size() > index)
         return m_threads[index];
-    Log(Log_Warning, "index %d is not exist. size is %d", index, m_threads.size());
+//    Log(Log_Warning, "index %d is not exist. size is %d", index, m_threads.size());
     return nullptr;
 }
 
@@ -83,6 +83,11 @@ void video_thread::seekPos(int64_t ms)
     m_media->seek(ms);
 }
 
+bool video_thread::seekJump(int64_t ms)
+{
+    return m_media->jump(ms);
+}
+
 void video_thread::getSeekImg(int64_t ms)
 {
     m_media->preview(ms);
@@ -99,14 +104,24 @@ void video_thread::setMute(bool bMute)
     m_media->mute(bMute);
 }
 
+void video_thread::setAudioChannel(audio_channel_type type)
+{
+    m_media->setAudioChannel(type);
+}
+
 void video_thread::setChannel(int channel, int sel)
 {
     m_media->setChannel(channel, sel);
 }
 
-void video_thread::setDecode(video_player_core::enum_decode_type type)
+void video_thread::setDecode(int type)
 {
     m_media->setDecode(type);
+}
+
+void video_thread::setSpeed(int type)
+{
+    m_media->setSpeed(type);
 }
 
 int video_thread::state()
@@ -117,6 +132,11 @@ int video_thread::state()
 video_player_core::enum_state video_thread::state1()
 {
     return m_media->state1();
+}
+
+int video_thread::setCapture(bool bCap)
+{
+    return m_media->setCapture(bCap);
 }
 
 void video_thread::startPlay()

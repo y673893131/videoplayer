@@ -45,6 +45,7 @@ signals:
 public slots:
     void setMode(int);
     void setLocaleFiles(const QVector<QStringList>&);
+    void onEnd();
     void play(const QString&);
     void removeIndex(const QModelIndex&);
     void onInputUrlFile(const QString&);

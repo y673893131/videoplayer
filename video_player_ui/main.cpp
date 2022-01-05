@@ -4,6 +4,7 @@
 #include <QTranslator>
 #include <QDir>
 #include <QDebug>
+#include "dump/mini_dump.hpp"
 
 void myMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
@@ -15,6 +16,9 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext& context, const QS
 int main(int argc, char *argv[])
 {
 //    qInstallMessageHandler(myMessageOutput);
+#ifdef Q_OS_WIN
+    win32::debug::mini_dump dump;
+#endif
     QApplication a(argc, argv);
 
     auto trans = new QTranslator();

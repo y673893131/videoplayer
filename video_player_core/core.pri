@@ -12,11 +12,20 @@ SOURCES += \
     $$PWD/module/decoder/core_decoder_hardware.cpp \
     $$PWD/module/decoder/core_decoder_subtitle.cpp \
     $$PWD/module/decoder/core_decoder_video.cpp \
+    $$PWD/module/filter/core_filter.cpp \
+    $$PWD/module/filter/core_filter_audio.cpp \
+    $$PWD/module/filter/core_filter_base.cpp \
+    $$PWD/module/filter/core_filter_video.cpp \
+    $$PWD/module/filter/core_filter_private.cpp \
     $$PWD/module/lock/core_graud_lock.cpp \
     $$PWD/module/media/core_media.cpp \
     $$PWD/module/packet/core_packets.cpp \
     $$PWD/module/preview/core_preview.cpp \
     $$PWD/module/sample/core_audio_sample.cpp \
+    $$PWD/module/save/core_save.cpp \
+    $$PWD/module/save/core_save_audio.cpp \
+    $$PWD/module/save/core_save_base.cpp \
+    $$PWD/module/save/core_save_video.cpp \
     $$PWD/module/sdl/core_sdl_op.cpp \
     $$PWD/module/thread/core_thread.cpp \
     $$PWD/module/thread/core_thread_audio.cpp \
@@ -33,11 +42,20 @@ HEADERS += \
     $$PWD/module/decoder/core_decoder_hardware.h \
     $$PWD/module/decoder/core_decoder_subtitle.h \
     $$PWD/module/decoder/core_decoder_video.h \
+    $$PWD/module/filter/core_filter.h \
+    $$PWD/module/filter/core_filter_audio.h \
+    $$PWD/module/filter/core_filter_base.h \
+    $$PWD/module/filter/core_filter_video.h \
+    $$PWD/module/filter/core_filter_private.h \
     $$PWD/module/lock/core_graud_lock.h \
     $$PWD/module/media/core_media.h \
     $$PWD/module/packet/core_packets.h \
     $$PWD/module/preview/core_preview.h \
     $$PWD/module/sample/core_audio_sample.h \
+    $$PWD/module/save/core_save.h \
+    $$PWD/module/save/core_save_audio.h \
+    $$PWD/module/save/core_save_base.h \
+    $$PWD/module/save/core_save_video.h \
     $$PWD/module/sdl/core_sdl_op.h \
     $$PWD/module/thread/core_thread.h \
     $$PWD/module/thread/core_thread_audio.h \

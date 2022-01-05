@@ -8,9 +8,9 @@ core_decoder::core_decoder()
     ,pCodecContext(nullptr)
     ,pCodec(nullptr)
     ,stream(nullptr)
-    ,_clock(0)
+    ,pts(0)
+    ,m_filter(nullptr)
 {
-
 }
 
 core_decoder::~core_decoder()
@@ -35,6 +35,10 @@ bool core_decoder::init(AVFormatContext *formatCtx, int index)
     }
 
     avcodec_parameters_to_context(pCodecContext, stream->codecpar);
+    pCodecContext->pkt_timebase = stream->time_base;
+    pCodecContext->thread_count = 5;
+    pCodecContext->thread_type = FF_THREAD_FRAME;
+
     auto ret = avcodec_open2(pCodecContext, pCodec, nullptr);
     if(ret < 0)
     {
@@ -65,7 +69,7 @@ void core_decoder::uninit()
     }
 }
 
-bool core_decoder::decode(AVPacket */*pk*/)
+bool core_decoder::decode(AVPacket */*pk*/, bool& /*bTryAgain*/)
 {
     return false;
 }
@@ -110,21 +114,85 @@ core_packets &core_decoder::pkts()
     return pks;
 }
 
-void core_decoder::cleanPkt()
+void core_decoder::flush()
 {
-    pks.clear();
     if(pCodecContext)
     {
         avcodec_flush_buffers(pCodecContext);
     }
 }
 
-double core_decoder::clock()
+int64_t core_decoder::clock()
 {
-    return _clock;
+    return pts;
 }
 
-void core_decoder::setClock(double clock)
+int64_t core_decoder::displayClock()
 {
-    _clock = clock;
+    return getDisplayPts(pts);
+}
+
+void core_decoder::setClock(int64_t pts)
+{
+    this->pts = pts;
+}
+
+void core_decoder::calcClock(AVPacket* pk)
+{
+    int64_t pts = 0;
+
+    if(frame->pts != AV_NOPTS_VALUE)
+        pts = frame->pts;
+    else if(frame->pkt_dts != AV_NOPTS_VALUE)
+        pts = frame->pkt_dts;
+    else
+    {
+        if(frame->opaque)
+        {
+            auto opa = *reinterpret_cast<double*>(frame->opaque);
+            if(opa != AV_NOPTS_VALUE)
+                pts = opa;
+            else
+                pts = 0;
+        }
+        else
+        {
+            pts = 0;
+        }
+    }
+
+    checkQSVClock(pk, pts);
+
+//    pts *= av_q2d(stream->time_base);
+    setClock(pts);
+}
+
+void core_decoder::checkQSVClock(AVPacket */*pk*/, int64_t& /*pts*/)
+{
+}
+
+int64_t core_decoder::getInteralPts(int64_t pos)
+{
+    if(stream)
+    {
+        static AVRational aVRational = {1, AV_TIME_BASE};
+        return av_rescale_q(pos, aVRational, stream->time_base);
+    }
+    else
+    {
+        return pos;
+    }
+}
+
+int64_t core_decoder::getDisplayPts(int64_t pos)
+{
+    if(stream)
+    {
+        static AVRational aVRational = {1, AV_TIME_BASE / 1000};
+        return av_rescale_q(pos, stream->time_base, aVRational);
+    }
+    else
+    {
+        return pos / 1000;
+    }
 }

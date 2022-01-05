@@ -17,6 +17,7 @@
 #include "qtoolwidgets.h"
 #include "config/qdatamodel.h"
 #include "Log/Log.h"
+#include "config/config.h"
 #ifdef unix
 #include <unistd.h>
 #else
@@ -24,11 +25,14 @@
 #include "render/qglvideowidget.h"
 #endif
 #include "render/qrenderfactory.h"
+#include "filter/qinputfilter.h"
+//#define QSS_MONITOR
 
 Widget::Widget(QWidget *parent)
     : QFrameLessWidget(parent)
 {
     init();
+    APPEND_EXCEPT_FILTER(this);
 //    setDragSelf(true);
 //    setAreo(reinterpret_cast<void*>(winId()));
 //    setShadow(reinterpret_cast<void*>(winId()));
@@ -55,17 +59,17 @@ void Widget::initStyle()
 {
     qApp->setApplicationName("vPlay");
     InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_ui_");
-    qApp->installEventFilter(this);
     setAcceptDrops(true);
 }
 
 void Widget::initResource()
 {
+    m_control = new QVideoControl(this);
     m_render = new QRenderFactory(this);
 //    m_video = new VIDEO_TYPE(this);
     m_toolbar = new QToolWidgets(m_render->renderWidget());
     m_toolbar->show();
-    m_control = new QVideoControl(this);
+
     m_control->setToolBar(m_toolbar);
 
     auto layout = new QVBoxLayout(this);
@@ -95,16 +99,24 @@ void Widget::initConnect()
     connect(m_toolbar, &QToolWidgets::exit, this, &Widget::onExit);
     connect(m_toolbar, &QToolWidgets::topWindow, this, &Widget::onTopWindow);
     connect(m_toolbar, SIGNAL(viewAdjust(bool)), renderWd, SLOT(onViewAdjust(bool)));
+
+    QTimer::singleShot(1000, [=]
+    {
+        auto bTop = GET_CONFIG_DATA(Config::Data_TopWindow).toBool();
+        onTopWindow(bTop);
+    });
 }
 
 void Widget::flushQss()
 {
     onFlushSheetStyle();
 
-//    auto timer = new QTimer();
-//    timer->setInterval(200);
-//    connect(timer, &QTimer::timeout, this, &Widget::onFlushSheetStyle);
-//        timer->start();
+#if QSS_MONITOR
+    auto timer = new QTimer();
+    timer->setInterval(200);
+    connect(timer, &QTimer::timeout, this, &Widget::onFlushSheetStyle);
+    timer->start();
+#endif
     flushInitSize();
 }
 
@@ -147,8 +159,11 @@ void Widget::onTopWindow(bool bTop)
 
 void Widget::onFlushSheetStyle()
 {
-#define QSS_FILE ":/res/qss.qss"
-//#define QSS_FILE "./Resources/res.qss"
+#if QSS_MONITOR
+    #define QSS_FILE "./Resources/res.qss"
+#else
+    #define QSS_FILE ":/res/qss.qss"
+#endif
     QFileInfo fi(QSS_FILE);
     static QDateTime m_last;
     QDateTime lastMdTime = fi.lastModified();
@@ -167,36 +182,6 @@ void Widget::mouseMoveEvent(QMouseEvent *event)
 {
     QFrameLessWidget::mouseMoveEvent(event);
     emit m_toolbar->hideOrShow(false);
-}
-
-bool Widget::eventFilter(QObject *watched, QEvent *event)
-{
-    if(/*watched == this && */event->type() == QEvent::MouseMove)
-    {
-        emit m_toolbar->mouseMove();
-    }
-    else if(watched == this && event->type() == QEvent::KeyPress)
-    {
-        auto keyEvent = reinterpret_cast<QKeyEvent*>(event);
-        if(keyEvent->key() == Qt::Key_Escape)
-        {
-            if(m_toolbar->isFullScreen())
-            {
-                m_toolbar->showNormal();
-            }
-//            else
-//            {
-//                auto btn = QMessageBox::information(this, tr("tips"),tr("quit") + " " + qApp->applicationName() + "?"
-//                                                    , QMessageBox::Ok | QMessageBox::Cancel);
-//                if(btn == QMessageBox::Ok)
-//                    emit m_toolbar->exit();
-//            }
-        }
-
-        return true;
-    }
-
-    return QFrameLessWidget::eventFilter(watched, event);
 }
 
 
@@ -219,7 +204,7 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
     {
         auto file = urls.begin()->toLocalFile();
         QStringList types;
-        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3";
+        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".aac"<< ".h264";
         if(checkFile(file, types))
             event->accept();
     }
@@ -233,7 +218,7 @@ void Widget::dropEvent(QDropEvent *event)
         emit inputUrlFile(file);
         return;
     }
-    emit m_toolbar->play(event->mimeData()->urls().begin()->toLocalFile());
+    emit m_toolbar->load(event->mimeData()->urls().begin()->toLocalFile());
 }
 
 

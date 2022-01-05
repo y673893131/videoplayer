@@ -9,7 +9,6 @@
 class QRenderFactory;
 class QToolWidgets;
 class QVideoControl;
-
 class Widget : public QFrameLessWidget
 {
     Q_OBJECT
@@ -36,7 +35,6 @@ private:
     void flushInitSize();
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     void closeEvent(QCloseEvent *event) override;

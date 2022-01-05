@@ -108,9 +108,15 @@ void QPlayFileListModel::setLocaleFiles(const QVector<QStringList> &file)
     emit layoutChanged();
 }
 
+void QPlayFileListModel::onEnd()
+{
+    play("");
+}
+
 void QPlayFileListModel::play(const QString &sFile)
 {
     m_playFile = sFile;
+    emit layoutChanged();
 }
 
 void QPlayFileListModel::removeIndex(const QModelIndex &index)
@@ -123,6 +129,7 @@ void QPlayFileListModel::removeIndex(const QModelIndex &index)
     {
         m_urls.removeAt(pos);
         m_urlNames.removeAt(pos);
+        onFilter(m_sFilter);
         emit layoutChanged();
         return;
     }
@@ -132,6 +139,7 @@ void QPlayFileListModel::removeIndex(const QModelIndex &index)
     {
         m_locals.removeAt(pos);
         m_localNames.removeAt(pos);
+        onFilter(m_sFilter);
         emit layoutChanged();
     }
 }

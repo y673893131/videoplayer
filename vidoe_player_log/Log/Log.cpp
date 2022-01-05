@@ -1,4 +1,5 @@
 #include "Log.h"
+#include <sys/timeb.h>
 #ifdef unix
 #include <unistd.h>
 #endif
@@ -80,7 +81,8 @@ bool CLog::AddLogB(Log_Level level, const char* sFormat, ...)
     struct tm tm1;
     char sDate[32] = {};
     bool bret = true;
-    if (!strstr(m_absFile, CurTime(sDate, &tm1)) || !m_file)
+    int nMicroSec = 0;
+    if (!strstr(m_absFile, CurTime(sDate, &tm1, 0, &nMicroSec)) || !m_file)
     {
             bret = false;
             Open(sDate);
@@ -89,28 +91,31 @@ bool CLog::AddLogB(Log_Level level, const char* sFormat, ...)
     int n = 0;
     switch (level)
     {
+    case Log_Debug:
+        n += sprintf(m_sText, "%-10s", "[Debug]");
+        break;
     case Log_Warning:
-    n += sprintf(m_sText, "%-10s", "[Warning]");
-    break;
+        n += sprintf(m_sText, "%-10s", "[Warning]");
+        break;
     case Log_Err:
-    n += sprintf(m_sText, "%-10s", "[Error]");
-            break;
+        n += sprintf(m_sText, "%-10s", "[Error]");
+        break;
     case Log_Opt:
-    n += sprintf(m_sText, "%-10s", "[Option]");
-            break;
+        n += sprintf(m_sText, "%-10s", "[Option]");
+        break;
     default:
-    n += sprintf(m_sText, "%-10s", "[Info]");
-            break;
+        n += sprintf(m_sText, "%-10s", "[Info]");
+        break;
     }
 
-    n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
+    n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d.%03d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec, nMicroSec);
     char* pNext = m_sText + n;
     va_list args;
     va_start(args, sFormat);
     vsprintf(pNext, sFormat, args);
     va_end(args);
 
-    write(m_sText, strlen(m_sText));
+    write(m_sText, strlen(m_sText), level);
     return bret;
 }
 
@@ -122,7 +127,8 @@ bool CLog::AddLog(Log_Level level, const char *function, int line, const char *s
     struct tm tm1;
     char sDate[32] = {};
     bool bret = true;
-    if (!strstr(m_absFile, CurTime(sDate, &tm1)) || !m_file)
+    int nMicroSec = 0;
+    if (!strstr(m_absFile, CurTime(sDate, &tm1, 0, &nMicroSec)) || !m_file)
     {
             bret = false;
             Open(sDate);
@@ -131,6 +137,9 @@ bool CLog::AddLog(Log_Level level, const char *function, int line, const char *s
     int n = 0;
     switch (level)
     {
+    case Log_Debug:
+    n += sprintf(m_sText, "%-10s", "[Debug]");
+            break;
     case Log_Warning:
     n += sprintf(m_sText, "%-10s", "[Warning]");
     break;
@@ -145,7 +154,7 @@ bool CLog::AddLog(Log_Level level, const char *function, int line, const char *s
             break;
     }
 
-    n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
+    n += sprintf(m_sText + n, " %04d-%02d-%02d %02d:%02d:%02d.%03d ", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec, nMicroSec);
     n += sprintf(m_sText + n, " [%s:%d] ", function, line);
 
     char* pNext = m_sText + n;
@@ -154,21 +163,25 @@ bool CLog::AddLog(Log_Level level, const char *function, int line, const char *s
     vsprintf(pNext, sFormat, args);
     va_end(args);
 
-    write(m_sText, strlen(m_sText));
+    write(m_sText, strlen(m_sText), level);
     return bret;
 }
 
-char* CLog::CurTime(char* buff, struct tm* time1, time_t subSecond)
+
+char* CLog::CurTime(char* buff, struct tm* time1, time_t subSecond, int* microSec)
 {
-        time_t t = time(NULL);
-        t -= subSecond;
+        struct timeb tmb;
+        ftime(&tmb);
+
+        tmb.time -= subSecond;
         struct tm tm1;
 #ifdef WIN32
-        localtime_s(&tm1, &t);
+        localtime_s(&tm1, &tmb.time);
 #else
-        localtime_r(&t, &tm1);
+        localtime_r(&tm1, &tmb.time);
 #endif
         if (time1) *time1 = tm1;
+        if(microSec) *microSec = tmb.millitm;
         int n = sprintf(buff, "%04d-%02d-%02d", tm1.tm_year + 1900, 1 + tm1.tm_mon, tm1.tm_mday);
         buff[n] = 0;
         return buff;
@@ -192,12 +205,19 @@ void CLog::Open(const char* sDate)
         AutoDeleteFile();
 }
 
-void CLog::write(char* str, int nlength)
+void CLog::write(char* str, int nlength, int nLevel)
 {
-        if (!m_file) return;
+    if (!m_file) return;
         strcat(str, "\n");
+    OutputDebugStringA(str);
+    if(nLevel == Log_Debug)
+    {
+        return;
+    }
+
     int n = fwrite(str, nlength + 1, 1, m_file);
     printf("n:%d",n);
+
     if(n < 0)
     {
         ++n;

@@ -13,6 +13,8 @@ win32
 # ui
 HEADERS += \
     $$PWD/control/videocontrol.h \
+    $$PWD/dump/mini_dump.hpp \
+    $$PWD/filter/qinputfilter.h \
     $$PWD/framelesswidget/nativeevent_win.h \
     $$PWD/framelesswidget/util.h \
     $$PWD/render/dx11/bitmapclass.h \
@@ -35,10 +37,24 @@ HEADERS += \
     $$PWD/render/dx11/d3dclass.h \
     $$PWD/render/dx11/inputclass.h \
     $$PWD/render/dx11/textureclass.h \
-    $$PWD/render/dx11/textureshaderclass.h
+    $$PWD/render/dx11/textureshaderclass.h \
+    $$PWD/ui/tool/base/qtoolbase.h \
+    $$PWD/ui/tool/fileview/qfileview.h \
+    $$PWD/ui/tool/live_platform/qliveplatform.h \
+    $$PWD/ui/tool/menu/qplaymenu.h \
+    $$PWD/ui/tool/menu/qplaymenubase.h \
+    $$PWD/ui/tool/output/qoutputwidget.h \
+    $$PWD/ui/tool/play_control/qplaycontrol.h \
+    $$PWD/ui/tool/progress/qprogressslider.h \
+    $$PWD/ui/tool/progress/qplayprogress.h \
+    $$PWD/ui/tool/subtitle/qplaysubtitle.h \
+    $$PWD/ui/tool/title/qplaytitle.h \
+    $$PWD/ui/tool/volume/qcolumeslider.h
+
 
 SOURCES += \
     $$PWD/control/videocontrol.cpp \
+    $$PWD/filter/qinputfilter.cpp \
     $$PWD/framelesswidget/nativeevent_win.cpp \
     $$PWD/framelesswidget/util.cpp \
     $$PWD/render/dx11/bitmapclass.cpp \
@@ -56,7 +72,20 @@ SOURCES += \
     $$PWD/render/dx11/d3dclass.cpp \
     $$PWD/render/dx11/inputclass.cpp \
     $$PWD/render/dx11/textureclass.cpp \
-    $$PWD/render/dx11/textureshaderclass.cpp
+    $$PWD/render/dx11/textureshaderclass.cpp \
+    $$PWD/ui/tool/base/qtoolbase.cpp \
+    $$PWD/ui/tool/fileview/qfileview.cpp \
+    $$PWD/ui/tool/live_platform/qliveplatform.cpp \
+    $$PWD/ui/tool/menu/qplaymenu.cpp \
+    $$PWD/ui/tool/menu/qplaymenubase.cpp \
+    $$PWD/ui/tool/output/qoutputwidget.cpp \
+    $$PWD/ui/tool/play_control/qplaycontrol.cpp \
+    $$PWD/ui/tool/progress/qprogressslider.cpp \
+    $$PWD/ui/tool/progress/qplayprogress.cpp \
+    $$PWD/ui/tool/subtitle/qplaysubtitle.cpp \
+    $$PWD/ui/tool/title/qplaytitle.cpp \
+    $$PWD/ui/tool/volume/qcolumeslider.cpp
+
 
 SOURCES += \
     $$PWD/config/config.cpp \
@@ -67,7 +96,6 @@ SOURCES += \
     $$PWD/ui/qinputurlwidget.cpp \
     $$PWD/framelesswidget/framelesswidget.cpp \
     $$PWD/framelesswidget/qdragborder.cpp \
-    $$PWD/progress/qprogressslider.cpp \
     $$PWD/platform/platform/qdouyuwidget.cpp \
     $$PWD/platform/platform/qlivelist.cpp \
     $$PWD/platform/platform/qlivelistmodel.cpp \
@@ -94,7 +122,6 @@ HEADERS += \
     $$PWD/ui/qinputurlwidget.h \
     $$PWD/framelesswidget/framelesswidget.h \
     $$PWD/framelesswidget/qdragborder.h \
-    $$PWD/progress/qprogressslider.h \
     $$PWD/platform/platform/qdouyuwidget.h \
     $$PWD/platform/platform/qlivelist.h \
     $$PWD/platform/platform/qlivelistmodel.h \

@@ -49,7 +49,7 @@ void core_preview::init(const std::string& file)
 
 void core_preview::preview(const std::string& src, int64_t ms, video_interface* cb)
 {
-    Log(Log_Info, "%I64d [thread_id]:%d", ms, core_util::getThreadId());
+//    Log(Log_Info, "%I64d [thread_id]:%d", ms, core_util::getThreadId());
     init(src);
     if(!isOk())
         return;
@@ -67,7 +67,8 @@ void core_preview::preview(const std::string& src, int64_t ms, video_interface* 
     AVPacket pk;
     int ret = 0;
     bool bFirstIFrame = false;
-    while(1)
+
+    for(;;)
     {
         ret = av_read_frame(pFormatCtx, &pk);
         if(pk.stream_index != nIndex)
@@ -99,12 +100,14 @@ void core_preview::preview(const std::string& src, int64_t ms, video_interface* 
         }
         else
         {
-            break;
+//            if(frame->pts >= target)
+                break;
         }
+
     }
 
-    std::string sData = "seek:" + std::to_string(pk.pts) + "\n";
-    OutputDebugStringA(sData.c_str());
+//    std::string sData = "seek:" + std::to_string(target) + "->" + std::to_string(pk.pts) + "\n";
+//    OutputDebugStringA(sData.c_str());
     av_packet_unref(&pk);
     outFrame->scalePreview(frame, cb);
 }

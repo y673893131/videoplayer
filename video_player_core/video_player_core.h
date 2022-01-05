@@ -20,7 +20,7 @@ typedef long long int64_t;
 #endif
 #include <functional>
 #include <vector>
-
+#include <map>
 //#define FRAME_RGB
 
 enum enum_stream_channel
@@ -52,16 +52,24 @@ struct _stream_channel_info_
     int index;
 };
 
+enum audio_channel_type
+{
+    audio_channel_both,
+    audio_channel_left,
+    audio_channel_right
+};
+
 class core_media;
 class VIDEO_PLAYER_CORE_EXPORT video_interface
 {
 public:
-    virtual void totalTime(const int64_t t) = 0;
+    virtual void supportHWDecoder(const std::map<int, std::string>&) = 0;
+    virtual void totalTime(const int64_t t, const char*) = 0;
     virtual void posChange(const int64_t t) = 0;
     virtual void setVideoSize(int width, int hight) = 0;
     virtual void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
-    virtual void displaySubTitleCall(char*, unsigned int) = 0;
+    virtual void displaySubTitleCall(char*, unsigned int, int) = 0;
     virtual void previewDisplayCall(void* data, int width, int height) = 0;
     virtual void startCall(int) = 0;
     virtual void endCall(int) = 0;
@@ -78,12 +86,6 @@ public:
         state_stopped
     };
 
-    enum enum_decode_type
-    {
-        decode_software,
-        decode_cuda,
-        decode_qsv
-    };
 public:
     video_player_core(const std::string& logDir);
     virtual ~video_player_core();
@@ -96,14 +98,18 @@ public:
     int _continue(int);
     int _stop(int);
     int _seek(int, int64_t);
+    bool _seekJump(int, int64_t);
     int _get_seek_img(int, int64_t);
     int _setVol(int, int);
     int _setMute(int, bool bMute);
+    int _setAudioChannel(int, audio_channel_type type);
     int _setsize(int index, int w, int h);
     int _setStreamChannel(int index, int channel, int sel);
-    int _setDecodeType(int index, enum_decode_type type);
+    int _setDecodeType(int index, int type);
+    int _setSpeedType(int index, int type);
     int _state(int);
     bool _cov(void *indata, void* outdata, int w, int h, int outsize);
+    int _setCapture(int,bool);
     enum_state _getState(int);
 private:
     core_media* m_media;

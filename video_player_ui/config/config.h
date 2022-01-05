@@ -16,7 +16,8 @@ public:
         Data_TopWindow,
         Data_Adjust,
         Data_Render,
-        Data_Decode
+        Data_Decode,
+        Data_LoopPlay
     };
 
 signals:

@@ -16,10 +16,10 @@ public:
 
     size_t size();
     bool empty();
-    bool empty(AVPacket& pk);
+    bool empty(AVPacket& pk, bool& isSeek);
     void clear();
     bool isMax();
-    bool push_back(const char* msg);
+    void push_flush();
     bool push_back(const AVPacket& pk);
 
 private:

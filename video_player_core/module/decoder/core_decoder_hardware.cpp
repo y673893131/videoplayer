@@ -1,7 +1,9 @@
 #include "core_decoder_hardware.h"
+#include "video_player_core.h"
 
 core_decoder_hardware::core_decoder_hardware()
     : m_bFirstSeek(false)
+    , m_decodeType(AV_HWDEVICE_TYPE_NONE)//default is software
     , m_devType(AV_HWDEVICE_TYPE_NONE)
     , m_buffer(nullptr)
     , m_hwframe(nullptr)
@@ -14,13 +16,59 @@ core_decoder_hardware::~core_decoder_hardware()
     uninit();
 }
 
-bool core_decoder_hardware::initCuda(AVFormatContext *formatCtx, int index)
+std::map<int, std::string> core_decoder_hardware::getSupportDevices()
+{
+    std::map<int, std::string> devs;
+
+    AVBufferRef* buffer;
+    auto tmp = pCodec;
+    for(int i = 0;;++i)
+    {
+        auto config = avcodec_get_hw_config(tmp, i);
+        if(!config)
+        {
+            if(!devs.empty())
+            {
+                Log(Log_Err, "avcodec_get_hw_config failed!");
+            }
+            break;
+        }
+
+        if(config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+        {
+            auto ret = av_hwdevice_ctx_create(&buffer, config->device_type, nullptr, nullptr, 0);
+            if(ret >= 0)
+            {
+                av_buffer_unref(&buffer);
+                auto name = av_get_pix_fmt_name(config->pix_fmt);
+                devs.insert(std::make_pair(config->device_type, name));
+            }
+        }
+    }
+
+    //qsv diff
+    int ret = av_hwdevice_ctx_create(&buffer, AV_HWDEVICE_TYPE_QSV, "auto", nullptr, 0);
+    if (ret >= 0)
+    {
+        av_buffer_unref(&buffer);
+        devs.insert(std::make_pair(AV_HWDEVICE_TYPE_QSV, "qsv"));
+    }
+
+    return std::move(devs);
+}
+
+bool core_decoder_hardware::init(AVFormatContext *formatCtx, int index)
+{
+    if(m_decodeType == AV_HWDEVICE_TYPE_QSV)
+        return initQsv(formatCtx, index);
+    else
+        return initOtherHw(formatCtx, index);
+}
+
+bool core_decoder_hardware::initOtherHw(AVFormatContext *formatCtx, int index)
 {
     uninit();
-    format = formatCtx;
-    nStreamIndex = index;
-    if(nStreamIndex < 0)
-        return false;
+
     stream = format->streams[nStreamIndex];
     pCodec = avcodec_find_decoder(stream->codecpar->codec_id);
 
@@ -33,19 +81,27 @@ bool core_decoder_hardware::initCuda(AVFormatContext *formatCtx, int index)
             return false;
         }
 
-        if(config->device_type == AV_HWDEVICE_TYPE_CUDA)
+        if(config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
         {
-            m_pixFormat = config->pix_fmt;
-            m_devType = config->device_type;
-            break;
+            if(config->device_type == m_decodeType)
+            {
+                m_pixFormat = config->pix_fmt;
+                m_devType = config->device_type;
+                break;
+            }
         }
     }
 
     pCodecContext = avcodec_alloc_context3(pCodec);
     avcodec_parameters_to_context(pCodecContext, stream->codecpar);
+    pCodecContext->pkt_timebase = stream->time_base;
 
     pCodecContext->opaque = this;
-    pCodecContext->get_format = core_decoder_hardware::getFormatCUDA;
+    pCodecContext->get_format = core_decoder_hardware::getFormatOtherHw;
+    pCodecContext->pix_fmt = AV_PIX_FMT_NV12;
+    pCodecContext->thread_count = 5;
+    pCodecContext->thread_type = FF_THREAD_FRAME;
+
 
     auto ret = av_hwdevice_ctx_create(&m_buffer, m_devType, nullptr, nullptr, 0);
     if(ret < 0)
@@ -54,7 +110,7 @@ bool core_decoder_hardware::initCuda(AVFormatContext *formatCtx, int index)
         pCodecContext = nullptr;
         char buf[1024] = {};
         av_strerror(ret, buf, 1024);
-        Log(Log_Err, "av_hwdevice_ctx_create failed![%s]", buf);
+        Log(Log_Err, "av_hwdevice_ctx_create failed![%d-%s]", ret, buf);
         return false;
     }
 
@@ -90,15 +146,19 @@ void core_decoder_hardware::uninit()
     m_pixFormat = AV_PIX_FMT_NONE;
 }
 
-bool core_decoder_hardware::decode(AVPacket *pk)
+bool core_decoder_hardware::decode(AVPacket *pk, bool& bTryAgain)
 {
     if(!m_hwframe)
         return false;
     auto ret = avcodec_send_packet(pCodecContext, pk);
-    if(ret != 0 && ret != AVERROR(EAGAIN))
+    if(ret != 0)
     {
-        Log(Log_Warning, "send packet failed[%d]!", ret);
-        return false;
+        bTryAgain = (ret == AVERROR(EAGAIN));
+        if(!bTryAgain)
+        {
+            Log(Log_Warning, "send packet failed[%d]!", ret);
+            return false;
+        }
     }
 
     ret = avcodec_receive_frame(pCodecContext, m_hwframe);
@@ -111,7 +171,7 @@ bool core_decoder_hardware::decode(AVPacket *pk)
         }
 
         av_frame_copy_props(frame, m_hwframe);
-        calcClock();
+        calcClock(pk);
         return true;
     }
 
@@ -120,14 +180,14 @@ bool core_decoder_hardware::decode(AVPacket *pk)
 
 bool core_decoder_hardware::checkSeekPkt(AVPacket *pk)
 {
-    if(!m_bFirstSeek && !(pk->flags & AV_PKT_FLAG_KEY))
+    if(!m_bFirstSeek && !isIFrame(pk))
     {
         return true;
     }
 
     m_bFirstSeek = true;
-
-    if(!core_decoder_hardware::decode(pk))
+    bool bTryagain = false;
+    if(!core_decoder_hardware::decode(pk, bTryagain))
         return true;
 
     if(frame->pict_type != AV_PICTURE_TYPE_I)
@@ -138,35 +198,26 @@ bool core_decoder_hardware::checkSeekPkt(AVPacket *pk)
     return false;
 }
 
-void core_decoder_hardware::calcClock()
+bool core_decoder_hardware::isIFrame(AVPacket *pk)
 {
-    double pts_video = 0.0;
-//            if(pk.dts == AV_NOPTS_VALUE && frame->opaque && *(uint64_t*)frame->opaque != AV_NOPTS_VALUE)
-//                pts_video = *reinterpret_cast<double*>(frame->opaque);
-//            else if(pk.dts != AV_NOPTS_VALUE)
-//                pts_video = static_cast<double>(pk.dts);
-//            else
-//                pts_video = 0;
-
-    if(frame->pts != AV_NOPTS_VALUE)
-        pts_video = frame->pts;
-    else if(frame->pkt_dts != AV_NOPTS_VALUE)
-        pts_video = frame->pkt_dts;
-    else
-    {
-        auto opa = *reinterpret_cast<double*>(frame->opaque);
-        if(opa != AV_NOPTS_VALUE)
-            pts_video = opa;
-        else
-            pts_video = 0;
-    }
-
-    pts_video *= av_q2d(stream->time_base);
-    //_clock = pts_video;
-    setClock(pts_video);
+    return (pk->flags & AV_PKT_FLAG_KEY);
 }
 
-AVPixelFormat core_decoder_hardware::getFormatCUDA(AVCodecContext *ctx, const AVPixelFormat *srcFormat)
+void core_decoder_hardware::checkQSVClock(AVPacket *pk, int64_t &pts)
+{
+    /*
+     *  https://trac.ffmpeg.org/ticket/9095
+        h264_qsv bug
+        avcodec_flush_buffers later
+        av_send_packet->av_recive_frame->frame
+        frame->pts is last frame(before seek) pts
+        so do this, check AVPacket/AVFrame pts
+    */
+    if(m_decodeType == AV_HWDEVICE_TYPE_QSV && abs(pts - pk->pts) > 5000)
+        pts = pk->pts;
+}
+
+AVPixelFormat core_decoder_hardware::getFormatOtherHw(AVCodecContext *ctx, const AVPixelFormat *srcFormat)
 {
     auto pThis = reinterpret_cast<core_decoder_hardware*>(ctx->opaque);
     for(auto p = srcFormat; *p != -1; ++p)
@@ -208,7 +259,7 @@ int core_decoder_hardware::initQSV(AVCodecContext *ctx)
     frames_ctx->sw_format = ctx->sw_pix_fmt;
     frames_ctx->width = FFALIGN(ctx->coded_width, 32);
     frames_ctx->height = FFALIGN(ctx->coded_height, 32);
-    frames_ctx->initial_pool_size = /*16*/32;
+    frames_ctx->initial_pool_size = 32;
 
     hw_ctx->frame_type = MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
     return av_hwframe_ctx_init(ctx->hw_frames_ctx);
@@ -232,12 +283,26 @@ bool core_decoder_hardware::initQsv(AVFormatContext *formatCtx, int index)
     pCodec = avcodec_find_decoder(stream->codecpar->codec_id);
     if (!pCodec)
     {
+        Log(Log_Err, "avcodec_find_decoder[qsv] error");
         return false;
     }
 
-    pCodec = avcodec_find_decoder_by_name((std::string(pCodec->name) + "_qsv").c_str());
+#if PRINT_DECODER
+    auto tmp = av_codec_next(nullptr);
+    while(tmp)
+    {
+        auto name = std::string(tmp->name);
+        if(((int)name.find("qsv")) > 0)
+            LogB(Log_Info, "decoder:[%s]", name.c_str());
+        tmp = av_codec_next(tmp);
+    }
+#endif
+
+    auto sName = std::string(pCodec->name) + "_qsv";
+    pCodec = avcodec_find_decoder_by_name(sName.c_str());
     if (!pCodec)
     {
+        Log(Log_Err, "avcodec_find_decoder_by_name error, %s", sName.c_str());
         return false;
     }
 
@@ -266,13 +331,17 @@ bool core_decoder_hardware::initQsv(AVFormatContext *formatCtx, int index)
         return false;
     if (avcodec_parameters_to_context(pCodecContext, stream->codecpar) < 0)
         return false;
+    pCodecContext->pkt_timebase = stream->time_base;
     pCodecContext->opaque = this;
     pCodecContext->get_format = core_decoder_hardware::getFormatQSV;
     pCodecContext->pix_fmt = AV_PIX_FMT_NV12;
 
     ret = avcodec_open2(pCodecContext, nullptr, nullptr);
-    if (ret < 0)
+    if(ret < 0)
+    {
+        Log(Log_Err, "avcodec_open2[qsv] failed(%d)!", ret);
         return false;
+    }
 
     frame = av_frame_alloc();
     m_hwframe = av_frame_alloc();

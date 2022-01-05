@@ -19,31 +19,22 @@ public:
     void setStop();
     bool getStop();
     void seekPos(int64_t);
+    bool seekJump(int64_t);
     void getSeekImg(int64_t);
     void setVol(int);
     void setMute(bool bMute);
+    void setAudioChannel(audio_channel_type);
     void setChannel(int, int);
-    void setDecode(video_player_core::enum_decode_type);
+    void setDecode(int);
+    void setSpeed(int);
     int state();
     video_player_core::enum_state state1();
+    int setCapture(bool);
 private:
     video_thread(std::shared_ptr<core_media>);
     video_thread(const video_thread&);
     video_thread(const core_media&);
     void startPlay();
-//    void video_decode();
-//    bool audio_decode_prepare();
-//    void decode_loop();
-//    double get_video_pts(AVFrame* frame);
-//    void seek();
-//    bool push_frame(bool& bSeek);
-//    bool checkSeekPkt(AVPacket* pk);
-//    void cleanPkt(int channel = -1);
-//    void cleanStreamPkt(int channel);
-    // subtitle
-//    bool checkSubTitle(AVPacket*);
-    // channel
-//    void channelChange();
 private:
     int m_index;
     core_media* m_media;

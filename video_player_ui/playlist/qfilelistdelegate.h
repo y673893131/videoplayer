@@ -16,6 +16,8 @@ private:
             const QStyleOptionViewItem &option, const QModelIndex &index) const;
 private:
     QPlayFileListModel* m_model;
+    QColor m_defaultColor;
+    QColor m_selectColor;
 };
 
 #endif // QFILELISTDELEGATE_H

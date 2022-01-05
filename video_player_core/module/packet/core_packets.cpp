@@ -28,14 +28,21 @@ bool core_packets::empty()
     return m_packets.empty();
 }
 
-bool core_packets::empty(AVPacket& pk)
+bool core_packets::empty(AVPacket& pk, bool& isSeek)
 {
     LOCK(mutex)
     bool bEmpty = m_packets.empty();
+    isSeek = false;
     if(!bEmpty)
     {
         pk = m_packets.front();
         m_packets.pop_front();
+        if(pk.data && strcmp(reinterpret_cast<char*>(pk.data), "flush") == 0)
+        {
+            isSeek = true;
+            av_packet_unref(&pk);
+            return true;
+        }
     }
 
     return bEmpty;
@@ -57,15 +64,15 @@ bool core_packets::isMax()
     return m_maxSize <= m_packets.size();
 }
 
-bool core_packets::push_back(const char* msg)
+void core_packets::push_flush()
 {
+    clear();
     LOCK(mutex)
-    if(isMax()) return false;
+    const char* msg = "flush";
     AVPacket pk;
     av_new_packet(&pk, static_cast<int>(strlen(msg)) + 1);
     strcpy(reinterpret_cast<char*>(pk.data), msg);
-    m_packets.push_back(pk);
-    return true;
+    m_packets.push_front(pk);
 }
 
 bool core_packets::push_back(const AVPacket& pk)

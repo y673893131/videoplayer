@@ -8,6 +8,7 @@
 #include <QTimer>
 #include "playlist/qplayfilelistmodel.h"
 #include "config.h"
+#include "Log/Log.h"
 QDataModel *QDataModel::m_instance=nullptr;
 QDataModel *QDataModel::instance()
 {

@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QFile>
+//#include <QPushButton>
 QGLVideoWidget::QGLVideoWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , m_pFrame(nullptr)
@@ -16,6 +17,10 @@ QGLVideoWidget::QGLVideoWidget(QWidget *parent)
         qDebug() << "m_bViewAdjust" << m_bViewAdjust;
     });
     setWindowFlag(Qt::FramelessWindowHint);
+
+//    auto btn = new QPushButton("test_button", parent);
+//    btn->setFixedSize(200,200);
+//    btn->setStyleSheet("QPushButton{border-image:url(./sex_boy.png);color:red;}");
 }
 
 QGLVideoWidget::~QGLVideoWidget()

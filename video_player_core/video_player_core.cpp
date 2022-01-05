@@ -92,11 +92,19 @@ int video_player_core::_stop(int index)
 
 int video_player_core::_seek(int index, int64_t ms)
 {
-    Log(Log_Opt, "%lld", ms);
+//    Log(Log_Opt, "%lld", ms);
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->seekPos(ms);
     return 0;
+}
+
+bool video_player_core::_seekJump(int index, int64_t ms)
+{
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        return pIndex->seekJump(ms);
+    return false;
 }
 
 int video_player_core::_get_seek_img(int index, int64_t ms)
@@ -127,6 +135,15 @@ int video_player_core::_setMute(int index, bool bMute)
     return 0;
 }
 
+int video_player_core::_setAudioChannel(int index, audio_channel_type type)
+{
+    Log(Log_Opt, "%d", type);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->setAudioChannel(type);
+    return 0;
+}
+
 int video_player_core::_setsize(int index, int w, int h)
 {
     Log(Log_Opt, "(%d,%d)", w, h);
@@ -149,27 +166,37 @@ int video_player_core::_setStreamChannel(int index, int channel, int sel)
     return 0;
 }
 
-int video_player_core::_setDecodeType(int index, video_player_core::enum_decode_type type)
+int video_player_core::_setDecodeType(int index, int type)
 {
     Log(Log_Opt, "(%d)", type);
-    if(m_media)
-        m_media->setDecode(type);
     auto pIndex = video_thread::index(index);
     if(pIndex)
     {
         pIndex->setDecode(type);
     }
 
+    if(m_media)
+        m_media->setDecode(type);
+    return 0;
+}
+
+int video_player_core::_setSpeedType(int index, int type)
+{
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+        pIndex->setSpeed(type);
+    if(m_media)
+        m_media->setSpeed(type);
     return 0;
 }
 
 int video_player_core::_state(int index)
 {
-    Log(Log_Opt, "[%d]", index);
+//    Log(Log_Opt, "[%d]", index);
     auto pIndex = video_thread::index(index);
     if(pIndex)
     {
-        Log(Log_Opt, "%d", pIndex->state());
+//        Log(Log_Opt, "%d", pIndex->state());
         return pIndex->state();
     }
 
@@ -260,4 +287,16 @@ bool video_player_core::_cov(void *indata, void* outdata, int w, int h, int outs
 {
     return pixel_format_convert((unsigned char*)indata, w, h, AV_PIX_FMT_YUV420P,
                                 (unsigned char*)outdata, outsize, AV_PIX_FMT_RGB24);
+}
+
+int video_player_core::_setCapture(int index, bool bCap)
+{
+    Log(Log_Opt, "%d", bCap);
+    auto pIndex = video_thread::index(index);
+    if(pIndex)
+    {
+        pIndex->setCapture(bCap);
+    }
+
+    return 0;
 }

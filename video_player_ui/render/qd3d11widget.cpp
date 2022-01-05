@@ -11,7 +11,7 @@
 #include <QString>
 #include <QApplication>
 #include <QScreen>
-
+//#include <QPushButton>
 QD3D11Widget::QD3D11Widget(QWidget * parent)
     : QWidget(parent)
     , m_hWnd(reinterpret_cast<HWND>(winId()))
@@ -28,8 +28,13 @@ QD3D11Widget::QD3D11Widget(QWidget * parent)
     setAttribute(Qt::WA_NativeWindow);
     setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
+    setWindowFlag(Qt::FramelessWindowHint);
+
 //    setAttribute(Qt::WA_TransparentForMouseEvents);
 //    setAttribute(Qt::WA_OpaquePaintEvent);
+//    auto btn = new QPushButton("test_button", parent);
+//    btn->setFixedSize(200,200);
+//    btn->setStyleSheet("QPushButton{border-image:url(./sex_boy.png);color:red;}");
 }
 
 QD3D11Widget::~QD3D11Widget() {}

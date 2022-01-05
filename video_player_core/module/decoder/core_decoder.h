@@ -6,7 +6,10 @@
 #include "../packet/core_packets.h"
 
 class core_thread_video;
+class core_thread_audio;
 class core_media;
+class core_save;
+class core_filter_base;
 class core_decoder
 {
 public:
@@ -15,7 +18,7 @@ public:
 
     virtual bool init(AVFormatContext*, int);
     virtual void uninit();
-    virtual bool decode(AVPacket* pk);
+    virtual bool decode(AVPacket* pk, bool& bTryAgain);
 
     bool check(int);
     bool isValid();
@@ -26,10 +29,15 @@ public:
 
     unsigned int pktSize();
     core_packets& pkts();
-    void cleanPkt();
+    void flush();
 
-    double clock();
-    void setClock(double clock);
+    int64_t clock();
+    int64_t displayClock();
+    void setClock(int64_t clock);
+    void calcClock(AVPacket* pk);
+    virtual void checkQSVClock(AVPacket* pk, int64_t& pts);
+    int64_t getInteralPts(int64_t pos);
+    int64_t getDisplayPts(int64_t pos);
 protected:
     int nStreamIndex;
     std::set<int> nStreamIndexs;
@@ -39,10 +47,13 @@ protected:
     AVCodec* pCodec;
     AVStream* stream;
     core_packets pks;
-    double _clock;
+    int64_t pts;
+    core_filter_base* m_filter;
 
     friend class core_thread_video;
+    friend class core_thread_audio;
     friend class core_media;
+    friend class core_save;
 };
 
 #endif // CORE_DECODER_H

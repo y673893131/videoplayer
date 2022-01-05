@@ -6,6 +6,9 @@
 #include "Log/Log.h"
 
 //#define _DESKTOP_
+#define USE_AVFILTER
+#define AUDIO_FILTER
+#define VIDEO_FILTER
 
 extern "C"
 {
@@ -20,6 +23,11 @@ extern "C"
     #include "libavutil/hwcontext_qsv.h"
     #include "libswscale/swscale.h"
     #include "libswresample/swresample.h"
+#ifdef USE_AVFILTER
+    #include "libavfilter/avfilter.h"
+    #include"libavfilter/buffersrc.h"
+    #include"libavfilter/buffersink.h"
+#endif
 
     #include <SDL.h>
     #include <SDL_audio.h>
@@ -56,6 +64,5 @@ static std::map<void*, std::string> leakMap;
 #include <Windows.h>
 #define msleep(x) Sleep(static_cast<unsigned long>(x))
 #endif
-
 
 #endif // COMMON_H

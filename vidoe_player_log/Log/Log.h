@@ -22,6 +22,7 @@
 
 enum Log_Level
 {
+    Log_Debug,
 	Log_Info,
 	Log_Opt,
     Log_Warning,
@@ -38,9 +39,9 @@ public:
 private:
     CLog(const char* sDir = nullptr, const char* sPrifix = nullptr);
 	CLog(const CLog&);
-    char* CurTime(char* buff, struct tm* time1 = nullptr, time_t subSecond = 0);
+    char* CurTime(char* buff, struct tm* time1 = nullptr, time_t subSecond = 0, int* microSec = nullptr);
 	void Open(const char* sDate);
-	void write(char* str, int nlength);
+    void write(char* str, int nlength, int nLevel);
 	void AutoDeleteFile();
 private:
 //	static CLog* m_log;

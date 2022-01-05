@@ -38,11 +38,14 @@ public:
     core_sdl_op();
     virtual ~core_sdl_op();
 
-    bool initResample(AVCodecContext* ctx);
+    void setCodecContext(AVCodecContext* ctx);
+    bool initResample();
     bool init(audioCallback cb, void* userdata);
     void setVol(int vol);
     int getVol();
+    void setChannelType(int);
 
+    void formatChannelType(Uint8*,int);
     void resampleFrame(AVFrame*, unsigned int& bufferSize);
 
     bool checkSDL();
@@ -52,8 +55,10 @@ public:
     void startSDL();
     void pauseSDL();
 
+
 private:
     int nAudioId;
+    AVCodecContext* decodectx;
     AVFrame* pFrameReSample;
     core_audio_sample in;
     core_audio_sample out;
@@ -64,6 +69,7 @@ private:
     unsigned int nBuffSize;
     float fVolPercent;
     int nVol;
+    int m_audioChannelType;
     SwrContext *swrCtx;
 
     friend class core_thread_audio;

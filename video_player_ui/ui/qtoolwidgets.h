@@ -4,26 +4,9 @@
 #include <QWidget>
 #include "framelesswidget/framelesswidget.h"
 
-struct sub_title_info
-{
-    sub_title_info()
-        : tmBeg(0)
-        , tmEnd(0)
-        , bShow(false)
-    {
-
-    }
-    int tmBeg;
-    int tmEnd;
-    bool bShow;
-    std::map<QString, QString> titls;
-};
-
 class QLabel;
 class QBoxLayout;
-class QFileListView;
 class QPushButton;
-class QProgressSlider;
 class QDataModel;
 class QInputUrlWidget;
 class QDouyuWidget;
@@ -31,7 +14,8 @@ class QLivePlatformManager;
 class QVideoControl;
 class QMenu;
 class QActionGroup;
-
+class QToolBase;
+class QPlayMenu;
 #ifdef Q_OS_WIN
 class QToolWidgets : public QWidget, public CNativeEvent_Win, public QAbstractNativeEventFilter
 #else
@@ -40,6 +24,20 @@ class QToolWidgets : public QWidget, public QAbstractNativeEventFilter
 {
     Q_OBJECT
 public:
+    enum tools
+    {
+        tool_play_title,
+        tool_file_list,
+        tool_play_control,
+        tool_play_progress,
+        tool_live_platform,
+        tool_play_subtitle,
+        tool_play_output,
+
+        tool_max
+    };
+
+public:
     explicit QToolWidgets(QWidget *parent = nullptr);
 
     int index();
@@ -47,87 +45,57 @@ public:
 signals:
     void showMin();
     void exit();
-    void play(const QString& = QString());
-    void pause();
-    void continuePlay();
-    void stop();
-    void setVol(int);
-    void mute(bool);
+    void load(const QString& = QString());
     void loadFile();
     void start(int);
-    void mouseMove();
+//    void mouseMove();
     void hideOrShow(bool);
+    void moveShowPlatform();
     void setTotalSeconds(int);
-    void setPosSeconds(int);
-    void setSeekPos(int);
-    void selectMode(int);
     void showMenu();
     void viewAdjust(bool);
     void topWindow(bool);
-    void frameRate(int);
     void inputUrl();
     void inputUrlFile(const QString&);
     void _move(const QPoint&);
     void _resize(const QSize&);
-    void getPreview(int);
-    void _preview(void*, int, int);
-    void activeChannel(int, int);
-    void setDecodeType(int);
 public slots:
     void onLoadFile();
-    void onSelectMode(int);
     void onLeftPress();
     void onMax();
     void onFull();
-    void onSubtitle(const QString&, unsigned int);
-    void onStreamInfo(const QStringList&, int, int);
-    void onHideSubTitle();
+    void onAutoVisable(bool bHide);
 private:
     void init(QWidget* parent);
     void initStyle();
     void initUi(QWidget* parent);
+    void initLayout();
     void initSize();
+    void initConnect();
 
-    QWidget* CreateTitle(QWidget*);
-    QBoxLayout* CreateCenterToolbar(QWidget*);
-    QBoxLayout* CreateProcessbar(QWidget*);
-    QWidget* CreateToolbar(QWidget*);
-    QWidget* CreateLeftlist(QWidget*);
-    QWidget* CreateFilelist(QWidget*);
-    QWidget* CreateSubTitle(QWidget*);
+    void CreateCenterToolbar();
 
-    void CreateMenu(QWidget *parent);
+    void CreateMenu(QWidget* parent);
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
     void resizeEvent(QResizeEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
 
 private:
-    QProgressSlider* m_process;
-    QWidget* m_backWd,* m_titleWd, * m_livePlatformWd,* m_filelistWd, *m_subtitleWd, *m_toolWd;
-    QDouyuWidget* m_douyu;
-    QLivePlatformManager* m_platformManager;
-    QFileListView* m_filelist;
+    QWidget* m_backWd;
+    QToolBase* m_tools[tool_max];
     QPushButton *m_openfile/*,* m_filelistIndicator*/,*m_min,*m_max,*m_close;
     QInputUrlWidget* m_inputUrl;
-    bool m_bPlaying, m_bLocalFile;
+    bool m_bLocalFile;
     int m_index, m_playMode, m_totalSeconds;
     QDataModel* m_data;
-    QLabel* m_title;
-    QString m_curRender;
-    int m_curDecode;
+
+    QPlayMenu* m_playMenu;
 
     QVideoControl* m_contorl;
-    sub_title_info m_subtitle;
-    std::vector<QLabel*> m_subtitles;
-    QTimer* m_timerDisplay;
-    bool m_bSubtitleModify;
-
-    std::vector<QMenu*> m_channelMenus;
-    std::vector<QActionGroup*> m_channelActions;
+    QTimer* m_autoHidetimer;
 };
 
 #endif // QTOOLWIDGETS_H

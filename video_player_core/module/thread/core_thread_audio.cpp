@@ -17,9 +17,9 @@ core_thread_audio *core_thread_audio::instance()
 bool core_thread_audio::start(core_media *media)
 {
     core_thread::start(media);
-    if(!m_media->audio->isValid())
+    if(!m_media->_audio->isValid())
         return false;
-    m_media->audio->start();
+    m_media->_audio->start();
     return true;
 }
 
@@ -35,17 +35,19 @@ void core_thread_audio::sdl_audio_call(void *data, Uint8 *stream, int len)
 
 void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
 {
-    auto sdl = m_media->audio->sdl();
+    auto sdl = m_media->_audio->sdl();
     auto& index = sdl->nBuffIndex;
     auto& size = sdl->nBuffSize;
     auto& buff = sdl->buff;
     unsigned int decodeSize = 0, lenTMP = 0;
-
     while(len > 0)
     {
         if(index >= size)
         {
             decodeSize = audio_decode();
+//#ifdef AUDIO_FILTER
+//            Log(Log_Debug, "decode frame length=%d", decodeSize);
+//#endif
             if(decodeSize <= 0)
             {
                 size = sdl->target.samples;
@@ -59,7 +61,7 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
         if(lenTMP > len) lenTMP = len;
         if(!buff) return;
 
-        if(testFlag(flag_bit_mute) || testFlag(flag_bit_pause))
+        if(testFlag(flag_bit_mute) || testFlag(flag_bit_pause) || testFlag(flag_bit_need_pause) || testFlag(flag_bit_seek))
         {
             memset(buff + index, 0, lenTMP);
             memcpy(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP);
@@ -67,7 +69,15 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
         else
         {
             memset(stream, 0, lenTMP);
-            SDL_MixAudioFormat(stream, reinterpret_cast<uint8_t*>(buff) + index, AUDIO_S16SYS, lenTMP, sdl->nVol);
+            sdl->formatChannelType(reinterpret_cast<uint8_t*>(buff) + index, lenTMP);
+//#ifdef AUDIO_FILTER
+//            Log(Log_Debug, "play buff[%u], lenTmp/len=%u/%u", index, lenTMP, size);
+//#endif
+#ifdef AUDIO_FILTER
+            SDL_MixAudio(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP, /*sdl->nVol*/SDL_MIX_MAXVOLUME);
+#else
+            SDL_MixAudio(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP, sdl->nVol);
+#endif
         }
 
         len -= lenTMP;
@@ -79,8 +89,15 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
 unsigned int core_thread_audio::audio_decode()
 {
     unsigned int buffersize = 0;
-    auto& pks = m_media->audio->pkts();
-    auto sdl = m_media->audio->sdl();
+    auto& audio = *m_media->_audio;
+    auto& pks = m_media->_audio->pkts();
+    auto sdl = m_media->_audio->sdl();
+    auto& index = m_media->_audio->index();
+    int64_t start_time = m_media->_format_ctx->start_time / 1000;
+
+    bool bSeek = false;
+    bool bFlag = false;
+    int64_t seekPts = 0;
     AVPacket pk;
     for(;;)
     {
@@ -90,7 +107,7 @@ unsigned int core_thread_audio::audio_decode()
             Log(Log_Info, "audio_thread break, set stopped.");
             setFlag(flag_bit_taudio_finish);
             sdl->pauseSDL();
-            break;
+            return buffersize;
         }
 
         if(testFlag(flag_bit_pause))
@@ -99,12 +116,24 @@ unsigned int core_thread_audio::audio_decode()
         if(!checkOpt())
             continue;
 
-        if(pks.empty(pk))
+        if(pks.empty(pk, bSeek))
         {
+            if(bSeek)
+            {
+                audio.flush();
+                bFlag = true;
+                seekPts = audio.getInteralPts(m_media->_seek_pos);
+            }
+
             if(testFlag(flag_bit_read_finish) /*&& !isSetBit(*m_flag, flag_bit_seek)*/)
             {
                 Log(Log_Info, "audio_thread break, pks is empty and read finish.");
                 setFlag(flag_bit_taudio_finish);
+                if(testFlag(flag_bit_tvideo_finish))
+                {
+                    setFlag(flag_bit_Stop);
+                }
+
                 break;
             }
 
@@ -112,7 +141,34 @@ unsigned int core_thread_audio::audio_decode()
             continue;
         }
 
-        if(!m_media->audio->decode(&pk, buffersize)) continue;
+        if(testFlag(flag_bit_save) && index == pk.stream_index)
+        {
+            m_media->_save->saveAudio(&pk);
+        }
+
+        if(!audio.decode(&pk))
+        {
+            av_packet_unref(&pk);
+            continue;
+        }
+
+        if(bFlag)
+        {
+            if(seekPts >= audio.clock())
+            {
+                av_packet_unref(&pk);
+                continue;
+            }
+
+            bFlag = false;
+        }
+
+        if(m_media->_video->nStreamIndex < 0)
+        {
+            m_media->_cb->posChange(audio.displayClock() - start_time);
+        }
+        audio.play(buffersize);
+        av_packet_unref(&pk);
         break;
     }
 

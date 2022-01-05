@@ -18,6 +18,7 @@ Config::Config()
     m_obj["is_adjust_frame"] = true;
     m_obj["render"] = "opengl";
     m_obj["decode"] = 0;
+    m_obj["is_loop_play"] = false;
 }
 
 void Config::init(const QVariant &va)
@@ -49,6 +50,8 @@ QVariant Config::getData(Config::Data_Type type) const
         return m_obj.value("render");
     case Data_Decode:
         return m_obj.value("decode");
+    case Data_LoopPlay:
+        return m_obj.value("is_loop_play");
     }
 
     return QVariant();
@@ -78,6 +81,9 @@ void Config::setData(const QVariant &value, Config::Data_Type type)
         break;
     case Data_Decode:
         m_obj["decode"] = value.toInt();
+        break;
+    case Data_LoopPlay:
+        m_obj["is_loop_play"] = value.toBool();
         break;
     }
 

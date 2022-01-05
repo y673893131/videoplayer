@@ -22,17 +22,23 @@ void core_thread_video::threadCall()
 {
     Log(Log_Info, "[thread_id]: %d", core_util::getThreadId());
     auto& media = m_media;
-    double pts_video = 0, pts_audio = 0;
-    auto& video = *media->video;
-    auto& audio = *media->audio;
-    auto& pks = media->video->pkts();
+    auto& video = *media->_video;
+    auto& audio = *media->_audio;
+    auto& pks = media->_video->pkts();
+    auto& index = video.index();
 
     reinterpret_cast<video_interface*>(media->_cb)->setVideoSize(video.width(), video.height());
 
     bool bStart = false;
-    double dStartBase = 0.0;
-    AVPacket pk;
+    bool bSeek = false;
+    bool bFlag = false;
+    int64_t seekPos = 0;
+    int64_t startBaseTime = 0;
+    int64_t displayVideoClock = 0;
+    int64_t displayAudioClock = 0;
+    int64_t start_time = m_media->_format_ctx->start_time / 1000;
 
+    AVPacket pk;
     auto& astream = audio.stream;
 
     media->setState(video_player_core::state_running);
@@ -54,8 +60,16 @@ void core_thread_video::threadCall()
         if(!checkOpt())
             continue;
 
-        if(pks.empty(pk))
+        if(pks.empty(pk, bSeek))
         {
+            if(bSeek)
+            {
+                m_media->_video->flush();
+                m_media->_subtitle->flush();
+                bFlag = true;
+                seekPos = video.getInteralPts(m_media->_seek_pos);
+            }
+
             if(testFlag(flag_bit_read_finish))
             {
                 Log(Log_Info, "video_thread break, pks is empty and read finish.");
@@ -78,57 +92,95 @@ void core_thread_video::threadCall()
             continue;
         }
 
-        while(video.decode(&pk))
+        if(testFlag(flag_bit_decode_change))
         {
-            pts_video = video.clock();
-            if(!bStart)
-            {
-                bStart = true;
-                dStartBase = pts_video;
-            }
+            if(video.changeDecodeType(&pk, media->_decodeType))
+                setFlag(flag_bit_decode_change, false);
+        }
 
-            // video/audio align
-            for(;;)
+#if 1
+        if(testFlag(flag_bit_save) && index == pk.stream_index)
+        {
+            media->_save->saveVideo(&pk);
+        }
+#endif
+
+        bool bTryagain = false;
+        for(;;)
+        {
+            while(video.decode(&pk, bTryagain))
             {
+                displayVideoClock = video.displayClock();
+                if(!bStart)
+                {
+                    bStart = true;
+                    startBaseTime = displayVideoClock;
+                }
+
+                // video/audio align
+                for(;;)
+                {
+                    if(testFlag(flag_bit_Stop)) break;
+                    if(testFlag(flag_bit_seek)) break;
+                    if(astream && !testFlag(flag_bit_taudio_finish))
+                    {
+                        if(testFlag(flag_bit_read_finish) && audio.pks.empty())
+                            break;
+                        displayAudioClock = audio.displayClock();
+                    }
+                    else
+                    {
+                        displayAudioClock = audio.getDisplayPts(av_gettime() - media->_start_time) + startBaseTime;
+                    }
+
+                    if(testFlag(flag_bit_flush)) break;
+
+                    displayVideoClock = video.displayClock();
+                    if(displayVideoClock <= displayAudioClock) break;
+                    if(!testFlag(flag_bit_need_pause))
+                    {
+                        auto delay = displayVideoClock - displayAudioClock;
+                        delay = delay > 5 ? 5 : delay;
+                        msleep(delay);
+                    }
+                }
+
                 if(testFlag(flag_bit_Stop)) break;
                 if(testFlag(flag_bit_seek)) break;
-                if(astream && !testFlag(flag_bit_taudio_finish))
+
+                if(bFlag)
                 {
-                    if(testFlag(flag_bit_read_finish) && audio.pks.empty())
+                    if(seekPos >= video.clock())
                         break;
-                    pts_audio = audio._clock;
-                }
-                else
-                {
-                    pts_audio = CALC_PTS(av_gettime(), media->_start_time) + dStartBase;
-                    audio._clock = pts_audio;
+                    setFlag(flag_bit_flush, false);
+                    bFlag = false;
+
                 }
 
-                pts_video = video.clock();
-                if(pts_video <= pts_audio) break;
-                if(!testFlag(flag_bit_need_pause))
+//                if(video.isIFrame(&pk))
+//                {
+//                    LogB(Log_Debug, "[video]pts: video:%s -> audio:%s"
+//                         , core_util::toTime(displayVideoClock).c_str()
+//                         , core_util::toTime(displayAudioClock).c_str()
+//                         );
+//                }
+                media->_cb->posChange(displayVideoClock - start_time);
+                video.displayFrame(media->_cb);
+                if(testFlag(flag_bit_need_pause))
                 {
-                    auto delay = (pts_video - pts_audio) * 1000;
-                    delay = delay > 5 ? 5 : delay;
-                    msleep(delay);
+                    media->_pause_time = av_gettime();
+                    setFlag(flag_bit_pause, true);
+                    setFlag(flag_bit_need_pause, false);
+                    audio.sdl()->pauseSDL();
+                    m_media->setState(video_player_core::state_paused);
                 }
+
+
+                break;
             }
 
-            if(testFlag(flag_bit_Stop)) break;
-            if(testFlag(flag_bit_seek)) break;
-
-            media->_cb->posChange(static_cast<int64_t>(pts_video * 1000));
-            video.displayFrame(media->_cb);
-
-            if(testFlag(flag_bit_need_pause))
-            {
-                media->_pause_time = static_cast<double>(av_gettime());
-                setFlag(flag_bit_pause, true);
-                setFlag(flag_bit_need_pause, false);
-                m_media->setState(video_player_core::state_paused);
-            }
-
-            break;
+            if(!bTryagain)
+                break;
         }
 
         av_packet_unref(&pk);
@@ -142,11 +194,11 @@ void core_thread_video::threadCall()
 
 bool core_thread_video::checkSubTitle(AVPacket *pkt)
 {
-    if(!m_media->subtitle->check(pkt->stream_index))
+    if(!m_media->_subtitle->check(pkt->stream_index))
         return false;
     int got = -1, ret = 0;
-    auto pSubtitle = m_media->subtitle->subtitle();
-    ret = avcodec_decode_subtitle2(m_media->subtitle->pCodecContext, pSubtitle, &got, pkt);
+    auto pSubtitle = m_media->_subtitle->subtitle();
+    ret = avcodec_decode_subtitle2(m_media->_subtitle->pCodecContext, pSubtitle, &got, pkt);
 
     char* subtitleString = nullptr;
     if(got > 0)
@@ -154,8 +206,17 @@ bool core_thread_video::checkSubTitle(AVPacket *pkt)
         unsigned int number = pSubtitle->num_rects;
         for (unsigned int i = 0; i < number; ++i)
         {
-            subtitleString = pSubtitle->rects[i]->ass;
-            m_media->_cb->displaySubTitleCall(subtitleString, i);
+            auto rc = pSubtitle->rects[i];
+            switch (rc->type) {
+            case SUBTITLE_ASS:
+                subtitleString = rc->ass;
+                break;
+            case SUBTITLE_TEXT:
+                subtitleString = rc->text;
+                break;
+            }
+
+            m_media->_cb->displaySubTitleCall(subtitleString, i, rc->type);
         }
     }
 

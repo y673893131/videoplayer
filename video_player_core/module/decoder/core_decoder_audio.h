@@ -11,15 +11,16 @@ public:
     virtual ~core_decoder_audio() override;
 
     bool init(AVFormatContext* format, int index) override;
-
     void setIndex(int) override;
     void setVol(int vol);
     int getVol();
+    void setAudioChannel(int type);
 
     core_sdl_op* sdl();
 
     void start();
-    bool decode(AVPacket* pk, unsigned int& bufferSize);
+    bool decode(AVPacket* pk);
+    void play(unsigned int& bufferSize);
 
 private:
     static core_sdl_op* s_sdl;

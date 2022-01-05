@@ -7,6 +7,8 @@
 #include "../preview/core_preview.h"
 #include "../thread/core_thread_video.h"
 #include "../thread/core_thread_audio.h"
+#include "../filter/core_filter.h"
+#include "../save/core_save.h"
 #include "video_player_core.h"
 
 class core_media
@@ -29,14 +31,19 @@ public:
     void continuePlay();
     void stop();
     bool isStop();
-    void seek(int64_t);
+    bool seek(int64_t);
+    bool jump(int64_t);
     void preview(int64_t);
     void setVol(int);
     void mute(bool bMute);
+    void setAudioChannel(int type);
     void setChannel(int, int);
-    void setDecode(video_player_core::enum_decode_type type);
+    void setDecode(int type);
+    void setSpeed(int type);
     int state();
     video_player_core::enum_state state1();
+    int setCapture(bool);
+
 
     // decode
     bool open(int index);
@@ -49,9 +56,8 @@ private:
     bool testFlag(int bit);
     void setState(int state);
     void seek();
-    void cleanPkt(int channel = -1);
+    void pushSeekPkt();
     void channelChange();
-    void decodeChange();
     bool push_frame(bool& bSeek);
     bool checkSeekPkt(AVPacket* pk);
 public:
@@ -59,24 +65,28 @@ public:
 private:
     int _state;
     std::string _src;
-    double _start_time, _seek_time, _pause_time;
+    int64_t _start_time, _pause_time;
     int64_t _seek_pos;
+    int64_t _seek_step;
     unsigned int _flag;
     AVFormatContext* _format_ctx;
-    core_decoder_video* video;
-    core_decoder_audio* audio;
-    core_decoder_subtitle* subtitle;
+    core_decoder_video* _video;
+    core_decoder_audio* _audio;
+    core_decoder_subtitle* _subtitle;
     std::vector<_stream_channel_info_*> _channels[channel_max];
     int _vRead, _aRead;
     int _channel, _channelSel;
-    video_player_core::enum_decode_type _decodeType;
+    int _decodeType;
+    int _speed;
 
     core_preview* m_preview;
     core_thread_audio* _audio_thread;
     core_thread_video* _video_thread;
+    core_save* _save;
     friend class core_thread;
     friend class core_thread_audio;
     friend class core_thread_video;
+    friend class core_filter;
 };
 
 #endif // CORE_MEDIA_H

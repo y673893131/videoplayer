@@ -3,11 +3,15 @@
 #include <QDebug>
 #include <QWidget>
 #include <QModelIndex>
+#include <QStyle>
 #include "qplayfilelistmodel.h"
+#include "qfilelistview.h"
 
 QFileListDelegate::QFileListDelegate(QObject* parent)
     :QStyledItemDelegate(parent), m_model(nullptr)
 {
+    m_defaultColor = "#d5d5d5";
+    m_selectColor = "#FF5C38";
 }
 
 void QFileListDelegate::setModel(QPlayFileListModel *model)
@@ -22,8 +26,41 @@ bool QFileListDelegate::inCloseArea(const QRect &rc, const QPoint &pt) const
 
 void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
+    QStyleOptionViewItem viewOption(option);
+    initStyleOption(&viewOption, index);
+    auto fileList = (QFileListView*)(option.widget);
+
+    auto isSelect = m_model->isSelected(index);
+    auto isMouseOver = fileList->isMouseOver(index);
+    viewOption.state.setFlag(QStyle::State_MouseOver, isMouseOver);
+
     painter->setRenderHint(QPainter::Antialiasing, true);
-    QStyledItemDelegate::paint(painter, option, index);
+
+    //background
+    auto style = option.widget->style();
+    style->drawPrimitive(QStyle::PE_PanelItemViewItem, &viewOption, painter, viewOption.widget);
+
+    //text option
+    int padding = 10;
+    auto role = QPalette::Text;
+    if(viewOption.state.testFlag(QStyle::State_MouseOver) || isSelect)
+    {
+        padding = 20;
+        role = QPalette::HighlightedText;
+        viewOption.palette.setColor(QPalette::HighlightedText, m_selectColor);
+    }
+    else
+    {
+        viewOption.palette.setColor(QPalette::Text, m_defaultColor);
+    }
+
+    viewOption.rect.setX(padding);
+
+    //text
+    style->drawItemText(painter, viewOption.rect,
+                        viewOption.displayAlignment, viewOption.palette,
+                        true, viewOption.text, role);
+
     if(option.state.testFlag(QStyle::State_MouseOver))
     {
         painter->save();
@@ -55,10 +92,10 @@ void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
         painter->restore();
     }
 
-    if(m_model->isSelected(index))
+    if(isSelect)
     {
         painter->save();
-        auto rc = QRect(option.rect.x() + 10, option.rect.y() + (option.rect.height() - 10) / 2, 8, 10);
+        auto rc = QRect(option.rect.x() + 10, option.rect.y() + (option.rect.height() - 10) / 2, 10, 12);
         QVector<QPointF> point;
         point << QPoint(rc.topLeft())
             << QPoint(rc.bottomRight() + QPoint(0, -rc.height() / 2))
@@ -73,7 +110,7 @@ void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
 #else
         QPainterPath path;
         path.addPolygon(point);
-        painter->fillPath(path, QColor("#FF5C38"));
+        painter->fillPath(path, m_selectColor);
 #endif
         painter->restore();
     }
