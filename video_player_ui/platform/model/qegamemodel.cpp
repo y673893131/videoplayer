@@ -159,6 +159,6 @@ void QEGameModel::initClass()
 
     auto request = new QNetworkRequest();
     request->setUrl(QUrl("https://egame.qq.com/livelist"));
-    appendRequest(request, func);
+    m_netWorkQueue->onAppendRequest(request, func);
 }
 

@@ -8,7 +8,6 @@
 CRoomManager::CRoomManager()
 {
     m_netWorkQueue = new QNetWorkQueue();
-    m_netWorkQueue->initRspThread();
     connect(m_netWorkQueue, &QNetWorkQueue::cleared, this, &CRoomManager::flushRooms, Qt::QueuedConnection);
 #ifdef ROOM_ICON_SAVE
     m_iconPath = QApplication::applicationDirPath() + "/temp/img";
@@ -105,7 +104,7 @@ void CRoomManager::flushRooms()
             emit dataChanged(n, rid, pm);
         };
 
-        m_netWorkQueue->appendRequest(req, func);
+        m_netWorkQueue->onAppendRequest(req, func);
         ++n;
     }
 }

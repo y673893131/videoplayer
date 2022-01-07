@@ -47,8 +47,6 @@ QVideoControl::QVideoControl(QObject* parent)
 void QVideoControl::setToolBar(QToolWidgets *toolWidget)
 {
     m_toolbar = toolWidget;
-    connect(m_toolbar, &QToolWidgets::load, this, &QVideoControl::onStart);
-
     connect(this, &QVideoControl::start, m_toolbar, &QToolWidgets::start);
     connect(this, &QVideoControl::total, m_toolbar, &QToolWidgets::setTotalSeconds);
 }
@@ -69,13 +67,9 @@ void QVideoControl::onStart(const QString &filename)
 
     if(m_core)
     {
-        if(m_core->_getState(m_toolbar->index()) == video_player_core::state_paused)
-        {
-            onStoped();
-        }
+        onStoped();
+        waittingStoped();
     }
-
-    waittingStoped();
 
     m_toolbar->setExists(QFileInfo::exists(filename));
     m_core->_setSrc(filename.toUtf8().toStdString());

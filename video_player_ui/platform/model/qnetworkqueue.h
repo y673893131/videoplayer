@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <functional>
-#include <QVector>
+#include <QList>
 #include <QNetworkRequest>
 
 class QSemaphore;
@@ -43,17 +43,18 @@ class QNetWorkQueue : public QObject
 public:
     explicit QNetWorkQueue(QObject *parent = nullptr);
 
-    void initRspThread();
-    void appendRequest(QNetworkRequest*, rsp_call, const QByteArray& = QByteArray());
-    void clear();
 signals:
     void cleared();
+public slots:
+    void init();
+    void onAppendRequest(QNetworkRequest*, rsp_call, const QByteArray& = QByteArray());
+    void clear();
 private:
     void threadFunc();
 private:
     QNetworkAccessManager* m_net;
     QSemaphore* m_sem;
-    QVector<_Req_*> m_reqs;
+    QList<_Req_*> m_reqs;
     bool m_bClear;
 };
 

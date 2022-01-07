@@ -12,6 +12,7 @@ class QPlayTitle : public QToolBase
 public:
     enum button
     {
+        button_topwindow,
         button_minimize,
         button_maximize,
         button_close,
@@ -27,7 +28,9 @@ private:
     void initLayout();
     void initConnect() override;
 public slots:
+    void onConfigChanged();
     void onPlay(const QString&);
+    void onEnd();
 private:
     QPushButton* m_button[button_max];
     QLabel* m_title;

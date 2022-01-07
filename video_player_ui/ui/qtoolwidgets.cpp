@@ -27,6 +27,7 @@
 #include "playlist/qfilelistview.h"
 #include "config/config.h"
 #include "ui/qinputurlwidget.h"
+#include "ui/qvolumewidget.h"
 #include "ui/tool/fileview/qfileview.h"
 #include "ui/tool/play_control/qplaycontrol.h"
 #include "ui/tool/progress/qplayprogress.h"
@@ -83,7 +84,7 @@ void QToolWidgets::initUi(QWidget *parent)
     setObjectName("toolWd");
     m_contorl = VIDEO_CONTROL;
     m_inputUrl = new QInputUrlWidget(this);
-
+    m_volume = new QVolumeWidget(this);
     CreateMenu(parent);
     CreateCenterToolbar();
 
@@ -130,14 +131,16 @@ void QToolWidgets::initSize()
 {
     CALC_WIDGET_WIDTH(m_tools[tool_live_platform], 200);
     CALC_WIDGET_WIDTH(m_tools[tool_file_list], 200);
-    CALC_WIDGET_HEIGHT(m_tools[tool_play_title], 40);
-    CALC_WIDGET_HEIGHT(m_tools[tool_play_control], 85);
+    CALC_WIDGET_HEIGHT(m_tools[tool_play_title], 30);
+    CALC_WIDGET_HEIGHT(m_tools[tool_play_progress], 10);
+    CALC_WIDGET_HEIGHT(m_tools[tool_play_control], 40);
     CALC_WIDGET_HEIGHT(m_tools[tool_play_subtitle], 85);
     CALC_WIDGET_HEIGHT(m_tools[tool_play_output], 40);
 }
 
 void QToolWidgets::initConnect()
 {
+    m_volume->initConnect();
     connect(this, &QToolWidgets::inputUrl, m_inputUrl, &QInputUrlWidget::showInit);
     connect(m_inputUrl, &QInputUrlWidget::inputUrl, this, &QToolWidgets::load);
     connect(this, &QToolWidgets::start, [this](int index)
@@ -182,6 +185,8 @@ void QToolWidgets::initConnect()
     connect(this, &QToolWidgets::hideOrShow, this, &QToolWidgets::onAutoVisable);
 
     connect(QInputFilter::instance(), &QInputFilter::escap, this, [=]{if(isFullScreen()) showNormal(); });
+
+    connect(this, &QToolWidgets::topWindow, [=](bool bTop){ SET_CONFIG_DATA(bTop, Config::Data_TopWindow);});
 }
 
 int QToolWidgets::index()
@@ -268,7 +273,7 @@ void QToolWidgets::onAutoVisable(bool bHide)
 
 void QToolWidgets::CreateCenterToolbar()
 {
-    m_openfile = new QPushButton(tr("open media file..."), this);
+    m_openfile = new QPushButton(tr("open media file"), this);
     m_openfile->setObjectName("btn_openfile");
 
     QFileIconProvider f;

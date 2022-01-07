@@ -122,17 +122,18 @@ void Widget::flushQss()
 
 void Widget::flushInitSize()
 {
+    auto func = [=]{
+        CALC_WIDGET_SIZE(m_toolbar, 800, 600);
+        CENTER_DESKTOP(m_toolbar);
+    };
+
     if(m_render->isUpdate())
     {
-        CALC_WIDGET_SIZE(m_toolbar, 960, 756);
-        CENTER_DESKTOP(m_toolbar);
+        func();
     }
     else
     {
-        QTimer::singleShot(0, [this]{
-            CALC_WIDGET_SIZE(m_toolbar, 960, 756);
-            CENTER_DESKTOP(m_toolbar);
-        });
+        QTimer::singleShot(0, func);
     }
 }
 
@@ -162,7 +163,7 @@ void Widget::onFlushSheetStyle()
 #if QSS_MONITOR
     #define QSS_FILE "./Resources/res.qss"
 #else
-    #define QSS_FILE ":/res/qss.qss"
+    #define QSS_FILE ":/style/qss"
 #endif
     QFileInfo fi(QSS_FILE);
     static QDateTime m_last;

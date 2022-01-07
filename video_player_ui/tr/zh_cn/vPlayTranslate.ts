@@ -4,7 +4,7 @@
 <context>
     <name>QColumeSlider</name>
     <message>
-        <location filename="../../ui/tool/volume/qcolumeslider.cpp" line="20"/>
+        <location filename="../../ui/tool/volume/qcolumeslider.cpp" line="28"/>
         <source>volume</source>
         <translation>音量</translation>
     </message>
@@ -52,17 +52,17 @@
 <context>
     <name>QFileView</name>
     <message>
-        <location filename="../../ui/tool/fileview/qfileview.cpp" line="26"/>
+        <location filename="../../ui/tool/fileview/qfileview.cpp" line="27"/>
         <source>localMode</source>
         <translation>本地</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/fileview/qfileview.cpp" line="27"/>
+        <location filename="../../ui/tool/fileview/qfileview.cpp" line="28"/>
         <source>liveMode</source>
         <translation>直播</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/fileview/qfileview.cpp" line="31"/>
+        <location filename="../../ui/tool/fileview/qfileview.cpp" line="32"/>
         <source>search</source>
         <translation>搜索</translation>
     </message>
@@ -142,12 +142,23 @@
 <context>
     <name>QPlayControl</name>
     <message>
-        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="60"/>
+        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="59"/>
         <source>play list</source>
         <translation>播放列表</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="194"/>
+        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="63"/>
+        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="177"/>
+        <source>set mute</source>
+        <translation>设置静音</translation>
+    </message>
+    <message>
+        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="177"/>
+        <source>close mute</source>
+        <translation>关闭静音</translation>
+    </message>
+    <message>
+        <location filename="../../ui/tool/play_control/qplaycontrol.cpp" line="183"/>
         <source>video</source>
         <translation>视频</translation>
     </message>
@@ -175,94 +186,104 @@
         <translation>录制</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="41"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="42"/>
         <source>soundtrack</source>
         <translation>声道</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="42"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="43"/>
         <source>render</source>
         <translation>渲染</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="43"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="44"/>
         <source>channel</source>
         <translation>通道</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="44"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="45"/>
         <source>decoder</source>
         <translation>解码</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="45"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="46"/>
         <source>speed</source>
         <translation>播放速度</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="78"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="47"/>
+        <source>play</source>
+        <translation>播放</translation>
+    </message>
+    <message>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="83"/>
         <source>both</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="78"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="83"/>
         <source>left</source>
         <translation>左</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="78"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="83"/>
         <source>right</source>
         <translation>右</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="86"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="91"/>
         <source>opengl</source>
         <translation>opengl</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="86"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="91"/>
         <source>dx11</source>
         <translation>dx11</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="106"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="111"/>
         <source>times</source>
         <translation>倍</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="107"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="112"/>
         <source>normal</source>
         <translation>标准</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="114"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="120"/>
+        <source>loop play</source>
+        <translation>循环播放</translation>
+    </message>
+    <message>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="126"/>
         <source>video</source>
         <translation>视频</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="115"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="127"/>
         <source>audio</source>
         <translation>音频</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="116"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="128"/>
         <source>subtitle</source>
         <translation>字幕</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="261"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="287"/>
         <source>software</source>
         <translation>软解</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="262"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="288"/>
         <source>hardware</source>
         <translation>硬解</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="204"/>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="208"/>
-        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="213"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="225"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="229"/>
+        <location filename="../../ui/tool/menu/qplaymenu.cpp" line="234"/>
         <source>(restart valid)</source>
         <translation>（重启生效）</translation>
     </message>
@@ -270,19 +291,30 @@
 <context>
     <name>QPlayTitle</name>
     <message>
-        <location filename="../../ui/tool/title/qplaytitle.cpp" line="29"/>
+        <location filename="../../ui/tool/title/qplaytitle.cpp" line="32"/>
+        <location filename="../../ui/tool/title/qplaytitle.cpp" line="75"/>
+        <source>topwindow</source>
+        <translation>置顶</translation>
+    </message>
+    <message>
+        <location filename="../../ui/tool/title/qplaytitle.cpp" line="33"/>
         <source>minimize</source>
         <translation>最小化</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/title/qplaytitle.cpp" line="30"/>
+        <location filename="../../ui/tool/title/qplaytitle.cpp" line="34"/>
         <source>maximize</source>
         <translation>最大化</translation>
     </message>
     <message>
-        <location filename="../../ui/tool/title/qplaytitle.cpp" line="31"/>
+        <location filename="../../ui/tool/title/qplaytitle.cpp" line="35"/>
         <source>close</source>
         <translation>关闭</translation>
+    </message>
+    <message>
+        <location filename="../../ui/tool/title/qplaytitle.cpp" line="75"/>
+        <source>close topwindow</source>
+        <translation>关闭置顶</translation>
     </message>
 </context>
 <context>
@@ -309,9 +341,8 @@
         <translation type="vanished">关闭</translation>
     </message>
     <message>
-        <location filename="../../ui/qtoolwidgets.cpp" line="294"/>
         <source>open media file...</source>
-        <translation>打开文件...</translation>
+        <translation type="vanished">打开文件...</translation>
     </message>
     <message>
         <source>play list</source>
@@ -413,12 +444,17 @@
         <source>url</source>
         <translation type="vanished">直播流</translation>
     </message>
+    <message>
+        <location filename="../../ui/qtoolwidgets.cpp" line="276"/>
+        <source>open media file</source>
+        <translation>打开文件</translation>
+    </message>
 </context>
 <context>
     <name>QVideoControl</name>
     <message>
-        <location filename="../../control/videocontrol.cpp" line="229"/>
-        <location filename="../../control/videocontrol.cpp" line="231"/>
+        <location filename="../../control/videocontrol.cpp" line="223"/>
+        <location filename="../../control/videocontrol.cpp" line="225"/>
         <source>default</source>
         <translation>默认</translation>
     </message>

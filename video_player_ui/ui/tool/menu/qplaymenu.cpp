@@ -38,14 +38,17 @@ void QPlayMenu::initBaseAction()
 
 void QPlayMenu::initSubMenu()
 {
-    m_menus[menu_sound_track] = addMenu(tr("soundtrack"));
-    m_menus[menu_render] = addMenu(tr("render"));
-    m_menus[menu_channel] = addMenu(tr("channel"));
-    m_menus[menu_decoder] = addMenu(tr("decoder"));
-    m_menus[menu_speed] = addMenu(tr("speed"));
+    QStringList menus;
+    menus << tr("soundtrack");
+    menus << tr("render");
+    menus << tr("channel");
+    menus << tr("decoder");
+    menus << tr("speed");
+    menus << tr("play");
 
     for(int n = 0; n < menu_max; ++n)
     {
+        m_menus[n] = addMenu(menus[n]);
         m_menus[n]->setObjectName("menu1");
     }
 
@@ -59,16 +62,18 @@ void QPlayMenu::initSubMenuAction()
     initChannelSubMenu();
     initDecoderActions();
     initSpeedActions();
+    initPlayActions();
 }
 
-void QPlayMenu::initSubMenuActions(const QStringList & sActions, QPlayMenu::menu index, bool bCheckedalbe)
+void QPlayMenu::initSubMenuActions(const QStringList & sActions, QPlayMenu::menu index
+                                   , bool bCheckedalbe, bool bNeedGroup)
 {
     m_group[index] = new QActionGroup(this);
     for (auto it : sActions)
     {
         auto action = m_menus[index]->addAction(it);
         action->setCheckable(bCheckedalbe);
-        m_group[index]->addAction(action);
+        if(bNeedGroup) m_group[index]->addAction(action);
     }
 }
 
@@ -109,6 +114,13 @@ void QPlayMenu::initSpeedActions()
     m_group[menu_speed]->actions()[0]->setChecked(true);
 }
 
+void QPlayMenu::initPlayActions()
+{
+    QStringList sActions;
+    sActions << tr("loop play");
+    initSubMenuActions(sActions, menu_play, true, false);
+}
+
 void QPlayMenu::initChannelSubMenu()
 {
     m_channelMenus[channel_menu_video] = m_menus[menu_channel]->addMenu(tr("video"));
@@ -126,12 +138,12 @@ void QPlayMenu::initConnect()
     auto toolwidget = qobject_cast<QToolWidgets*>(m_parent);
     auto subtitle = m_parent->findChild<QPlaySubtitle*>();
     connect(Config::instance(), &Config::loadConfig, this, &QPlayMenu::onLoadConfig);
+    connect(Config::instance(), &Config::setConfig, this, &QPlayMenu::onConfigChanged);
 
     connect(toolwidget, &QToolWidgets::showMenu, this, &QPlayMenu::onPop);
 
     connect(m_actions[action_adjust], &QAction::triggered, this, &QPlayMenu::onAdjustTriggered);
     connect(m_actions[action_adjust], &QAction::triggered, toolwidget, &QToolWidgets::viewAdjust);
-    connect(m_actions[action_top_window], &QAction::triggered, this, &QPlayMenu::onTopWindowTriggered);
     connect(m_actions[action_top_window], &QAction::triggered, toolwidget, &QToolWidgets::topWindow);
     connect(m_actions[action_url], &QAction::triggered, toolwidget, &QToolWidgets::inputUrl);
     connect(m_actions[action_capture], &QAction::triggered, control, &QVideoControl::onSetCapture);
@@ -140,6 +152,7 @@ void QPlayMenu::initConnect()
     connect(m_group[menu_render], &QActionGroup::triggered, this, &QPlayMenu::onRenderTriggered);
     connect(m_group[menu_decoder], &QActionGroup::triggered, this, &QPlayMenu::onDecoderTriggered);
     connect(m_group[menu_speed], &QActionGroup::triggered, this, &QPlayMenu::onSpeedTriggered);
+    connect(m_menus[menu_play], &QMenu::triggered, this, &QPlayMenu::onPlayTriggered);
 
     connect(this, &QPlayMenu::setDecodeType, control, &QVideoControl::onSetDecodeType);
     connect(this, &QPlayMenu::soundTrack, control, &QVideoControl::onSoundTrack);
@@ -182,6 +195,14 @@ void QPlayMenu::onLoadConfig()
     }
 
     emit setDecodeType(m_nCurDecoder);
+
+//    m_actions[action_top_window]->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
+    m_menus[menu_play]->actions()[play_loop]->setChecked(GET_CONFIG_DATA(Config::Data_LoopPlay).toBool());
+}
+
+void QPlayMenu::onConfigChanged()
+{
+    m_actions[action_top_window]->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
 }
 
 void QPlayMenu::onPop()
@@ -227,6 +248,16 @@ void QPlayMenu::onSpeedTriggered(QAction *action)
     emit speed(nSel);
 }
 
+void QPlayMenu::onPlayTriggered(QAction *action)
+{
+    auto nSel = m_menus[menu_play]->actions().indexOf(action);
+    switch (nSel) {
+    case play_loop:
+         SET_CONFIG_DATA(action->isChecked(), Config::Data_LoopPlay);
+        break;
+    }
+}
+
 void QPlayMenu::onChannelTriggered(QAction *action)
 {
     auto group = qobject_cast<QActionGroup*>(sender());
@@ -248,11 +279,6 @@ void QPlayMenu::onChannelTriggered(QAction *action)
 void QPlayMenu::onAdjustTriggered(bool bCheck)
 {
     SET_CONFIG_DATA(bCheck, Config::Data_Adjust);
-}
-
-void QPlayMenu::onTopWindowTriggered(bool bCheck)
-{
-    SET_CONFIG_DATA(bCheck, Config::Data_TopWindow);
 }
 
 void QPlayMenu::onSupport(const QMap<int, QString> & devs)

@@ -20,6 +20,11 @@ public:
         action_max
     };
 
+    enum play_action
+    {
+        play_loop,
+    };
+
     enum menu
     {
         menu_sound_track,
@@ -27,6 +32,7 @@ public:
         menu_channel,
         menu_decoder,
         menu_speed,
+        menu_play,
 
         menu_max
     };
@@ -49,11 +55,12 @@ private:
     void initBaseAction();
     void initSubMenu();
     void initSubMenuAction();
-    void initSubMenuActions(const QStringList&, menu, bool bCheckedalbe = true);
+    void initSubMenuActions(const QStringList&, menu, bool bCheckedalbe = true, bool bNeedGroup = true);
     void initSoundTrackActions();
     void initRenderActions();
     void initDecoderActions();
     void initSpeedActions();
+    void initPlayActions();
     void initChannelSubMenu();
     void prepareData();
 signals:
@@ -66,15 +73,16 @@ signals:
 
 private slots:
     void onLoadConfig();
+    void onConfigChanged();
     void onPop();
     void onSoundTrackTriggered(QAction *action);
     void onRenderTriggered(QAction *action);
     void onDecoderTriggered(QAction *action);
     void onSpeedTriggered(QAction *action);
+    void onPlayTriggered(QAction *action);
     void onChannelTriggered(QAction *action);
 
     void onAdjustTriggered(bool bCheck);
-    void onTopWindowTriggered(bool bCheck);
     void onSupport(const QMap<int, QString>&);
     void onStreamInfo(const QStringList &list, int nChannel, int nDefault);
     void onEnd();

@@ -226,4 +226,10 @@ void QGLVideoWidget::onStart()
 
 void QGLVideoWidget::onStop()
 {
+    if(m_pFrame)
+    {
+        delete m_pFrame;
+        m_pFrame = nullptr;
+        update();
+    }
 }

@@ -21,6 +21,8 @@ public slots:
     void onPreview(void* data, int, int);
     void onJump(bool);
     void onJumpFailed();
+private slots:
+    void onJumpTimer();
     // QWidget interface
 protected:
     void mousePressEvent(QMouseEvent *ev) override;
@@ -31,7 +33,8 @@ protected:
 private:
     QWidget* m_timeWidget;
     QLabel* m_preview, *m_time;
-    QTimer* m_getPreview;
+    QTimer* m_getPreview, * m_jumpTimer;
+    int m_nJumpStep;
     int m_nPreview;
     int m_nJumpCount;
     bool m_bHandup;

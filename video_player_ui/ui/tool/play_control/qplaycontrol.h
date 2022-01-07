@@ -4,9 +4,7 @@
 #include "../base/qtoolbase.h"
 class QPushButton;
 class QLabel;
-class QSlider;
 class QTimer;
-class QColumeSlider;
 class QPlayControl : public QToolBase
 {
     Q_OBJECT
@@ -47,6 +45,8 @@ signals:
     void next();
     void priv();
     void stop();
+    void showVolume(bool, const QPoint&, const QSize&);
+
 private slots:
     void onPlay();
     void onPause();
@@ -55,16 +55,14 @@ private slots:
     void onMute(bool);
     void onRate(int);
     void onLoadConfig();
-    void onVolChanged();
-    void onSetVol();
     void onTotal(int);
     void onUpdateCurrentTime(int);
 private:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+private:
     QPushButton* m_button[button_max];
     QLabel* m_label[label_max];
-    QColumeSlider* m_vol;
     bool m_bPlaying;
-    QTimer* m_timerSetVol;
     int m_nTotal;
 };
 

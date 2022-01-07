@@ -21,7 +21,7 @@ void QFileListDelegate::setModel(QPlayFileListModel *model)
 
 bool QFileListDelegate::inCloseArea(const QRect &rc, const QPoint &pt) const
 {
-    return QRect(rc.right() - 17, rc.y(), 12, rc.height()).contains(pt);
+    return QRect(rc.right() - 15, rc.y(), 12, rc.height()).contains(pt);
 }
 
 void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
@@ -64,15 +64,14 @@ void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     if(option.state.testFlag(QStyle::State_MouseOver))
     {
         painter->save();
-        auto rc = QRect(option.rect.x() + option.rect.width() - 12 - 5, option.rect.y() + (option.rect.height() -12) / 2, 12, 12);
+        auto rc = QRect(option.rect.x() + option.rect.width() - 10 - 5, option.rect.y() + (option.rect.height() -10) / 2, 10, 10);
         auto p = (QWidget*)parent();
         auto pos = p->mapFromGlobal(QCursor::pos());
-        auto pen = QPen(QColor(255,0,0));
+        auto pen = QPen(Qt::lightGray);
 
         pen.setWidth(2);
         pen.setCapStyle(Qt::RoundCap);
         pen.setJoinStyle(Qt::RoundJoin);
-        painter->setPen(pen);
 
         QPoint points[4] = {
             QPoint(rc.topLeft()),
@@ -81,13 +80,16 @@ void QFileListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
             QPoint(rc.bottomLeft()),
         };
 
-        if(inCloseArea(option.rect, pos))
+        if(inCloseArea(rc, pos))
         {
+            pen.setColor(m_selectColor);
             points[0] += QPoint(1,1);
             points[1] += QPoint(-1,-1);
             points[2] += QPoint(-1,1);
             points[3] += QPoint(1,-1);
         }
+
+        painter->setPen(pen);
         painter->drawLines(points, 2);
         painter->restore();
     }

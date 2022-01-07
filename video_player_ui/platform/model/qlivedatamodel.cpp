@@ -22,7 +22,6 @@ QLiveDataModel::QLiveDataModel(QObject *parent) : QObject(parent)
 
 void QLiveDataModel::init()
 {
-    m_netWorkQueue->initRspThread();
     initClass();
 }
 
@@ -100,7 +99,7 @@ QString QLiveDataModel::getAttr(const QString &data, const QString& attrBegin, c
 
 void QLiveDataModel::appendRequest(QNetworkRequest * pReq, rsp_call call, const QByteArray &sData)
 {
-    m_netWorkQueue->appendRequest(pReq, call, sData);
+    m_netWorkQueue->onAppendRequest(pReq, call, sData);
 }
 
 void QLiveDataModel::waitClearRooms()

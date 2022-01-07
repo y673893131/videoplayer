@@ -7,9 +7,11 @@
 #include <QBoxLayout>
 #include <QDebug>
 #include "framelesswidget/util.h"
+#include "control/videocontrol.h"
 
 QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, QWidget* grandParent)
     : QSlider(orientation, parent)
+    , m_nJumpStep(0)
     , m_nPreview(0)
     , m_nJumpCount(0)
     , m_bHandup(false)
@@ -43,11 +45,18 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
     m_getPreview->setInterval(30);
     m_getPreview->setSingleShot(true);
     connect(m_getPreview, &QTimer::timeout, [this]{ emit getPreview(m_nPreview); });
+
+    m_jumpTimer = new QTimer(this);
+    m_jumpTimer->setInterval(100);
+    m_jumpTimer->setSingleShot(true);
+    connect(m_jumpTimer, &QTimer::timeout, this, &QProgressSlider::onJumpTimer);
 }
 
 void QProgressSlider::setPos(int pos)
 {
     if(m_bHandup)
+        return;
+    if(m_jumpTimer->isActive())
         return;
     setValue(pos);
     if(m_nJumpCount > 0)
@@ -87,15 +96,39 @@ void QProgressSlider::onJump(bool bFuture)
 {
     if(maximum() > 100000000)
         return;
+
+    if(!VIDEO_CONTROL->isPlaying())
+        return;
+
     int step = (bFuture ? 10000 : -10000);
-    emit jumpPos(step);
-    m_nJumpCount += 2;
+    if(m_nJumpCount <= 0)
+    {
+        emit jumpPos(step);
+        m_nJumpCount += 2;
+    }
+    else
+    {
+        m_jumpTimer->stop();
+        m_jumpTimer->start();
+        m_nJumpStep = value() + step;
+        setValue(m_nJumpStep);
+
+        QString s = QTime::fromMSecsSinceStartOfDay(m_nJumpStep).toString("HH:mm:ss");
+        emit jumpStr(s);
+    }
 }
 
 void QProgressSlider::onJumpFailed()
 {
     if(m_nJumpCount > 2)
         m_nJumpCount -= 2;
+}
+
+void QProgressSlider::onJumpTimer()
+{
+    emit gotoPos(m_nJumpStep);
+    m_nJumpCount += 2;
+    m_nJumpStep = 0;
 }
 
 void QProgressSlider::mousePressEvent(QMouseEvent *event)

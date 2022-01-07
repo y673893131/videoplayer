@@ -47,6 +47,7 @@ void QPlaySubtitle::initConnect()
     auto control = VIDEO_CONTROL;
     connect(m_timerDisplay, &QTimer::timeout, this, &QPlaySubtitle::onDelayClear);
     connect(control, &QVideoControl::subtitle, this, &QPlaySubtitle::onSubtitle);
+    connect(control, &QVideoControl::end, this, &QPlaySubtitle::onDelayClear);
 }
 
 void QPlaySubtitle::resizeEvent(QResizeEvent *event)

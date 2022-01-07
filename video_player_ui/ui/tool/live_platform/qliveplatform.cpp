@@ -3,6 +3,7 @@
 #include "platform/platform/qdouyuwidget.h"
 #include "control/videocontrol.h"
 #include "ui/qtoolwidgets.h"
+#include "ui/tool/fileview/qfileview.h"
 #include <QPushButton>
 #include <QBoxLayout>
 
@@ -43,9 +44,11 @@ void QLivePlatform::initConnect()
     auto group = m_platformManager->group();
     auto control = VIDEO_CONTROL;
     auto toolWidget = qobject_cast<QToolWidgets*>(m_parent);
+    auto filelist = m_parent->findChild<QFileView*>();
     connect(m_button[button_close], &QPushButton::clicked, this, &QWidget::hide);
     connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), this, &QWidget::hide);
 
+    connect(m_dy, &QDouyuWidget::play, filelist, &QFileView::onHandleStop);
     connect(m_dy, &QDouyuWidget::play, control, &QVideoControl::onStart);
     connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), m_dy, &QDouyuWidget::showIndex);
 

@@ -33,7 +33,6 @@ void QPlayControl::initUi()
     auto play = new QPushButton(this);
     auto next = new QPushButton(this);
     auto volMute = new QPushButton(this);
-    m_vol = new QColumeSlider(Qt::Orientation::Horizontal, this);
     auto fileList = new QPushButton(this);
     auto time = new QLabel(this);
     m_label[label_time] = time;
@@ -41,6 +40,8 @@ void QPlayControl::initUi()
     auto framRate = new QLabel(this);
     m_label[label_rate] = framRate;
 
+    m_label[label_time]->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_label[label_rate]->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_button[button_stop] = stop;
     m_button[button_prev] = prev;
     m_button[button_play_or_continue] = play;
@@ -49,43 +50,40 @@ void QPlayControl::initUi()
     m_button[button_vol_mute] = volMute;
     m_button[button_file_list] = fileList;
 
-//    setObjectName("wd_toolbar");
     stop->setObjectName("btn_stop");
     prev->setObjectName("btn_prev");
-    play->setObjectName("btn_pause");
+    play->setObjectName("btn_play");
     next->setObjectName("btn_next");
     volMute->setObjectName("btn_volume");
-    volMute->setIcon(/*parent->*/style()->standardIcon(QStyle::SP_MediaVolume));
     fileList->setObjectName("file_list");
     fileList->setToolTip(tr("play list"));
     time->setObjectName("label_frame_time");
     framRate->setObjectName("label_frame_rate");
 
+    m_button[button_vol_mute]->setToolTip(tr("set mute"));
+
     auto btnSize = CALC_WIDGET_SIZE(nullptr, 50, 50);
-    stop->setFixedSize(btnSize / 5 * 2);
-    prev->setFixedSize(btnSize);
-    play->setFixedSize(btnSize);
-    next->setFixedSize(btnSize);
+    stop->setFixedSize(btnSize / 6 * 2);
+    prev->setFixedSize(btnSize / 5 * 2.5);
+    play->setFixedSize(btnSize / 5 * 2.5);
+    next->setFixedSize(btnSize / 5 * 2.5);
     volMute->setFixedSize(btnSize / 2);
-    CALC_WIDGET_WIDTH(m_vol, 100);
     CALC_WIDGET_WIDTH(m_label[label_time], 150);
     CALC_WIDGET_WIDTH(m_label[label_rate], 100);
     fileList->setFixedSize(btnSize / 5 * 3);
 
     volMute->setCheckable(true);
 
-    m_timerSetVol = new QTimer(this);
-    m_timerSetVol->setInterval(500);
-    m_timerSetVol->setSingleShot(true);
+    m_button[button_vol_mute]->installEventFilter(this);
 }
 
 void QPlayControl::initLayout()
 {
     auto layout = new QHBoxLayout(this);
-    auto space = CALC_WIDGET_WIDTH(nullptr, 10);
-    auto margin = CALC_WIDGET_WIDTH(nullptr, 15);
+    auto space = CALC_WIDGET_WIDTH(nullptr, 15);
+    auto margin = CALC_WIDGET_WIDTH(nullptr, 10);
     layout->setSpacing(space);
-    layout->setMargin(margin);
+    layout->setContentsMargins(margin, 0, margin, 0);
 
     layout->addWidget(m_label[label_time]);
     layout->addStretch();
@@ -94,7 +92,6 @@ void QPlayControl::initLayout()
     layout->addWidget(m_button[button_play_or_continue]);
     layout->addWidget(m_button[button_next]);
     layout->addWidget(m_button[button_vol_mute]);
-    layout->addWidget(m_vol);
     layout->addStretch();
     layout->addWidget(m_label[label_rate]);
     layout->addSpacing(10);
@@ -105,14 +102,13 @@ void QPlayControl::initConnect()
 {
     auto control = VIDEO_CONTROL;
     auto fileList = m_parent->findChild<QFileView*>();
-    auto output = m_parent->findChild<QOutputWidget*>();
-    auto toolWidget = qobject_cast<QToolWidgets*>(m_parent);
     connect(control, &QVideoControl::total, this, &QPlayControl::onTotal);
     connect(control, &QVideoControl::frameRate, this, &QPlayControl::onRate);
     connect(control, &QVideoControl::end, this, &QPlayControl::onStop);
     connect(control, &QVideoControl::setPos, this, &QPlayControl::onUpdateCurrentTime);
 
     connect(m_button[button_play_or_continue], &QAbstractButton::released, this, &QPlayControl::onPlayOrPause);
+    connect(m_button[button_stop], &QAbstractButton::clicked, fileList, &QFileView::onHandleStop);
     connect(m_button[button_stop], &QAbstractButton::clicked, control, &QVideoControl::onStoped);
     connect(m_button[button_vol_mute], &QAbstractButton::clicked, control, &QVideoControl::onSetMute);
     connect(m_button[button_vol_mute], &QAbstractButton::clicked, this, &QPlayControl::onMute);
@@ -124,26 +120,21 @@ void QPlayControl::initConnect()
 
     connect(this, &QPlayControl::pause, control, &QVideoControl::onPause);
     connect(this, &QPlayControl::continuePlay, control, &QVideoControl::onContinue);
-    connect(m_vol, &QSlider::valueChanged, control, &QVideoControl::onSetVol);
-    connect(m_vol, &QSlider::valueChanged, this, &QPlayControl::onVolChanged);
-    connect(m_vol, &QColumeSlider::jumpStr, output, &QOutputWidget::onInfo);
 
-    connect(m_timerSetVol, &QTimer::timeout, this, &QPlayControl::onSetVol);
-    connect(QInputFilter::instance(), &QInputFilter::volumeJump, m_vol, &QColumeSlider::onJump);
     connect(QInputFilter::instance(), &QInputFilter::space, this, &QPlayControl::onPlayOrPause);
 }
 
 void QPlayControl::onPlay()
 {
     auto btn = m_button[button_play_or_continue];
-    btn->setObjectName("btn_play");
+    btn->setObjectName("btn_pause");
     btn->setStyleSheet(qApp->styleSheet());
 }
 
 void QPlayControl::onPause()
 {
     auto btn = m_button[button_play_or_continue];
-    btn->setObjectName("btn_pause");
+    btn->setObjectName("btn_play");
     btn->setStyleSheet(qApp->styleSheet());
 }
 
@@ -152,7 +143,7 @@ void QPlayControl::onPlayOrPause()
     auto btn = m_button[button_play_or_continue];
     if(m_bPlaying)
     {
-        auto bPause = btn->objectName() == "btn_pause";
+        auto bPause = btn->objectName() == "btn_play";
         if(bPause)
         {
             emit continuePlay();
@@ -172,8 +163,8 @@ void QPlayControl::onPlayOrPause()
 
 void QPlayControl::onStop()
 {
-    auto label = m_label[label_rate];
-    label->clear();
+    m_label[label_time]->clear();
+    m_label[label_rate]->clear();
 
     m_nTotal = 0;
     m_bPlaying = false;
@@ -182,12 +173,8 @@ void QPlayControl::onStop()
 
 void QPlayControl::onMute(bool bChecked)
 {
-    auto btn = m_button[button_vol_mute];
-    if(!bChecked)
-        btn->setIcon(btn->style()->standardIcon(QStyle::SP_MediaVolume));
-    else
-        btn->setIcon(btn->style()->standardIcon(QStyle::SP_MediaVolumeMuted));
     SET_CONFIG_DATA(bChecked, Config::Data_Mute);
+    m_button[button_vol_mute]->setToolTip(bChecked ? tr("close mute") : tr("set mute"));
 }
 
 void QPlayControl::onRate(int frameCount)
@@ -198,20 +185,8 @@ void QPlayControl::onRate(int frameCount)
 
 void QPlayControl::onLoadConfig()
 {
-    m_vol->setValue(GET_CONFIG_DATA(Config::Data_Vol).toInt());
     auto mute = m_button[button_vol_mute];
     mute->setChecked(GET_CONFIG_DATA(Config::Data_Mute).toBool());
-}
-
-void QPlayControl::onVolChanged()
-{
-    m_timerSetVol->stop();
-    m_timerSetVol->start();
-}
-
-void QPlayControl::onSetVol()
-{
-    SET_CONFIG_DATA(m_vol->value(), Config::Data_Vol);
 }
 
 void QPlayControl::onTotal(int nTotal)
@@ -235,4 +210,21 @@ void QPlayControl::onUpdateCurrentTime(int nSeconds)
         time->setText(QString("%1 / %2").arg(QTime::fromMSecsSinceStartOfDay(nSeconds).toString("HH:mm:ss"))
                       .arg(QTime::fromMSecsSinceStartOfDay(m_nTotal).toString("HH:mm:ss")));
     }
+}
+
+bool QPlayControl::eventFilter(QObject *watched, QEvent *event)
+{
+    if(watched == m_button[button_vol_mute])
+    {
+        switch (event->type()) {
+        case QEvent::Enter:
+            emit showVolume(true, mapToGlobal(m_button[button_vol_mute]->pos()), m_button[button_vol_mute]->size());
+            break;
+        case QEvent::Leave:
+            emit showVolume(false, mapToGlobal(m_button[button_vol_mute]->pos()), m_button[button_vol_mute]->size());
+            break;
+        }
+    }
+
+    return QToolBase::eventFilter(watched, event);
 }

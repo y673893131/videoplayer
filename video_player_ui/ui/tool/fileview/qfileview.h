@@ -21,6 +21,7 @@ public slots:
     void onPrev();
     void onNext();
     void onEnd();
+    void onHandleStop();
 private:
     void playStep(int nStep);
 
@@ -33,6 +34,7 @@ private:
     QFileListView* m_filelist;
     QLineEdit* m_searchEdit;
     QButtonGroup* m_group;
+    bool m_bHandleStop;
 };
 
 #endif // QFILEVIEW_H

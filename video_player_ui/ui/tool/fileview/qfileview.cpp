@@ -13,6 +13,7 @@
 
 QFileView::QFileView(QWidget *parent)
     : QToolBase(parent)
+    , m_bHandleStop(false)
 {
     initUi();
     initLayout();
@@ -56,23 +57,22 @@ void QFileView::initLayout()
 
 void QFileView::initConnect()
 {
-    auto title = m_parent->findChild<QPlayTitle*>();
     auto model = qobject_cast<QPlayFileListModel*>(m_filelist->model());
     auto toolWidget = qobject_cast<QToolWidgets*>(m_parent);
     auto control = VIDEO_CONTROL;
 
     connect(m_searchEdit, &QLineEdit::textChanged, m_filelist, &QFileListView::filter);
 
-    connect(this, &QFileView::play, title, &QPlayTitle::onPlay);
-
     connect(m_group, SIGNAL(buttonClicked(int)), model, SLOT(setMode(int)));
     connect(this, &QFileView::play, model, &QPlayFileListModel::play);
 
     connect(m_filelist, &QFileListView::loadFile, toolWidget, &QToolWidgets::onLoadFile);
     connect(toolWidget, &QToolWidgets::load, m_filelist, &QFileListView::addLocalUrl);
+    connect(toolWidget, &QToolWidgets::load, this, &QFileView::play);
     connect(toolWidget, &QToolWidgets::inputUrlFile, m_filelist, &QFileListView::inputUrlFile);
 
-    connect(m_filelist, &QFileListView::select, control, &QVideoControl::onStart);
+    connect(m_filelist, &QFileListView::select, this, &QFileView::onHandleStop);
+    connect(m_filelist, &QFileListView::select, this, &QFileView::play);
     connect(this, &QFileView::play, control, &QVideoControl::onStart);
 
     connect(control, &QVideoControl::play, model, &QPlayFileListModel::play);
@@ -104,15 +104,21 @@ void QFileView::onNext()
 
 void QFileView::onEnd()
 {
-    auto bLoopPlay = Config::instance()->getData(Config::Data_LoopPlay).toBool();
-    if(bLoopPlay)
+    auto bLoopPlay = GET_CONFIG_DATA(Config::Data_LoopPlay).toBool();
+    if(!m_bHandleStop && bLoopPlay)
     {
         onNext();
     }
     else
     {
         m_filelist->onEnd();
+        m_bHandleStop = false;
     }
+}
+
+void QFileView::onHandleStop()
+{
+    m_bHandleStop = true;
 }
 
 void QFileView::playStep(int nStep)

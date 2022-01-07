@@ -79,10 +79,13 @@ bool core_filter_video::initParam(AVStream *stream, AVCodecContext *pCodecContex
     setScale(pCodecContext->width, pCodecContext->height);
     char args1[256] = {};
     _snprintf(args1, sizeof(args1),
+//              "%s,eq=contrast=1:brightness=0.1:saturation=1.5",
               "%s",
               outFormat.scale
               );
 
+    //eq 画质调节
+    //contrast-对比度 brightness-亮度 saturation-饱和度
     m_private->m_sFilterDiscription = args1;
 
     return true;

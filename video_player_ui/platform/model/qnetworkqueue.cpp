@@ -1,19 +1,24 @@
 #include "qnetworkqueue.h"
 #include <thread>
-#include <thread>
+#include <QThread>
 #include <QEventLoop>
 #include <QSemaphore>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QTimer>
 #include <QDebug>
+#include <QMetaType>
 
 QNetWorkQueue::QNetWorkQueue(QObject *parent)
-    : QObject(parent), m_bClear(false)
+    : QObject(nullptr), m_bClear(false)
 {
     m_sem = new QSemaphore();
+    auto thread = new QThread();
+    moveToThread(thread);
+    QTimer::singleShot(0, [=]{init();});
 }
 
-void QNetWorkQueue::appendRequest(QNetworkRequest *pReq, rsp_call call, const QByteArray &sData)
+void QNetWorkQueue::onAppendRequest(QNetworkRequest *pReq, rsp_call call, const QByteArray &sData)
 {
     auto req = new _Req_();
     req->req = pReq;
@@ -34,19 +39,17 @@ void QNetWorkQueue::clear()
     m_bClear = true;
 }
 
-void QNetWorkQueue::initRspThread()
+void QNetWorkQueue::init()
 {
-    std::thread([this]
-    {
+    std::thread([=]{
         threadFunc();
     }).detach();
 }
 
 void QNetWorkQueue::threadFunc()
 {
-    QEventLoop loop;
     m_net = new QNetworkAccessManager();
-
+    QEventLoop loop;
     connect(m_net, &QNetworkAccessManager::finished, &loop, &QEventLoop::quit);
     while (1) {
         m_sem->acquire();

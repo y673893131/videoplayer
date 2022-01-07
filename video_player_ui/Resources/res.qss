@@ -7,12 +7,14 @@ QWidget#file_list_wd
 
 QWidget#wd_title
 {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(128,128,128,128), stop:1 rgba(128,128,128,0));
+    /*background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(128,128,128,128), stop:1 rgba(128,128,128,0));*/
+    background: rgba(0,0,0,50)
 }
 
 QWidget#wd_toolbar
 {
-    background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(128,128,128,0), stop:1 rgba(128,128,128,128));
+    /*background: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(128,128,128,0), stop:1 rgba(128,128,128,128));*/
+    background: rgba(0,0,0,50)
 }
 
 QLabel#label_title
@@ -53,11 +55,15 @@ QLabel#label_preview
     background: transparent;
 }
 
-QPushButton#btn_min{border-image:url(:/res/min_normal); border-radius:3px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;}QPushButton#btn_min::hover{border-image:url(:/res/min_hover);background: none;border-radius:10px; }
+QPushButton#btn_min{border-image:url(:/title/min_normal); border-radius:3px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;}QPushButton#btn_min::hover{border-image:url(:/title/min_hover);background: none;border-radius:10px; }
 
-QPushButton#btn_max{border-image:url(:/res/max_normal); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;}QPushButton#btn_max::hover{border-image:url(:/res/max_hover);background: none;border-radius:10px; }
+QPushButton#btn_max{border-image:url(:/title/max_normal); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;}QPushButton#btn_max::hover{border-image:url(:/title/max_hover);background: none;border-radius:10px; }
 
-QPushButton#btn_close{border-image:url(:/res/close_normal); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;margin-right:5px;}QPushButton#btn_close::hover{border-image:url(:/res/close_hover);background: none;border-radius:10px; }
+QPushButton#btn_close{border-image:url(:/title/close_normal); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;margin-right:5px;}QPushButton#btn_close::hover{border-image:url(:/title/close_hover);background: none;border-radius:10px; }
+
+QPushButton#btn_topwindow{border-image:url(:/title/untopwindow); border-radius:10px; outline: none;max-width: 20px; max-height: 20px; min-width: 20px;min-height: 20px;margin-right:5px;}QPushButton#btn_topwindow::hover{border-image:url(:/title/untopwindow_hover);background: none;border-radius:10px; }
+
+QPushButton#btn_topwindow::checked{border-image:url(:/title/topwindow);}QPushButton#btn_topwindow::checked::hover{border-image:url(:/title/topwindow_hover);}
 
 QListView#list_file
 {
@@ -65,7 +71,6 @@ QListView#list_file
     color: #454545;
     border: 0px;
     outline: none;
-    border-top-left-radius: 5px;
 }
 
 QListView#list_file:item
@@ -108,49 +113,56 @@ QPushButton#btn_stop::hover
 QPushButton#btn_play
 {
         background-color:transparent;
-        image:url(:/res/play_normal);
+        image:url(:/tool/play_normal);
         outline: none;
 }
 QPushButton#btn_play::hover
 {
-        image:url(:/res/play_black);
+        image:url(:/tool/play_black);
 }
 QPushButton#btn_pause
 {
         background-color:transparent;
-        border-image:url(:/res/pause_normal);
+        border-image:url(:/tool/pause_normal);
         outline: none;
 }
 QPushButton#btn_pause::hover
 {
-        image:url(:/res/pause_black);
+        image:url(:/tool/pause_black);
 }
 
 QPushButton#btn_prev
 {
         background-color:transparent;
-        border-image:url(:/res/prev_normal);
+        border-image:url(:/tool/prev_normal);
         outline: none;
 }
 QPushButton#btn_prev::hover
 {
-        border-image:url(:/res/prev_black);
+        border-image:url(:/tool/prev_black);
 }
 QPushButton#btn_next
 {
         background-color:transparent;
-        image:url(:/res/next_normal);
+        image:url(:/tool/next_normal);
         outline: none;
 }
 QPushButton#btn_next::hover
 {
-        image:url(:/res/next_black);
+        image:url(:/tool/next_black);
 }
 
 QPushButton#btn_volume
 {
         outline: none;
         background: transparent;
+        image:url(:/tool/volume);
+}
+
+#btn_volume::hover,
+#btn_volume::checked
+{
+    image:url(:/tool/volume_hover);
 }
 
 QPushButton#btn_openfile
@@ -173,7 +185,7 @@ QPushButton#btn_openfile:hover
 QPushButton#file_list
 {
         background-color: transparent;
-        border-image:url(:/res/file_list);
+        image:url(:/tool/filelist);
         outline: none;
         padding: 2px;
 }
@@ -181,26 +193,25 @@ QPushButton#file_list
 QPushButton#file_list::hover
 {
         margin: 1px;
+        image:url(:/tool/filelist_hover);
 }
 
 QLineEdit#file_search_edit
 {
-    color: gray;
+    background: rgba(23, 26, 29, 128);
+    color: #d5d5d5;
     min-height: 26px;
     max-height: 26px;
-    font: bold 14px "Microsoft YaHei";
-    padding-left: 13px;
-    margin: 5px;
-/*    border: 1px solid lightgray;*/
-    border-radius: 13px;
-    background: rgba(74, 74, 74, 128);
+    font: 13px "Microsoft YaHei";
+    padding-left: 10px;
+    border-top-left-radius: 5px;
 }
 
 QLineEdit#file_search_edit:hover
 {
 /*    border: 1px solid #D6A447;*/
-    color: #2E2F30;
-    background: #A5A5A5;
+    color: #d5d5d5;
+    background: rgba(128,128,128,128);
 }
 
 QPushButton#btn_mode
@@ -248,23 +259,23 @@ QSlider#slider_voice
         background-color: transparent;
 }
 
-QSlider#slider_voice::add-page:Horizontal
-{
-        background-color: rgb(87, 97, 106);
-        height:4px;
-}
-QSlider#slider_voice::sub-page:Horizontal
+QSlider#slider_voice::add-page:Vertical
 {
         background-color:rgb(37, 168, 198);
-        height:4px;
+        width:4px;
 }
-QSlider#slider_voice::groove:Horizontal
+QSlider#slider_voice::sub-page:Vertical
+{
+        background-color: rgb(87, 97, 106);
+        width:4px;
+}
+QSlider#slider_voice::groove:Vertical
 {
         background: white;
-        height: 6px;
-        margin: 0px 2px;
+        width: 6px;
+        margin: 2px 0px;
 }
-QSlider#slider_voice::handle:Horizontal
+QSlider#slider_voice::handle:Vertical
 {
         height: 8px;
         width:8px;
@@ -489,7 +500,7 @@ QMenu#menu1::indicator:checked
 {
     min-width: 80px;
     min-height: 80px;
-    border-image: url(:/res/douyu);
+    border-image: url(:/platform/douyu);
     border-radius: 40px;
 }
 
@@ -497,7 +508,7 @@ QMenu#menu1::indicator:checked
 {
     min-width: 80px;
     min-height: 80px;
-    border-image: url(:/res/huya);
+    border-image: url(:/platform/huya);
     border-radius: 40px;
 }
 
@@ -505,7 +516,7 @@ QMenu#menu1::indicator:checked
 {
     min-width: 80px;
     min-height: 80px;
-    border-image: url(:/res/egame);
+    border-image: url(:/platform/egame);
     border-radius: 40px;
 }
 
@@ -704,4 +715,9 @@ QLabel#output_info
     font: bold 18px "Microsoft YaHei";
     color: rgba(255,255,255,128);
     margin: 10px;
+}
+
+#volume_widget
+{
+    background: rgba(255,255,255,128);
 }

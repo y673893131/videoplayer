@@ -9,6 +9,7 @@ class QBoxLayout;
 class QPushButton;
 class QDataModel;
 class QInputUrlWidget;
+class QVolumeWidget;
 class QDouyuWidget;
 class QLivePlatformManager;
 class QVideoControl;
@@ -16,6 +17,7 @@ class QMenu;
 class QActionGroup;
 class QToolBase;
 class QPlayMenu;
+
 #ifdef Q_OS_WIN
 class QToolWidgets : public QWidget, public CNativeEvent_Win, public QAbstractNativeEventFilter
 #else
@@ -88,6 +90,7 @@ private:
     QToolBase* m_tools[tool_max];
     QPushButton *m_openfile/*,* m_filelistIndicator*/,*m_min,*m_max,*m_close;
     QInputUrlWidget* m_inputUrl;
+    QVolumeWidget* m_volume;
     bool m_bLocalFile;
     int m_index, m_playMode, m_totalSeconds;
     QDataModel* m_data;

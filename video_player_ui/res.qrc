@@ -1,31 +1,17 @@
 <RCC>
-    <qresource prefix="/res">
-        <file alias="qss.qss">Resources/res.qss</file>
-        <file alias="pause">Resources/pause.png</file>
-        <file alias="play">Resources/play.png</file>
-        <file alias="close_normal1">Resources/close_hover.png</file>
-        <file alias="close_black">Resources/close_normal.png</file>
-        <file alias="play_normal">Resources/Icons/Dark/transport.pause.png</file>
-        <file alias="pause_normal">Resources/Icons/Dark/transport.play.png</file>
-        <file alias="play_black">Resources/Icons/Light/transport.pause.png</file>
-        <file alias="pause_black">Resources/Icons/Light/transport.play.png</file>
-        <file alias="next_black">Resources/Icons/Light/transport.ff.png</file>
-        <file alias="prev_black">Resources/Icons/Light/transport.rew.png</file>
-        <file alias="next_normal">Resources/Icons/Dark/transport.ff.png</file>
-        <file alias="prev_normal">Resources/Icons/Dark/transport.rew.png</file>
-        <file alias="close_hover">Resources/close_hover1.png</file>
-        <file alias="close_normal">Resources/sysclose00.png</file>
-        <file alias="max_normal">Resources/sysmax0.png</file>
-        <file alias="max_hover">Resources/sysmax1.png</file>
-        <file alias="min_normal">Resources/sysmin111.png</file>
-        <file alias="min_hover">Resources/sysmin222.png</file>
-        <file alias="full_screen">Resources/fullscreen1.png</file>
-        <file alias="unfull_screen">Resources/unfullscreen.png</file>
-        <file alias="file_list">Resources/filelist.png</file>
-        <file>Resources/iptv.urls</file>
-        <file alias="douyu">Resources/douyu.jpg</file>
-        <file alias="huya">Resources/huya.jpg</file>
-        <file alias="egame">Resources/egame.jpg</file>
+    <qresource prefix="/tool">
+        <file alias="next_normal">Resources/icon/tool/next.png</file>
+        <file alias="next_black">Resources/icon/tool/next_hover.png</file>
+        <file alias="pause_normal">Resources/icon/tool/pause.png</file>
+        <file alias="pause_black">Resources/icon/tool/pause_hover.png</file>
+        <file alias="play_normal">Resources/icon/tool/play.png</file>
+        <file alias="play_black">Resources/icon/tool/play_hover.png</file>
+        <file alias="prev_normal">Resources/icon/tool/prev.png</file>
+        <file alias="prev_black">Resources/icon/tool/prev_hover.png</file>
+        <file alias="volume">Resources/icon/tool/volume.png</file>
+        <file alias="volume_hover">Resources/icon/tool/volume_hover.png</file>
+        <file alias="filelist">Resources/icon/tool/filelist.png</file>
+        <file alias="filelist_hover">Resources/icon/tool/filelist_hover.png</file>
     </qresource>
     <qresource prefix="/translate">
         <file alias="zh">tr/zh_cn/vPlayTranslate.qm</file>
@@ -38,5 +24,28 @@
     </qresource>
     <qresource prefix="/version">
         <file>res.rc</file>
+    </qresource>
+    <qresource prefix="/title">
+        <file alias="close_normal">Resources/icon/title/close.png</file>
+        <file alias="close_hover">Resources/icon/title/close_hover.png</file>
+        <file alias="max_normal">Resources/icon/title/max.png</file>
+        <file alias="max_hover">Resources/icon/title/max_hover.png</file>
+        <file alias="min_normal">Resources/icon/title/min.png</file>
+        <file alias="min_hover">Resources/icon/title/min_hover.png</file>
+        <file alias="topwindow">Resources/icon/title/topwindow.png</file>
+        <file alias="topwindow_hover">Resources/icon/title/topwindow_hover.png</file>
+        <file alias="untopwindow">Resources/icon/title/untopwindow.png</file>
+        <file alias="untopwindow_hover">Resources/icon/title/untopwindow_hover.png</file>
+    </qresource>
+    <qresource prefix="/style">
+        <file alias="qss">Resources/res.qss</file>
+    </qresource>
+    <qresource prefix="/url">
+        <file alias="iptv">Resources/iptv.urls</file>
+    </qresource>
+    <qresource prefix="/platform">
+        <file alias="douyu">Resources/platform/douyu.jpg</file>
+        <file alias="egame">Resources/platform/egame.jpg</file>
+        <file alias="huya">Resources/platform/huya.jpg</file>
     </qresource>
 </RCC>

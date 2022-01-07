@@ -222,7 +222,7 @@ QPlayFileListModel::QPlayFileListModel(QObject *parent)
     connect(this, &QPlayFileListModel::liveflush, [=]{
         QNetworkAccessManager net;
 //        qDebug() << net.supportedSchemes();
-        onInputUrlFile(":/res/Resources/iptv.urls");
+        onInputUrlFile(":/url/iptv");
     });
 
     connect(m_worker, &QWorker::finishWork, this, [this](const QStringList& names, const QStringList& urls)

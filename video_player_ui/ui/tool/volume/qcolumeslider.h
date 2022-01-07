@@ -13,6 +13,9 @@ signals:
 public slots:
     void onJump(bool);
     void onValueChanged(int);
+private:
+    bool m_bFirst;
+
 };
 
 #endif // QCOLUMESLIDER_H

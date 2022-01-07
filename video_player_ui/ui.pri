@@ -38,6 +38,7 @@ HEADERS += \
     $$PWD/render/dx11/inputclass.h \
     $$PWD/render/dx11/textureclass.h \
     $$PWD/render/dx11/textureshaderclass.h \
+    $$PWD/ui/qvolumewidget.h \
     $$PWD/ui/tool/base/qtoolbase.h \
     $$PWD/ui/tool/fileview/qfileview.h \
     $$PWD/ui/tool/live_platform/qliveplatform.h \
@@ -51,12 +52,12 @@ HEADERS += \
     $$PWD/ui/tool/title/qplaytitle.h \
     $$PWD/ui/tool/volume/qcolumeslider.h
 
-
 SOURCES += \
     $$PWD/control/videocontrol.cpp \
     $$PWD/filter/qinputfilter.cpp \
     $$PWD/framelesswidget/nativeevent_win.cpp \
     $$PWD/framelesswidget/util.cpp \
+    $$PWD/ui/qvolumewidget.cpp \
     $$PWD/render/dx11/bitmapclass.cpp \
     $$PWD/render/dx11/graphicsclass.cpp \
     $$PWD/render/native/qnativewidget.cpp \
@@ -85,7 +86,6 @@ SOURCES += \
     $$PWD/ui/tool/subtitle/qplaysubtitle.cpp \
     $$PWD/ui/tool/title/qplaytitle.cpp \
     $$PWD/ui/tool/volume/qcolumeslider.cpp
-
 
 SOURCES += \
     $$PWD/config/config.cpp \

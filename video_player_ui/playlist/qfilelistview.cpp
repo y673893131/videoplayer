@@ -125,6 +125,8 @@ void QFileListView::mouseMoveEvent(QMouseEvent *event)
         setCursor(QCursor(Qt::PointingHandCursor));
     else
         setCursor(QCursor(Qt::ArrowCursor));
+    if(index.isValid())
+        update(index);
     QListView::mouseMoveEvent(event);
 }
 

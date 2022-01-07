@@ -3,6 +3,7 @@
 
 QColumeSlider::QColumeSlider(Qt::Orientation orientation, QWidget* parent)
     : QSlider(orientation, parent)
+    , m_bFirst(true)
 {
     setObjectName("slider_voice");
     setRange(0, 200);
@@ -22,6 +23,13 @@ void QColumeSlider::onJump(bool bBigger)
 
 void QColumeSlider::onValueChanged(int value)
 {
-    QString sValue = QString("%1: %2").arg(tr("volume")).arg(value);
-    emit jumpStr(sValue);
+    if(!m_bFirst)
+    {
+        QString sValue = QString("%1: %2").arg(tr("volume")).arg(value);
+        emit jumpStr(sValue);
+    }
+    else
+    {
+        m_bFirst = false;
+    }
 }
