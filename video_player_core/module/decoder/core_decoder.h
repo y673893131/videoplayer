@@ -7,8 +7,10 @@
 
 class core_thread_video;
 class core_thread_audio;
+class core_thread_subtitle;
 class core_media;
 class core_save;
+class core_save_base;
 class core_filter_base;
 class core_decoder
 {
@@ -18,14 +20,14 @@ public:
 
     virtual bool init(AVFormatContext*, int);
     virtual void uninit();
-    virtual bool decode(AVPacket* pk, bool& bTryAgain);
-
+    virtual bool decode(AVPacket* pk, bool& bTryAgain) = 0;
+    virtual bool checkSeekPkt(AVPacket *pk);
     bool check(int);
     bool isValid();
-    void pushStream(int);
+    void pushStream(unsigned int);
     int& index();
     virtual void setIndex(int);
-    std::set<int> &indexs();
+    std::set<unsigned int> &indexs();
 
     unsigned int pktSize();
     core_packets& pkts();
@@ -40,7 +42,7 @@ public:
     int64_t getDisplayPts(int64_t pos);
 protected:
     int nStreamIndex;
-    std::set<int> nStreamIndexs;
+    std::set<unsigned int> nStreamIndexs;
     AVFormatContext *format;
     AVFrame* frame;
     AVCodecContext* pCodecContext;
@@ -52,8 +54,10 @@ protected:
 
     friend class core_thread_video;
     friend class core_thread_audio;
+    friend class core_thread_subtitle;
     friend class core_media;
     friend class core_save;
+    friend class core_save_base;
 };
 
 #endif // CORE_DECODER_H

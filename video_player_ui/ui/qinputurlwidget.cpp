@@ -13,11 +13,12 @@ QInputUrlWidget::QInputUrlWidget(QWidget *parent)
     setAttribute(Qt::WA_ShowModal, true);
 
     setDragSelf(true);
+#ifdef Q_OS_WIN
     auto hwnd = reinterpret_cast<HWND>(this->winId());
     setAreo(hwnd);
     setShadow(hwnd);
     setResizeable(false);
-
+#endif
     setObjectName("input_url_widget");
     auto widget = this;
     auto title_widget = new QWidget(widget);
@@ -57,22 +58,22 @@ QInputUrlWidget::QInputUrlWidget(QWidget *parent)
     CALC_WIDGET_SIZE(sure, 100, 30);
     CALC_WIDGET_SIZE(cancel, 100, 30);
 
-    connect(sure, &QPushButton::clicked, [this, url]
+    connect(sure, &QPushButton::clicked, this, [this, url]
     {
         if(url->text().isEmpty())
             return ;
-        emit inputUrl(url->text());
+        emit inputUrl(QStringList(url->text()));
         hide();
     });
 
-    connect(cancel, &QPushButton::clicked, [this]
+    connect(cancel, &QPushButton::clicked, this, [this]
     {
         hide();
     });
 
-    connect(this, &QInputUrlWidget::showInit, [=]
+    connect(this, &QInputUrlWidget::showInit, this, [=]
     {
-        QTimer::singleShot(0, [=]
+        QTimer::singleShot(0, this, [=]
         {
             url->selectAll();
             url->setFocus();

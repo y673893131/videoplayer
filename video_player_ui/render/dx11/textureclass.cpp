@@ -35,19 +35,31 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
     textureDesc.Width = width;
     textureDesc.MipLevels = 1;
     textureDesc.ArraySize = 1;
+#ifdef USE_RGBA
+    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+#else
     textureDesc.Format = DXGI_FORMAT_R8_UNORM;
+#endif
+
     textureDesc.SampleDesc.Count = 1;
     textureDesc.SampleDesc.Quality = 0;
+//#define USE_DYNAMIC
+#ifdef USE_DYNAMIC
+    textureDesc.Usage = D3D11_USAGE_DYNAMIC;
+    textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    textureDesc.MiscFlags = 0;
+#else
     textureDesc.Usage = D3D11_USAGE_DEFAULT;
     textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
     textureDesc.CPUAccessFlags = 0;
     textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-
+#endif
     // Setup the shader resource view description.
     srvDesc.Format = textureDesc.Format;
     srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MostDetailedMip = 0;
-    srvDesc.Texture2D.MipLevels = -1;
+    srvDesc.Texture2D.MipLevels = textureDesc.MipLevels;
 
     unsigned int widths[] = {width, width / 2, width / 2};
     unsigned int heights[] = {height, height / 2, height / 2};
@@ -72,9 +84,10 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
             qDebug() << __FUNCTION__ << __LINE__ << m_width << m_height << "CreateShaderResourceView";
             return false;
         }
-
+#ifndef USE_DYNAMIC
         // Generate mipmaps for this texture.
         deviceContext->GenerateMips(m_textureView[i]);
+#endif
     }
 
 
@@ -96,7 +109,24 @@ void TextureClass::Render(ID3D11Device* device, ID3D11DeviceContext *deviceConte
     for (int i = 0; i < TEX_SIZE; ++i)
     {
         auto pData = frame->data(i, w, h);
+#ifdef USE_RGBA
+        w *= 4;
+#endif
+#ifndef USE_DYNAMIC
         deviceContext->UpdateSubresource(m_texture[i], 0, nullptr, pData, w, 0);
+#else
+        D3D11_MAPPED_SUBRESOURCE mappedResource;
+        auto result = deviceContext->Map(m_texture[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        if(FAILED(result))
+        {
+            break;
+        }
+
+        CopyMemory(mappedResource.pData, pData, w * h);
+
+        deviceContext->Unmap(m_texture[i], 0);
+
+#endif
     }
 }
 

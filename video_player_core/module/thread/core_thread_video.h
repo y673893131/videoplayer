@@ -12,7 +12,6 @@ public:
     bool start(core_media* media) override;
 private:
     void threadCall();
-    bool checkSubTitle(AVPacket *pkt);
 };
 
 #endif // CORE_THREAD_VIDEO_H

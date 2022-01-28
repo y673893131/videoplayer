@@ -2,6 +2,7 @@
 #include "Log/Log.h"
 #include "videoframe.h"
 #include "config/config.h"
+#include "framelesswidget/util.h"
 #include <QDebug>
 #include <QTimer>
 #include <QFile>
@@ -9,9 +10,11 @@
 QGLVideoWidget::QGLVideoWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , m_pFrame(nullptr)
+    , m_freq(nullptr)
+    , m_freqLast(nullptr)
     , m_bViewAdjust(GET_CONFIG_DATA(Config::Data_Adjust).toBool())
 {
-    connect(Config::instance(), &Config::loadConfig, [this]
+    connect(Config::instance(), &Config::loadConfig, this, [this]
     {
         m_bViewAdjust = GET_CONFIG_DATA(Config::Data_Adjust).toBool();
         qDebug() << "m_bViewAdjust" << m_bViewAdjust;
@@ -26,6 +29,11 @@ QGLVideoWidget::QGLVideoWidget(QWidget *parent)
 QGLVideoWidget::~QGLVideoWidget()
 {
     qDebug() << "gl video widget quit.";
+    if(m_freqLast)
+    {
+        delete m_freqLast;
+        m_freqLast = nullptr;
+    }
 }
 
 void QGLVideoWidget::initializeGL()
@@ -112,30 +120,8 @@ void QGLVideoWidget::paintGL()
     glClearColor(0.0,0.0,0.0,255.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    auto frame = m_pFrame;
-    if(frame)
-    {
-        m_program->bind();
-#ifdef FRAME_RGB
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_IMG);
-        glBindTexture(GL_TEXTURE_2D, m_texture[TEXTURE_IMG].id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->w, frame->h, 0, GL_RGB, GL_UNSIGNED_BYTE, frame->framebuffer);
-        glUniform1i(m_location[TEXTURE_IMG], TEXTURE_IMG);
-#else
-        for (int index = TEXTURE_Y; index <= TEXTURE_V; ++index) {
-            glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + index));
-            glBindTexture(GL_TEXTURE_2D, m_texture[index].id);
-            unsigned int w = 0, h = 0;
-            auto data = frame->data(index, w, h);
-//            qDebug() << width() << w << height() << h;
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, static_cast<int>(w), static_cast<int>(h), 0, GL_RED, GL_UNSIGNED_BYTE, data);
-            glUniform1i(m_location[index], index);
-        }
-
-#endif
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        m_program->release();
-    }
+    if(!paintImage())
+        paintFreq();
 }
 
 void QGLVideoWidget::initViewScale()
@@ -179,6 +165,91 @@ void QGLVideoWidget::scaleViewCalc(bool bFlush)
     }
 }
 
+bool QGLVideoWidget::paintImage()
+{
+    auto frame = m_pFrame;
+    if(frame)
+    {
+
+        m_program->bind();
+#ifdef FRAME_RGB
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_IMG);
+        glBindTexture(GL_TEXTURE_2D, m_texture[TEXTURE_IMG].id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->w, frame->h, 0, GL_RGB, GL_UNSIGNED_BYTE, frame->framebuffer);
+        glUniform1i(m_location[TEXTURE_IMG], TEXTURE_IMG);
+#else
+        for (int index = TEXTURE_Y; index <= TEXTURE_V; ++index) {
+            glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + index));
+            glBindTexture(GL_TEXTURE_2D, m_texture[index].id);
+            unsigned int w = 0, h = 0;
+            auto data = frame->data(index, w, h);
+//            qDebug() << width() << w << height() << h;
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, static_cast<int>(w), static_cast<int>(h), 0, GL_RED, GL_UNSIGNED_BYTE, data);
+            glUniform1i(m_location[index], index);
+        }
+
+#endif
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        m_program->release();
+        return true;
+    }
+
+    return false;
+}
+
+void QGLVideoWidget::paintFreq()
+{
+    if(!m_freq)
+        return;
+    glLineWidth(4);
+    glBegin(GL_LINES);
+    glColor3f(1.0f,0.36f,0.22f);
+    unsigned int count = m_size;
+    auto size = CALC_WIDGET_SIZE(nullptr, count / 64 * 400, 200);
+    float maxHeight = size.height() / (1.0f * this->height());
+    float maxWidth = size.width() / (1.0f * this->width());
+    float xstart = -1.0;
+    float ystart = -0.5;
+    float xpos = xstart;
+
+    float xstep = maxWidth / count;
+    for(unsigned int k = 0; k < count; k++ )
+    {
+        xpos += xstep;
+        glVertex2f(xpos, ystart);
+        glVertex2f(xpos, m_freq[k] * maxHeight + ystart);
+        xpos += xstep;
+    }
+
+    glColor4f(0.9f,0.2f,0.2f,0.5f);
+    xpos = xstart;
+    for(unsigned int k = 0; k < count; k++ )
+    {
+        xpos += xstep;
+        glVertex2f(xpos, -(m_freq[k] * maxHeight) * 0.6f + ystart);
+        glVertex2f(xpos, ystart);
+        xpos += xstep;
+    }
+
+    xpos = xstart;
+    glColor4f(1.0f,0.5f,0.5f, 0.5f);
+    auto mH = maxHeight * 0.04f;
+    if(!m_freqLast) m_freqLast = new float[count];
+    for(unsigned int k = 0; k < count; k++ )
+    {
+        xpos += xstep;
+        if(m_freqLast[k] >= mH)
+        {
+            glVertex2f(xpos, m_freqLast[k]*maxHeight + ystart - mH);
+            glVertex2f(xpos, m_freqLast[k]*maxHeight + ystart);
+        }
+        xpos += xstep;
+    }
+
+    glEnd();
+    memcpy(m_freqLast, m_freq, sizeof(float) * count);
+}
+
 void QGLVideoWidget::onViewAdjust(bool bViewAdjust)
 {
     if(m_bViewAdjust != bViewAdjust)
@@ -212,6 +283,17 @@ void QGLVideoWidget::onAppendFrame(void *frame)
     update();
 }
 
+void QGLVideoWidget::onAppendFreq(float *data, unsigned int size)
+{
+    if(m_freq) {
+        delete m_freq;
+        m_freq = nullptr;
+    }
+    m_freq = data;
+    m_size = size;
+    update();
+}
+
 void QGLVideoWidget::onVideoSizeChanged(int width, int height)
 {
     m_videoSize.setWidth(width);
@@ -230,6 +312,19 @@ void QGLVideoWidget::onStop()
     {
         delete m_pFrame;
         m_pFrame = nullptr;
+        update();
+    }
+    if(m_freq)
+    {
+        delete m_freq;
+        m_freq = nullptr;
+        update();
+    }
+
+    if(m_freqLast)
+    {
+        delete m_freqLast;
+        m_freqLast = nullptr;
         update();
     }
 }

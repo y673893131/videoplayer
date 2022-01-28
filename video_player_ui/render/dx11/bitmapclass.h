@@ -26,8 +26,14 @@ class BitmapClass
 private:
 	struct VertexType
 	{
+        VertexType()
+        {
+            bcolor = false;
+        }
 		D3DXVECTOR3 position;
 	    D3DXVECTOR2 texture;
+        D3DXVECTOR4 color;
+        bool bcolor;
 	};
 
 public:

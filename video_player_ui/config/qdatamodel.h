@@ -5,6 +5,13 @@
 #include <QtSql/QSqlDatabase>
 #include <QSqlQuery>
 
+struct file_info_t
+{
+    QString name;
+    QString url;
+    int times;
+};
+
 class QDataModel : public QObject
 {
     Q_OBJECT
@@ -16,12 +23,14 @@ private:
 
     void init();
 signals:
-    void loadsuccessed(const QVector<QStringList>&);
+    void loadsuccessed(const QVector<file_info_t>&);
     void addUrlSuccess(const QString&);
 public slots:
-    void onAddUrl(const QString& file);
+    void onAddUrl(const QStringList& list);
     void removeUrl(const QString&);
     void onExecSql(const QString&);
+    void onUpdateTimees(const QString&, int);
+    void onClean();
 private:
     void initConfig();
     void initTable(const QString& sql);

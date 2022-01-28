@@ -9,7 +9,12 @@
 class QRenderFactory;
 class QToolWidgets;
 class QVideoControl;
+#ifdef Q_OS_WIN
+#include "ui/thumb/qwinthumbnail.h"
+class Widget : public QWinThumbnail
+#else
 class Widget : public QFrameLessWidget
+#endif
 {
     Q_OBJECT
 

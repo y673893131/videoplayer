@@ -17,7 +17,7 @@ public:
         Data_Adjust,
         Data_Render,
         Data_Decode,
-        Data_LoopPlay
+        Data_PlayMode
     };
 
 signals:

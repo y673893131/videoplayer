@@ -138,7 +138,7 @@ void core_frame_convert::initFrame()
 
 void core_frame_convert::scalePreview(AVFrame *src, video_interface *cb)
 {
-    scaleFrame(src, cb);
+    scaleFrame(src);
     if(cb)
     {
         cb->previewDisplayCall(buffer, w, h);
@@ -147,25 +147,25 @@ void core_frame_convert::scalePreview(AVFrame *src, video_interface *cb)
 
 void core_frame_convert::scale(AVFrame* src, video_interface* cb)
 {
-    scaleFrame(src, cb);
+    scaleFrame(src);
     if(cb)
     {
         cb->displayCall(buffer, w, h);
     }
 }
 
-void core_frame_convert::scaleFrame(AVFrame* src, video_interface* cb)
+void core_frame_convert::scaleFrame(AVFrame* src)
 {
     if(srcWidth != srcCodec->width || srcHeight != srcCodec->height)
         initFrame();
-    auto ret = sws_scale(
-                swsCov,
-                reinterpret_cast<const uint8_t *const *>(src->data),
-                src->linesize,
-                0,
-                src->height,
-                frame->data,
-                frame->linesize);
+    sws_scale(
+        swsCov,
+        reinterpret_cast<const uint8_t *const *>(src->data),
+        src->linesize,
+        0,
+        src->height,
+        frame->data,
+        frame->linesize);
 //        Log(Log_Info, "src_line_size:[%d-%d-%d], width: %d, height: %d dst_line_size:[%d-%d-%d]", src->linesize[0], src->linesize[1], src->linesize[2]
 //                , w, h, frame->linesize[0], frame->linesize[1], frame->linesize[2]);
 }

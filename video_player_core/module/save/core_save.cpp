@@ -9,7 +9,7 @@
 core_save::core_save()
     :m_audio(nullptr)
     ,m_video(nullptr)
-    ,m_inputFormat(nullptr)
+    ,m_media(nullptr)
     ,m_nAudioIndex(-1)
     ,m_nVideoIndex(-1)
 {
@@ -17,14 +17,14 @@ core_save::core_save()
 
 core_save::~core_save()
 {
-
+    uninit();
 }
 
-bool core_save::init(AVFormatContext* pFormat, int nIndexVideo, int nIndexAudio)
+bool core_save::init(core_media* media, int nIndexVideo, int nIndexAudio)
 {
     uninit();
 
-    m_inputFormat = pFormat;
+    m_media = media;
     m_nAudioIndex = nIndexAudio;
     m_nVideoIndex = nIndexVideo;
 
@@ -42,22 +42,22 @@ void core_save::uninit()
 
 void core_save::start()
 {
-    m_audio->start(m_inputFormat, m_nAudioIndex);
-    m_video->start(m_inputFormat, m_nVideoIndex);
+    if(m_nAudioIndex >= 0) m_audio->start(m_media, m_nAudioIndex);
+    if(m_nVideoIndex >= 0) m_video->start(m_media, m_nVideoIndex);
 }
 
 void core_save::stop()
 {
-    m_audio->stop();
-    m_video->stop();
+    if(m_nAudioIndex >= 0) m_audio->stop();
+    if(m_nVideoIndex >= 0) m_video->stop();
 }
 
 void core_save::saveAudio(AVPacket* pk)
 {
-    m_audio->save(pk);
+    if(m_nAudioIndex >= 0) m_audio->save(pk);
 }
 
 void core_save::saveVideo(AVPacket* pk)
 {
-    m_video->save(pk);
+    if(m_nVideoIndex >= 0) m_video->save(pk);
 }

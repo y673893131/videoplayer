@@ -32,8 +32,8 @@ public:
     int setCapture(bool);
 private:
     video_thread(std::shared_ptr<core_media>);
-    video_thread(const video_thread&);
     video_thread(const core_media&);
+    video_thread(const video_thread&);
     void startPlay();
 private:
     int m_index;

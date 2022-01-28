@@ -6,18 +6,19 @@
 #include <QDebug>
 #include "dump/mini_dump.hpp"
 
-void myMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
-{
-  if (type != QtWarningMsg || !msg.startsWith("QWindowsWindow::setGeometry")) {
-    QByteArray localMsg = msg.toLocal8Bit();
-    fprintf(stdout, localMsg.constData());
-  }
-}
+//void myMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+//{
+//  if (type != QtWarningMsg || !msg.startsWith("QWindowsWindow::setGeometry")) {
+//    QByteArray localMsg = msg.toLocal8Bit();
+//    fprintf(stdout, localMsg.constData());
+//  }
+//}
 int main(int argc, char *argv[])
 {
 //    qInstallMessageHandler(myMessageOutput);
 #ifdef Q_OS_WIN
     win32::debug::mini_dump dump;
+//    SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 #endif
     QApplication a(argc, argv);
 

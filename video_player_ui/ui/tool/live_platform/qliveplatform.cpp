@@ -46,11 +46,17 @@ void QLivePlatform::initConnect()
     auto toolWidget = qobject_cast<QToolWidgets*>(m_parent);
     auto filelist = m_parent->findChild<QFileView*>();
     connect(m_button[button_close], &QPushButton::clicked, this, &QWidget::hide);
+
+#if (QT_VERSION < QT_VERSION_CHECK(5,15,0))
     connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), this, &QWidget::hide);
+    connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), m_dy, &QDouyuWidget::showIndex);
+#else
+    connect(group, &QButtonGroup::idClicked, this, &QWidget::hide);
+    connect(group, &QButtonGroup::idClicked, m_dy, &QDouyuWidget::showIndex);
+#endif
 
     connect(m_dy, &QDouyuWidget::play, filelist, &QFileView::onHandleStop);
     connect(m_dy, &QDouyuWidget::play, control, &QVideoControl::onStart);
-    connect(group, static_cast<void(QButtonGroup::*)(int)>(&QButtonGroup::buttonClicked), m_dy, &QDouyuWidget::showIndex);
 
     connect(toolWidget, &QToolWidgets::moveShowPlatform, this, &QLivePlatform::onMoveShow);
 }

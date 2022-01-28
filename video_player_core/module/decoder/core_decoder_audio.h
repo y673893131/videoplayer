@@ -19,7 +19,7 @@ public:
     core_sdl_op* sdl();
 
     void start();
-    bool decode(AVPacket* pk);
+    bool decode(AVPacket* pk, bool& bTryAgain) override;
     void play(unsigned int& bufferSize);
 
 private:

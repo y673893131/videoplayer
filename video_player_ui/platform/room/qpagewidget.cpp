@@ -11,7 +11,11 @@
 #endif // STR
 
 QPageWidget::QPageWidget(QWidget *parent)
-    : QWidget(parent), m_nPageCount(0), m_nStartPage(0), m_nCurrentPage(0), m_perPage(10)
+    : QWidget(parent)
+    , m_nCurrentPage(0)
+    , m_nPageCount(0)
+    , m_nStartPage(0)
+    , m_perPage(10)
 {
 //    setObjectName("page_widget");
     auto label0 = new QLabel(tr("jump to"), this);
@@ -42,7 +46,8 @@ QPageWidget::QPageWidget(QWidget *parent)
     connect(prev, SIGNAL(clicked()), this, SLOT(onPrev()));
     connect(next, SIGNAL(clicked()), this, SLOT(onNext()));
     m_group = new QButtonGroup(this);
-    for (int n = 0; n < sizeof(m_index) / sizeof(m_index[0]); ++n)
+    auto count = static_cast<int>(sizeof(m_index) / sizeof(m_index[0]));
+    for (int n = 0; n < count; ++n)
     {
         m_index[n] = new QPushButton(QString("%1").arg(n + 1), this);
         m_index[n]->setObjectName("page_button");

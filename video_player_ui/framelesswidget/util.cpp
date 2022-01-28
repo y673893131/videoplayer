@@ -1,6 +1,8 @@
 #include "util.h"
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QScreen>
+#include <QStyle>
 #ifdef Q_OS_WIN
 #include <Windows.h>
 #endif
@@ -16,7 +18,8 @@ CUtil *CUtil::instance()
 CUtil::CUtil()
 {
     m_baseSize = QSize(1920, 1080);
-    m_desktopSize = qApp->desktop()->availableGeometry().size();
+    auto screen = qApp->primaryScreen();
+    m_desktopSize = screen->availableGeometry().size();
 }
 
 QSize CUtil::setDesktopPercent(QWidget* widget, int w, int h)
@@ -83,14 +86,15 @@ void CUtil::center(QWidget* widget)
     }
 }
 
+#ifdef Q_OS_WIN
 void CUtil::setWindowEllispeFrame(QWidget* widget, int nWidthEllipse, int nHeightEllipse)
 {
-#ifdef Q_OS_WIN
     HRGN hRgn;
     hRgn = CreateRoundRectRgn(0, 0, widget->width()+1, widget->height()+1, nWidthEllipse, nHeightEllipse);
     SetWindowRgn(reinterpret_cast<HWND>(widget->winId()), hRgn, true);
-#endif
 }
+#endif
+
 
 int CUtil::getMs(const QString& s)
 {
@@ -101,5 +105,19 @@ int CUtil::getMs(const QString& s)
     if(time.size() != 3)
         return 0;
     return (time.at(0).toInt() * 3600 + time.at(1).toInt() * 60 + time.at(2).toInt()) * 1000 + times.at(1).toInt();
+}
+
+QSize CUtil::desktopSize() const
+{
+    auto screen = qApp->primaryScreen();
+    return screen->availableGeometry().size();
+}
+
+void CUtil::flush(QWidget *widget)
+{
+    auto style = widget->style();
+    style->unpolish(widget);
+    style->polish(widget);
+    widget->update();
 }
 

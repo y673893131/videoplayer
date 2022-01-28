@@ -10,7 +10,7 @@ class QInputUrlWidget : public QFrameLessWidget
 public:
     QInputUrlWidget(QWidget *parent = nullptr);
 signals:
-    void inputUrl(const QString&);
+    void inputUrl(const QStringList&);
     void showInit();
 };
 

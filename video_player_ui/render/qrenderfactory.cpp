@@ -10,6 +10,7 @@ QRenderFactory::QRenderFactory(QWidget *parent)
 {
     auto render = GET_CONFIG_DATA(Config::Data_Render);
     qDebug() << "[render]" << render.toString();
+#ifdef Q_OS_WIN
     if(render == "opengl")
     {
         m_renderWidget = new QGLVideoWidget(parent);
@@ -19,6 +20,9 @@ QRenderFactory::QRenderFactory(QWidget *parent)
         m_renderWidget = new QDirect3D11Widget(parent);
         m_bUpdate = true;
     }
+#else
+    m_renderWidget = new QGLVideoWidget(parent);
+#endif
 }
 
 bool QRenderFactory::isUpdate()

@@ -23,8 +23,6 @@
 #include <QTimer>
 #include <QTime>
 #include <QToolTip>
-#include "playlist/qplayfilelistmodel.h"
-#include "playlist/qfilelistview.h"
 #include "config/config.h"
 #include "ui/qinputurlwidget.h"
 #include "ui/qvolumewidget.h"
@@ -37,7 +35,9 @@
 #include "ui/tool/menu/qplaymenu.h"
 #include "ui/tool/output/qoutputwidget.h"
 #include "platform/platform/qdouyuwidget.h"
+#ifdef GAME_PLATFORM_LIVE
 #include "platform/platform/qliveplatformmanager.h"
+#endif
 #include "control/videocontrol.h"
 #include "filter/qinputfilter.h"
 #ifdef Q_OS_WIN
@@ -50,12 +50,8 @@
 QToolWidgets::QToolWidgets(QWidget *parent)
     : QWidget(parent)
     , m_bLocalFile(false)
-    , m_index(0)
-    , m_playMode(QPlayFileListModel::play_mode_local)
-    , m_totalSeconds(0)
 {
     init(parent);
-//    APPEND_EXCEPT_FILTER(this);
 }
 
 void QToolWidgets::init(QWidget *parent)
@@ -65,17 +61,23 @@ void QToolWidgets::init(QWidget *parent)
     initLayout();
     initSize();
     initConnect();
+#ifdef Q_OS_WIN
     qApp->installNativeEventFilter(this);
+#endif
 }
 
 void QToolWidgets::initStyle()
 {
+#ifdef Q_OS_WIN
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
-#ifdef Q_OS_WIN
-    auto hwnd = reinterpret_cast<HWND>(this->winId());
+
+//    auto hwnd = reinterpret_cast<HWND>(this->winId());
 //    setAreo(hwnd);
 //    setShadow(hwnd);
+#else
+//    setWindowFlags(/*Qt::Window | */Qt::FramelessWindowHint);
+//    setAttribute(Qt::WA_TranslucentBackground);
 #endif
 }
 
@@ -94,9 +96,11 @@ void QToolWidgets::initUi(QWidget *parent)
     m_tools[tool_file_list] = new QFileView(this);
     m_tools[tool_play_control] = new QPlayControl(this);
     m_tools[tool_play_progress] = new QPlayProgress(this);
+#ifdef GAME_PLATFORM_LIVE
     m_tools[tool_live_platform] = new QLivePlatform(this);
-
-
+#else
+    m_tools[tool_live_platform] = nullptr;
+#endif
     m_autoHidetimer = new QTimer(this);
     m_autoHidetimer->setSingleShot(true);
     m_autoHidetimer->setInterval(3000);
@@ -116,7 +120,9 @@ void QToolWidgets::initLayout()
     layout->addWidget(m_tools[tool_play_control]);
 
     layoutMid->setContentsMargins(5, 0, 0, 0);
+#ifdef GAME_PLATFORM_LIVE
     layoutMid->addWidget(m_tools[tool_live_platform]);
+#endif
     layoutMid->addStretch();
     layoutMid->addLayout(layoutMidCenter);
     layoutMid->addStretch();
@@ -129,34 +135,36 @@ void QToolWidgets::initLayout()
 
 void QToolWidgets::initSize()
 {
+#ifdef GAME_PLATFORM_LIVE
     CALC_WIDGET_WIDTH(m_tools[tool_live_platform], 200);
+#endif
     CALC_WIDGET_WIDTH(m_tools[tool_file_list], 200);
     CALC_WIDGET_HEIGHT(m_tools[tool_play_title], 30);
     CALC_WIDGET_HEIGHT(m_tools[tool_play_progress], 10);
     CALC_WIDGET_HEIGHT(m_tools[tool_play_control], 40);
-    CALC_WIDGET_HEIGHT(m_tools[tool_play_subtitle], 85);
+    auto subtitleMinHeight = CALC_WIDGET_HEIGHT(nullptr, 85);
+    m_tools[tool_play_subtitle]->setMinimumHeight(subtitleMinHeight);
     CALC_WIDGET_HEIGHT(m_tools[tool_play_output], 40);
+    CALC_WIDGET_SIZE(this, 800, 600);
+    CENTER_DESKTOP(this);
 }
 
 void QToolWidgets::initConnect()
 {
+    auto control = VIDEO_CONTROL;
     m_volume->initConnect();
+    connect(control, &QVideoControl::start, m_autoHidetimer, static_cast<void (QTimer::*)()>(&QTimer::start));
     connect(this, &QToolWidgets::inputUrl, m_inputUrl, &QInputUrlWidget::showInit);
     connect(m_inputUrl, &QInputUrlWidget::inputUrl, this, &QToolWidgets::load);
-    connect(this, &QToolWidgets::start, [this](int index)
-    {
-        m_autoHidetimer->start();
-        m_index = index;
-    });
-
     connect(this, &QToolWidgets::hideOrShow, m_autoHidetimer, &QTimer::stop);
-    connect(m_autoHidetimer, &QTimer::timeout, [this]
+    connect(this, &QToolWidgets::hideOrShow, this, &QToolWidgets::onAutoVisable);
+    connect(m_autoHidetimer, &QTimer::timeout, this, [this]
     {
         if(m_contorl->isPlaying())
             emit hideOrShow(true);
     });
 
-    connect(QInputFilter::instance(), &QInputFilter::mouseMove, [this]
+    connect(QInputFilter::instance(), &QInputFilter::mouseMove, this, [this]
     {
         emit hideOrShow(false);
         m_autoHidetimer->start();
@@ -172,26 +180,22 @@ void QToolWidgets::initConnect()
     connect(m_openfile, &QPushButton::clicked, this, &QToolWidgets::onLoadFile);
     connect(this, &QToolWidgets::loadFile, this, &QToolWidgets::onLoadFile);
 
-    connect(this, &QToolWidgets::setTotalSeconds, [this]{
+    connect(this, &QToolWidgets::setTotalSeconds, this, [this]{
         m_openfile->hide();
     });
 
     m_playMenu->initConnect();
     for(int i = 0; i < tool_max; ++i)
     {
-        m_tools[i]->initConnect();
+        if(m_tools[i])
+        {
+            m_tools[i]->initConnect();
+        }
     }
-
-    connect(this, &QToolWidgets::hideOrShow, this, &QToolWidgets::onAutoVisable);
 
     connect(QInputFilter::instance(), &QInputFilter::escap, this, [=]{if(isFullScreen()) showNormal(); });
 
-    connect(this, &QToolWidgets::topWindow, [=](bool bTop){ SET_CONFIG_DATA(bTop, Config::Data_TopWindow);});
-}
-
-int QToolWidgets::index()
-{
-    return m_index;
+    connect(this, &QToolWidgets::topWindow, this, [=](bool bTop){ SET_CONFIG_DATA(bTop, Config::Data_TopWindow);});
 }
 
 void QToolWidgets::setExists(bool bExists)
@@ -205,11 +209,11 @@ void QToolWidgets::onLoadFile()
                 this,
                 QString(),
                 QString(),
-                "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls);;mp3 (*.mp3)");
+                "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls);;mp3 (*.mp3);;wav (*.wav)");
 
     if(!fileNames.isEmpty())
     {
-        emit load(fileNames.at(0));
+        emit load(fileNames);
     }
 }
 
@@ -233,11 +237,11 @@ void QToolWidgets::onMax()
     if(widget->isMaximized() || widget->isFullScreen())
     {
         widget->showNormal();
-        setMaximumSize(qApp->desktop()->availableGeometry().size());
+        setMaximumSize(UTIL->desktopSize());
     }
     else
     {
-        setMaximumSize(qApp->desktop()->availableGeometry().size());
+        setMaximumSize(UTIL->desktopSize());
         widget->showMaximized();
     }
 }
@@ -250,12 +254,13 @@ void QToolWidgets::onFull()
     if(widget->isMaximized() || widget->isFullScreen())
     {
         widget->showNormal();
-        setMaximumSize(qApp->desktop()->availableGeometry().size());
+        setMaximumSize(UTIL->desktopSize());
+        emit showNor();
     }
     else
     {
-//        setMaximumSize(qApp->desktop()->screenGeometry().size());
         widget->showFullScreen();
+        emit showFull();
     }
 }
 
@@ -318,11 +323,11 @@ void QToolWidgets::moveEvent(QMoveEvent *event)
     emit _move(event->pos());
 }
 
+#ifdef Q_OS_WIN
 bool QToolWidgets::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
 {
-#ifdef Q_OS_WIN
     auto msg = reinterpret_cast<MSG*>(message);
-//    auto widget = QWidget::find((int)msg->hwnd);
+    auto widget = QWidget::find((int)msg->hwnd);
 //    if(msg->hwnd == reinterpret_cast<HWND>(m_inputUrl->winId()))
 //        qDebug() << __FUNCTION__ << widget << msg->message;
     if(msg->hwnd != reinterpret_cast<HWND>(this->winId()))
@@ -343,14 +348,14 @@ bool QToolWidgets::nativeEventFilter(const QByteArray &eventType, void *message,
 
     if(_nativeEvent(eventType, message, result, this))
         return true;
-#endif
+
     return false;
 }
+#endif
 
 void QToolWidgets::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
-    UTIL->setWindowEllispeFrame(this, 0, 0);
     emit _resize(event->size());
     m_tools[tool_play_subtitle]->setFixedWidth(width());
     m_tools[tool_play_subtitle]->move(0, height() - m_tools[tool_play_subtitle]->height());

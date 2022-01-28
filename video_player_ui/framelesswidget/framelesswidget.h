@@ -18,6 +18,11 @@ signals:
     void leftPress();
     void rightClicked();
     void leftDoubleClicked();
+    void moved(const QPoint&);
+    void resized(const QSize&);
+public slots:
+    void onMoved(const QPoint&);
+    void onResized(const QSize&);
 public:
     QFrameLessWidget(QWidget *parent = nullptr);
     virtual ~QFrameLessWidget() override;
@@ -39,8 +44,11 @@ protected:
     void updateTopWindow();
 protected:
     bool m_bTopWindow;
+    bool m_bDragEnable;
+    bool m_bDrag;
 private:
     QImage m_bkImg;
-    QDragBorder* m_dragBorder;
+//    QDragBorder* m_dragBorder;
+    QPoint m_press, m_pos;
 };
 #endif // QFrameLessWidget_H

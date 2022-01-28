@@ -1,3 +1,4 @@
+#ifdef WIN32
 #include "qdirect3d11widget.h"
 #include <QDebug>
 #include <QTime>
@@ -25,7 +26,7 @@ bool QDirect3D11Widget::initialize()
     }
 
     // Initialize the graphics object.
-    auto result = m_pGraphics->Initialize(m_width, m_height, reinterpret_cast<HWND>(winId()));
+    auto result = m_pGraphics->Initialize(m_width, m_height, reinterpret_cast<HWND>(winId()), m_fScaleX, m_fScaleY);
     if(!result)
     {
         return false;
@@ -41,29 +42,47 @@ void QDirect3D11Widget::release()
     {
         m_pGraphics->Shutdown();
         delete m_pGraphics;
-        m_pGraphics = 0;
+        m_pGraphics = nullptr;
     }
 }
 
 void QDirect3D11Widget::render()
 {
     if(!m_bStoped)
-        m_pGraphics->Frame(m_pFrame);
+    {
+        if(m_pFrame)
+            m_pGraphics->Frame(m_pFrame);
+        else if(m_freq)
+        {
+            if(m_freq)
+                m_pGraphics->Freq(m_freq, m_freqCount);
+            else
+                m_pGraphics->Freq(Q_NULLPTR, m_freqCount);
+        }
+    }
     else
         m_pGraphics->Frame(Q_NULLPTR);
 }
 
-void QDirect3D11Widget::onViewAdjust(bool)
+void QDirect3D11Widget::onViewAdjust(bool bViewAdjust)
 {
-
+    if(m_bViewAdjust != bViewAdjust)
+    {
+        m_bViewAdjust = bViewAdjust;
+        if(m_pGraphics)
+        {
+            if(m_bViewAdjust)
+                m_pGraphics->ResetViewport(m_fScaleX, m_fScaleY);
+            else
+                m_pGraphics->ResetViewport(1.0f, 1.0f);
+        }
+    }
 }
 
 void QDirect3D11Widget::onVideoSizeChanged(int width, int height)
 {
-//    m_width = width;
-//    m_height = height;
-    float f0 = width * 1.0 / height;
-    float f1 = this->width() * 1.0 / this->height();
+    float f0 = width * 1.0f / height;
+    float f1 = this->width() * 1.0f / this->height();
     float fX = 1.0;
     float fY = 1.0;
     if(f0 > f1)
@@ -71,14 +90,32 @@ void QDirect3D11Widget::onVideoSizeChanged(int width, int height)
     else if(f0 < f1)
         fX = f0 / f1;
 
-    static float fScaleX = 1.0;
-    static float fScaleY = 1.0;
-    if(fScaleX == fX && fScaleY == fY)
+    if(m_fScaleX == fX && m_fScaleY == fY)
         return;
-    fScaleX = fX;
-    fScaleY = fY;
+    m_fScaleX = fX;
+    m_fScaleY = fY;
 
-    qDebug() << __FUNCTION__ << fScaleX << fScaleY;
+    if(m_bViewAdjust)
+    {
+        m_pGraphics->ResetViewport(m_fScaleX, m_fScaleY);
+    }
+    qDebug() << __FUNCTION__ << m_fScaleX << m_fScaleY;
+}
+
+void QDirect3D11Widget::onAppendFreq(float *data, unsigned int size)
+{
+
+    if(!m_pFrame)
+    {
+        removeFreq();
+        m_freq = data;
+        m_freqCount = size;
+        update();
+    }
+    else
+    {
+        delete[] data;
+    }
 }
 
 void QDirect3D11Widget::onStart()
@@ -89,5 +126,9 @@ void QDirect3D11Widget::onStart()
 void QDirect3D11Widget::onStop()
 {
     m_bStoped = true;
-    emit flush();
+    removeFrame();
+    removeFreq();
+    update();
 }
+
+#endif

@@ -27,12 +27,13 @@ void core_filter_video::setScale(int w, int h)
     {
         outFormat.w = w;
         outFormat.h = h;
-        memset(outFormat.scale, 0x00, sizeof(outFormat.scale));
-        _snprintf(outFormat.scale, sizeof(outFormat.scale),
+        char buffer[128] = {};
+        _snprintf(buffer, sizeof(buffer),
                   "scale=%d:%d",
                   w,
                   h);
 
+        outFormat.scale = buffer;
         if(outFormat.buffer)
         {
             av_free(outFormat.buffer);
@@ -81,7 +82,7 @@ bool core_filter_video::initParam(AVStream *stream, AVCodecContext *pCodecContex
     _snprintf(args1, sizeof(args1),
 //              "%s,eq=contrast=1:brightness=0.1:saturation=1.5",
               "%s",
-              outFormat.scale
+              outFormat.scale.c_str()
               );
 
     //eq 画质调节
@@ -133,5 +134,5 @@ AVFrame *core_filter_video::mix(AVFrame *in)
 void core_filter_video::update()
 {
     if(testFlag(video_output_flag_scale))
-        avfilter_graph_send_command(m_private->graph, "scale", "scale", outFormat.scale, nullptr, 0, 0);
+        avfilter_graph_send_command(m_private->graph, "scale", "scale", outFormat.scale.c_str(), nullptr, 0, 0);
 }

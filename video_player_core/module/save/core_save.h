@@ -13,7 +13,7 @@ public:
     virtual ~core_save();
 
 public:
-    bool init(AVFormatContext* pFormat, int nIndexVideo, int nIndexAudio);
+    bool init(core_media* media, int nIndexVideo, int nIndexAudio);
     void uninit();
 
     void start();
@@ -27,7 +27,7 @@ private:
     core_save_audio* m_audio;
     core_save_video* m_video;
 
-    AVFormatContext* m_inputFormat;
+    core_media* m_media;
     int m_nAudioIndex;
     int m_nVideoIndex;
 };

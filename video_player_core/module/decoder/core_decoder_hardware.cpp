@@ -54,7 +54,7 @@ std::map<int, std::string> core_decoder_hardware::getSupportDevices()
         devs.insert(std::make_pair(AV_HWDEVICE_TYPE_QSV, "qsv"));
     }
 
-    return std::move(devs);
+    return devs;
 }
 
 bool core_decoder_hardware::init(AVFormatContext *formatCtx, int index)
@@ -62,10 +62,10 @@ bool core_decoder_hardware::init(AVFormatContext *formatCtx, int index)
     if(m_decodeType == AV_HWDEVICE_TYPE_QSV)
         return initQsv(formatCtx, index);
     else
-        return initOtherHw(formatCtx, index);
+        return initOtherHw();
 }
 
-bool core_decoder_hardware::initOtherHw(AVFormatContext *formatCtx, int index)
+bool core_decoder_hardware::initOtherHw()
 {
     uninit();
 
@@ -99,9 +99,6 @@ bool core_decoder_hardware::initOtherHw(AVFormatContext *formatCtx, int index)
     pCodecContext->opaque = this;
     pCodecContext->get_format = core_decoder_hardware::getFormatOtherHw;
     pCodecContext->pix_fmt = AV_PIX_FMT_NV12;
-    pCodecContext->thread_count = 5;
-    pCodecContext->thread_type = FF_THREAD_FRAME;
-
 
     auto ret = av_hwdevice_ctx_create(&m_buffer, m_devType, nullptr, nullptr, 0);
     if(ret < 0)
@@ -203,7 +200,7 @@ bool core_decoder_hardware::isIFrame(AVPacket *pk)
     return (pk->flags & AV_PKT_FLAG_KEY);
 }
 
-void core_decoder_hardware::checkQSVClock(AVPacket *pk, int64_t &pts)
+void core_decoder_hardware::checkQSVClock(AVPacket *pk, int64_t &outPts)
 {
     /*
      *  https://trac.ffmpeg.org/ticket/9095
@@ -214,7 +211,7 @@ void core_decoder_hardware::checkQSVClock(AVPacket *pk, int64_t &pts)
         so do this, check AVPacket/AVFrame pts
     */
     if(m_decodeType == AV_HWDEVICE_TYPE_QSV && abs(pts - pk->pts) > 5000)
-        pts = pk->pts;
+        outPts = pk->pts;
 }
 
 AVPixelFormat core_decoder_hardware::getFormatOtherHw(AVCodecContext *ctx, const AVPixelFormat *srcFormat)
@@ -287,7 +284,7 @@ bool core_decoder_hardware::initQsv(AVFormatContext *formatCtx, int index)
         return false;
     }
 
-#if PRINT_DECODER
+#ifdef PRINT_DECODER
     auto tmp = av_codec_next(nullptr);
     while(tmp)
     {

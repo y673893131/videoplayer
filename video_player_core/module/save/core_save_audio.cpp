@@ -14,11 +14,14 @@ core_save_audio::~core_save_audio()
     uninit();
 }
 
-bool core_save_audio::init(AVFormatContext* pFormat, int nIndex)
+bool core_save_audio::init(core_media* media, int nIndex)
 {
     uninit();
-    if(!__super::init(pFormat, nIndex))
+    if(!core_save_base::init(media, nIndex))
+    {
+        uninit();
         return false;
+    }
 
     aac_decode_extradata(&m_adtsCtx, m_stream->codec->extradata
                          , m_stream->codec->extradata_size);
@@ -26,41 +29,38 @@ bool core_save_audio::init(AVFormatContext* pFormat, int nIndex)
     m_adtsCtx.objecttype = profile_low_complexity;
     m_adtsCtx.sample_rate_index = aac_frea_44100;
     m_adtsCtx.channel_conf = 2;
-    m_adstHeader = {
-        // fixed
-        0xFFF,                  /* syncword */
-        aac_mpeg_2,             /* id */
-        0x00,                   /* layer */
-        1,                      /* protection_absent */
-        m_adtsCtx.objecttype,           /* profile */
-        m_adtsCtx.sample_rate_index,    /* sampling_frequency_index */
-        0,                      /* private_bit */
-        m_adtsCtx.channel_conf, /* channel_configuration */
-        0,                      /* original_copy */
-        0,                      /* home */
-        // variable
-        0,                      /* copyright_identification_bit */
-        0,                      /* copyright_identification_start */
-        ADTS_HEADER_SIZE,       /* aac_frame_length */
-        0x7FF,                  /* adst_buffer_fullness */
-        0                       /* number_of_raw_data_blocks_in_frame */
-        };
+//    m_adstHeader = {
+//        // fixed
+//        0xFFF,                  /* syncword */
+//        aac_mpeg_2,             /* id */
+//        0x00,                   /* layer */
+//        1,                      /* protection_absent */
+//        m_adtsCtx.objecttype,           /* profile */
+//        m_adtsCtx.sample_rate_index,    /* sampling_frequency_index */
+//        0,                      /* private_bit */
+//        m_adtsCtx.channel_conf, /* channel_configuration */
+//        0,                      /* original_copy */
+//        0,                      /* home */
+//        // variable
+//        0,                      /* copyright_identification_bit */
+//        0,                      /* copyright_identification_start */
+//        ADTS_HEADER_SIZE,       /* aac_frame_length */
+//        0x7FF,                  /* adst_buffer_fullness */
+//        0                       /* number_of_raw_data_blocks_in_frame */
+//        };
 
     return true;
 }
 
 void core_save_audio::uninit()
 {
-    __super::uninit();
-}
-
-AVOutputFormat *core_save_audio::guess()
-{
-    return av_guess_format("mp4", NULL, "video/mp4");
+    core_save_base::uninit();
 }
 
 void core_save_audio::save(AVPacket* pk)
 {
+    if(!m_format)
+        return;
 //    format_adst_header(pk->size + ADTS_HEADER_SIZE);
 //    fwrite(&m_adstHeader, 1, ADTS_HEADER_SIZE, m_pFile);
 //    fwrite(pk->data, 1, static_cast<size_t>(pk->size), m_pFile);
@@ -89,7 +89,7 @@ std::string core_save_audio::outoutFile()
 int core_save_audio::aac_decode_extradata(ADTSContext *adts, unsigned char *pbuf, int bufsize)
 {
       int aot, aotext, samfreindex;
-      int i, channelconfig;
+      int channelconfig;
       unsigned char *p = pbuf;
       if (!adts || !pbuf || bufsize<2)
       {

@@ -35,11 +35,13 @@ bool QInputFilter::eventFilter(QObject *watched, QEvent *event)
             if(watched && watched->objectName() != "toolWd")
             {
                 auto keyEvent = reinterpret_cast<QWheelEvent*>(event);
-                auto step = keyEvent->delta();
+                auto step = keyEvent->angleDelta().y();
                 bool bInCrease = step > 0;
                 emit volumeJump(bInCrease);
             }
         }break;
+        default:
+            break;
         }
 
         return QObject::eventFilter(watched, event);
@@ -81,11 +83,8 @@ bool QInputFilter::eventFilter(QObject *watched, QEvent *event)
             return QObject::eventFilter(watched, event);
         }
         return true;
-    }break;
+    }
     default:
         return QObject::eventFilter(watched, event);
     }
-
-//    return true;
-    return QObject::eventFilter(watched, event);
 }

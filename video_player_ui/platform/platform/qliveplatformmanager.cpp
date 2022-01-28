@@ -9,7 +9,7 @@ QLivePlatformManager::QLivePlatformManager(QWidget *parent)
     m_platforms.push_back({tr("egame live"), "rbutton_egame", Live_EGame});
 
     m_group = new QButtonGroup(parent);
-    for(auto it : m_platforms)
+    for(auto it : qAsConst(m_platforms))
     {
         auto btn = new QRadioButton(it.name, parent);
         btn->setObjectName(it.obj);

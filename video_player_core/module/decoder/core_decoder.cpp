@@ -38,6 +38,8 @@ bool core_decoder::init(AVFormatContext *formatCtx, int index)
     pCodecContext->pkt_timebase = stream->time_base;
     pCodecContext->thread_count = 5;
     pCodecContext->thread_type = FF_THREAD_FRAME;
+    if(pCodecContext->channel_layout <= 0)
+        pCodecContext->channel_layout = static_cast<uint64_t>(av_get_default_channel_layout(pCodecContext->channels));
 
     auto ret = avcodec_open2(pCodecContext, pCodec, nullptr);
     if(ret < 0)
@@ -69,7 +71,7 @@ void core_decoder::uninit()
     }
 }
 
-bool core_decoder::decode(AVPacket */*pk*/, bool& /*bTryAgain*/)
+bool core_decoder::checkSeekPkt(AVPacket *)
 {
     return false;
 }
@@ -84,7 +86,7 @@ bool core_decoder::isValid()
     return nStreamIndex >= 0;
 }
 
-void core_decoder::pushStream(int index)
+void core_decoder::pushStream(unsigned int index)
 {
     nStreamIndexs.insert(index);
 }
@@ -99,7 +101,7 @@ void core_decoder::setIndex(int index)
     init(format, index);
 }
 
-std::set<int> &core_decoder::indexs()
+std::set<unsigned int> &core_decoder::indexs()
 {
     return nStreamIndexs;
 }
@@ -149,7 +151,7 @@ void core_decoder::calcClock(AVPacket* pk)
     {
         if(frame->opaque)
         {
-            auto opa = *reinterpret_cast<double*>(frame->opaque);
+            auto opa = *reinterpret_cast<int64_t*>(frame->opaque);
             if(opa != AV_NOPTS_VALUE)
                 pts = opa;
             else
@@ -167,7 +169,7 @@ void core_decoder::calcClock(AVPacket* pk)
     setClock(pts);
 }
 
-void core_decoder::checkQSVClock(AVPacket */*pk*/, int64_t& /*pts*/)
+void core_decoder::checkQSVClock(AVPacket *, int64_t& /*pts*/)
 {
 }
 

@@ -29,6 +29,7 @@ SOURCES += \
     $$PWD/module/sdl/core_sdl_op.cpp \
     $$PWD/module/thread/core_thread.cpp \
     $$PWD/module/thread/core_thread_audio.cpp \
+    $$PWD/module/thread/core_thread_subtitle.cpp \
     $$PWD/module/thread/core_thread_video.cpp \
     $$PWD/module/util/core_util.cpp \
     $$PWD/video_player_core.cpp \
@@ -59,6 +60,7 @@ HEADERS += \
     $$PWD/module/sdl/core_sdl_op.h \
     $$PWD/module/thread/core_thread.h \
     $$PWD/module/thread/core_thread_audio.h \
+    $$PWD/module/thread/core_thread_subtitle.h \
     $$PWD/module/thread/core_thread_video.h \
     $$PWD/module/util/core_util.h \
     $$PWD/video_player_core.h \
@@ -81,7 +83,7 @@ win32{
 
 unix{
     contains(QT_ARCH, i386) {
-        message("32-bit, 请自行编译32位库!")
+        message("32-bit!")
     } else {
         message("linux 64-bit")
         message($$OUT_PWD)
@@ -94,5 +96,20 @@ unix{
         LIBS += -L$$PWD/lib/linux/SDL2/lib -lSDL2
 
         LIBS += -lpthread -ldl
+
+#        QMAKE_LFLAGS += "-Wl,-rpath,\'$$ORIGING\'"
+#        QMAKE_RPATHDIR += :\'\$\$DESTDIR\'
     }
+}
+
+DEFINES += AUDIO_WAVE_DISPLAY
+contains(DEFINES, AUDIO_WAVE_DISPLAY) {
+    INCLUDEPATH += \
+        $$PWD/../fftreal
+
+    LIBS += -L$$PWD/../bin -lfftreal
+}
+else
+{
+    message("no AUDIO_WAVE_DISPLAY business expansion");
 }

@@ -55,7 +55,7 @@ decoder_check:
     INIT_NEW(&m_convert, core_frame_convert)
     m_convert->setsrcCodec(pCodecContext);
 #endif
-    Log(Log_Info, "thread_id:%d", core_util::getThreadId());
+    Log(Log_Info, "thread_id:%u", core_util::getThreadId());
     Log(Log_Info, "video src size (%d,%d)!", pCodecContext->width, pCodecContext->height);
 
     return true;

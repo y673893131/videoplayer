@@ -43,6 +43,8 @@ private:
 #else
     ID3D11Texture2D* m_texture[3];
     ID3D11ShaderResourceView* m_textureView[3];
+
+//    ID3D11Buffer* m_textureBuffer[3];
 #endif
     unsigned int m_width;
     unsigned int m_height;

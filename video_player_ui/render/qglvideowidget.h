@@ -58,6 +58,7 @@ signals:
 public slots:
     void onViewAdjust(bool);
     void onAppendFrame(void*);
+    void onAppendFreq(float*, unsigned int);
     void onVideoSizeChanged(int,int);
     void onStart();
     void onStop();
@@ -69,6 +70,9 @@ protected:
     void initViewScale();
     void scaleViewCalc(bool bFlush = false);
 private:
+    bool paintImage();
+    void paintFreq();
+private:
     QOpenGLShader* m_vShader,* m_fShader;
     QOpenGLShaderProgram* m_program;
     int m_location[TEXTURE_MAX];
@@ -76,7 +80,10 @@ private:
     _texture_obj_ m_texture[TEXTURE_MAX];
     QSize m_videoSize;
     /*_VideoFramePtr*/_video_frame_* m_pFrame;
+    float* m_freq;
+    float* m_freqLast;
     bool m_bViewAdjust;
+    unsigned int m_size;
 };
 
 #endif // QGLVIDEOWIDGET_H

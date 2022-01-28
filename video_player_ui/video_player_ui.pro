@@ -1,4 +1,4 @@
-QT       += core gui opengl network xmlpatterns sql xml script
+QT       += core gui opengl network xmlpatterns sql xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

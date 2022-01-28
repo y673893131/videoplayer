@@ -25,8 +25,9 @@ void core_filter_audio::setVol(int nVol)
     if(outFormat.volume != nVol)
     {
         outFormat.volume = nVol;
-        memset(outFormat.sVolume, 0x00, sizeof(outFormat.sVolume));
-        _snprintf(outFormat.sVolume, sizeof(outFormat.sVolume), "%.1f", outFormat.volume / 100.0);
+        char buffer[128] = {};
+        _snprintf(buffer, sizeof(buffer), "%.1f", outFormat.volume / 100.0);
+        outFormat.sVolume = buffer;
         setFlag(audio_output_flag_volume);
     }
 }
@@ -62,8 +63,9 @@ void core_filter_audio::setAtempo(int nAtempo)
             break;
         }
 
-        memset(outFormat.sAtempo, 0x00, sizeof(outFormat.sAtempo));
-        _snprintf(outFormat.sAtempo, sizeof(outFormat.sAtempo), "%.1f", dSpeed);
+        char buffer[128] = {};
+        _snprintf(buffer, sizeof(buffer), "%.1f", dSpeed);
+        outFormat.sAtempo = buffer;
         setFlag(audio_output_flag_atempo);
     }
 }
@@ -84,10 +86,12 @@ bool core_filter_audio::initParam(AVStream *stream, AVCodecContext *pCodecContex
     char args1[256] = {};
     _snprintf(args1, sizeof(args1),
               "aresample=44100,aformat=sample_fmts=s16:channel_layouts=downmix,atempo=%s,volume=%s",
-              outFormat.sAtempo,
-              outFormat.sVolume
+              outFormat.sAtempo.c_str(),
+              outFormat.sVolume.c_str()
               );
 
+    //pCodecContext->channels
+    //声道控制：pan=stereo|c0=c0|c1=c1
     m_private->m_sFilterDiscription = args1;
 
     return true;
@@ -130,12 +134,12 @@ void core_filter_audio::update()
     if(testFlag(audio_output_flag_atempo))
     {
 //        avfilter_graph_send_command(m_private->graph, "atempo", "atempo", "2.0", nullptr, 0, 0);
-        Log(Log_Debug, "speed %s", outFormat.sAtempo);
+        Log(Log_Debug, "speed %s", outFormat.sAtempo.c_str());
         auto stream = m_private->m_stream;
         auto ctx = m_private->m_codecCtx;
         uninit();
         init(stream, ctx);
     }
     if(testFlag(audio_output_flag_volume))
-        avfilter_graph_send_command(m_private->graph, "volume", "volume", outFormat.sVolume, nullptr, 0, 0);
+        avfilter_graph_send_command(m_private->graph, "volume", "volume", outFormat.sVolume.c_str(), nullptr, 0, 0);
 }

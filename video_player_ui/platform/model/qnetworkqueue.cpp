@@ -9,7 +9,7 @@
 #include <QDebug>
 #include <QMetaType>
 
-QNetWorkQueue::QNetWorkQueue(QObject *parent)
+QNetWorkQueue::QNetWorkQueue(QObject */*parent*/)
     : QObject(nullptr), m_bClear(false)
 {
     m_sem = new QSemaphore();

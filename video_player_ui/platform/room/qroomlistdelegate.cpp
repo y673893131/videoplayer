@@ -1,5 +1,6 @@
 #include "qroomlistdelegate.h"
 #include <QPainter>
+#include <QPainterPath>
 #include <QDebug>
 #include <QWidget>
 #include <QModelIndex>
@@ -18,7 +19,7 @@ void QRoomListDelegate::setModel(QRoomListViewModel *model)
 
 void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    QStyleOptionViewItemV4 viewOption(option);
+    QStyleOptionViewItem viewOption(option);
     initStyleOption(&viewOption, index);
 
     QStyledItemDelegate::paint(painter, option, index);
@@ -32,7 +33,7 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     int scalW = rc.width() - 2*offset;
     int scalH = rc.height() - 80;
 
-    QColor borderColor("#2E2F30");
+    QColor borderColor(0x2E, 0x2F, 0x30);
     if(viewOption.state.testFlag(QStyle::State_MouseOver))
     {
         borderColor = "red";
@@ -48,7 +49,7 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
         if(info && info->pm && !info->pm->isNull())
             painter->drawPixmap(rc.x() + offset, rc.y() + offset, scalW, scalH, *info->pm);
         else
-            painter->fillPath(path, QColor("#707070"));
+            painter->fillPath(path, QColor(0x70, 0x70, 0x70));
         painter->restore();
     }
     {
@@ -65,12 +66,16 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
         painter->setFont(font);
 
         // class
-        painter->setPen("#707070");
+        painter->setPen(QColor(0x70, 0x70, 0x70));
         painter->drawText(QRect(rc.x() + borderWidth + padding, rc.y() + borderWidth + scalH + nPosY, scalW - 2 * borderWidth - 2 * padding, nLineHeight), info->sC2Name, QTextOption(Qt::AlignRight));
 
         // room name
         QFontMetrics fm(font);
+#if (QT_VERSION < QT_VERSION_CHECK(5,11,0))
         int nWidth = fm.width(info->sC2Name);
+#else
+        int nWidth = fm.horizontalAdvance(info->sC2Name);
+#endif
         auto sNewRn = fm.elidedText(info->sRn, Qt::ElideRight, scalW - 2 * borderWidth - 2 * padding - nWidth);
 
         painter->setPen("black");
@@ -78,7 +83,7 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
         nPosY += nLineHeight;
 
         // name
-        painter->setPen("#707070");
+        painter->setPen(QColor(0x70, 0x70, 0x70));
         font.setPixelSize(12);
         painter->setFont(font);
 
@@ -98,7 +103,7 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
         }
         else
             sOnline = QString::number(info->nOnlineCount);
-        painter->setPen("#505050");
+        painter->setPen(QColor(0x50, 0x50, 0x50));
 
         painter->drawText(QRect(rc.x() + borderWidth + padding, rc.y() + borderWidth + scalH + nPosY, scalW - 2 * borderWidth - 2 * padding, nLineHeight), sOnline, tp);
         nPosY += nLineHeight;
@@ -106,11 +111,11 @@ void QRoomListDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
         // od
         if(!info->sOd.isEmpty())
         {
-            painter->setPen("#FF7723");
+            painter->setPen(QColor(0xFF, 0x77, 0x23));
             font.setPixelSize(12);
             painter->setFont(font);
             painter->drawText(QRect(rc.x() + borderWidth + padding, rc.y() + borderWidth + scalH + nPosY, scalW - 2 * borderWidth - 2 * padding, nLineHeight), info->sOd);
-            nPosY += nLineHeight;
+//            nPosY += nLineHeight;
         }
 
         painter->restore();

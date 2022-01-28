@@ -13,11 +13,13 @@ public:
 
 signals:
     void deviceInitialized(bool);
-    void flush();
 public slots:
     void onAppendFrame(void *frame);
+    virtual void onViewAdjust(bool);
 protected:
     virtual bool initialize() = 0;
+    void removeFrame();
+    void removeFreq();
 public slots:
     virtual void render() = 0;
     // Qt Events
@@ -30,6 +32,10 @@ protected:
     unsigned int m_width, m_height;
     bool m_bDeviceInitialized, m_bViewAdjust;
     _video_frame_* m_pFrame;
+    float* m_freq;
+    unsigned m_freqCount;
+    float m_fScaleX;
+    float m_fScaleY;
 };
 
 #endif // QNATIVEWIDGET_H

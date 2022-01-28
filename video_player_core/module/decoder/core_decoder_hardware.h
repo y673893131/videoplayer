@@ -13,12 +13,12 @@ public:
     std::map<int, std::string> getSupportDevices();
 
     bool init(AVFormatContext *, int) override;
-    bool initOtherHw(AVFormatContext*, int);
+    bool initOtherHw();
     bool initQsv(AVFormatContext*, int);
 
     void uninit() override;
     bool decode(AVPacket* pk, bool& bTryAgain) override;
-    virtual bool checkSeekPkt(AVPacket *pk);
+    bool checkSeekPkt(AVPacket *pk) override;
     bool isIFrame(AVPacket *pk);
     void checkQSVClock(AVPacket* pk, int64_t& pts) override;
 private:

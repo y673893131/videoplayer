@@ -35,7 +35,7 @@ void CRoomManager::append(_DyRoom_ *room)
 void CRoomManager::clear()
 {
     QMutexLocker locker(&m_lock);
-    for(auto it : m_rooms)
+    for(auto it : qAsConst(m_rooms))
     {
         delete it;
     }
@@ -78,12 +78,11 @@ void CRoomManager::flushRooms()
 {
     QMutexLocker locker(&m_lock);
     int n = 0;
-    for(auto it : m_rooms)
+    for(auto it : qAsConst(m_rooms))
     {
         auto req = new QNetworkRequest();
         req->setUrl(it->sImg2);
 //        qDebug() << it->sImg2;
-        auto url = it->sUrl;
         auto rid = it->sRid;
         auto func = [=](QNetworkReply* response)
         {
@@ -113,7 +112,7 @@ void CRoomManager::onDataChanged(int index, const QString& rid, void * pm)
 {
 //    QMutexLocker locker(&m_lock);
     auto room = this->index(index);
-    auto pixmap = (QPixmap*)pm;
+    auto pixmap = reinterpret_cast<QPixmap*>(pm);
     if(room && room->sRid == rid)
     {
         room->clear();

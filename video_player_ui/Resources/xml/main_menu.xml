@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menu type="0x00001000">
+    <action name="adjust" type="0x00000001" description="自适应"/>
+    <action name="topwindow" type="0x00000001" description="置顶"/>
+    <action name="capture" type="0x00000001" description="录制"/>
+    <action type="0x00000100"/>
+    <action name="url" type="0x00000000" description="直播流"/>
+    <action type="0x00000100"/>
+    <menu name="soundtrack" type="0x00001000" description="声道">
+        <action name="all" type="0x00000011" description="全部"/>
+        <action name="left" type="0x00000011" description="左"/>
+        <action name="right" type="0x00000011" description="右"/>
+    </menu>
+    <menu name="render" type="0x00001000" description="渲染">
+        <action name="opengl" type="0x00000011" description="opengl"/>
+        <action name="dx" type="0x00000011" description="dx11"/>
+    </menu>
+    <menu name="channel" type="0x00001000" description="轨道">
+        <menu name="video" type="0x00001010" description="视频" data="0"/>
+        <menu name="audio" type="0x00001010" description="音频" data="1"/>
+        <menu name="subtitle" type="0x00001010" description="字幕" data="2"/>
+    </menu>
+    <menu name="decoder" type="0x00001000" description="解码">
+        <action name="software" type="0x00000011" description="[软解]" data="0"/>
+        <action name="cuda" type="0x00000011" description="[硬解] cuda" data="2"/>
+        <action name="dxva2" type="0x00000011" description="[硬解] dxva2" data="4"/>
+        <action name="qsv" type="0x00000011" description="[硬解] qsv" data="5"/>
+        <action name="dxd11va" type="0x00000011" description="[硬解] dxd11va" data="7"/>
+    </menu>
+    <menu name="play" type="0x00001000" description="播放">
+        <menu name="mode" type="0x00001000" description="模式">
+            <action name="normal" type="0x00000011" description="循环"/>
+            <action name="single" type="0x00000011" description="单曲"/>
+            <action name="random" type="0x00000011" description="随机"/>
+        </menu>
+        <menu name="speed" type="0x00001000" description="速度">
+            <action name="normal" type="0x00000011" description="标准"/>
+            <action name="0.5" type="0x00000011" description="0.5倍"/>
+            <action name="1.0" type="0x00000011" description="1.0倍"/>
+            <action name="2.0" type="0x00000011" description="2.0倍"/>
+        </menu>
+    </menu>
+</menu>

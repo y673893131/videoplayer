@@ -15,12 +15,13 @@ bool core_thread_video::start(core_media* media)
 {
     core_thread::start(media);
     std::thread([&]{ this->threadCall(); }).detach();
+
     return true;
 }
 
 void core_thread_video::threadCall()
 {
-    Log(Log_Info, "[thread_id]: %d", core_util::getThreadId());
+    Log(Log_Info, "[thread_id]: %u", core_util::getThreadId());
     auto& media = m_media;
     auto& video = *media->_video;
     auto& audio = *media->_audio;
@@ -31,17 +32,17 @@ void core_thread_video::threadCall()
 
     bool bStart = false;
     bool bSeek = false;
-    bool bFlag = false;
+    bool bSeekIFrame = false;
+    bool bSeeking = false;
     int64_t seekPos = 0;
+    int64_t seekSeconds = 0;
     int64_t startBaseTime = 0;
     int64_t displayVideoClock = 0;
     int64_t displayAudioClock = 0;
-    int64_t start_time = m_media->_format_ctx->start_time / 1000;
+    int64_t start_time = m_media->start_time() / 1000;
 
     AVPacket pk;
     auto& astream = audio.stream;
-
-    media->setState(video_player_core::state_running);
 
     for(;;)
     {
@@ -51,7 +52,7 @@ void core_thread_video::threadCall()
             break;
         }
 
-        if(testFlag(flag_bit_pause))
+        if(testFlag(flag_bit_pause) && !testFlag(flag_bit_flush))
         {
             msleep(10);
             continue;
@@ -65,9 +66,12 @@ void core_thread_video::threadCall()
             if(bSeek)
             {
                 m_media->_video->flush();
-                m_media->_subtitle->flush();
-                bFlag = true;
-                seekPos = video.getInteralPts(m_media->_seek_pos);
+                bSeekIFrame = false;
+                bSeeking = true;
+                seekPos = video.getInteralPts(m_media->_seek_pos + start_time * 1000);
+                seekSeconds = (seekPos % 10000) / 1000;
+                LogB(Log_Debug, "[seek_begin]");
+                continue;
             }
 
             if(testFlag(flag_bit_read_finish))
@@ -80,16 +84,20 @@ void core_thread_video::threadCall()
             continue;
         }
 
-        if(checkSubTitle(&pk))
+        if(!video.check(pk.stream_index))
         {
             av_packet_unref(&pk);
             continue;
         }
 
-        if(!video.check(pk.stream_index))
+        if(!bSeekIFrame)
         {
-            av_packet_unref(&pk);
-            continue;
+            if(!video.isIFrame(&pk))
+            {
+                continue;
+            }
+
+            bSeekIFrame = true;
         }
 
         if(testFlag(flag_bit_decode_change))
@@ -108,9 +116,11 @@ void core_thread_video::threadCall()
         bool bTryagain = false;
         for(;;)
         {
+//            if(bSeeking) LogB(Log_Debug, "[seek-->] %lld", pk.pts);
             while(video.decode(&pk, bTryagain))
             {
                 displayVideoClock = video.displayClock();
+//                if(bSeeking) LogB(Log_Debug, "[seek<--] %lld[%d] step[%lld]", displayVideoClock, video.frame->pict_type, abs(seekPos - displayVideoClock));
                 if(!bStart)
                 {
                     bStart = true;
@@ -148,13 +158,44 @@ void core_thread_video::threadCall()
                 if(testFlag(flag_bit_Stop)) break;
                 if(testFlag(flag_bit_seek)) break;
 
-                if(bFlag)
+                if(bSeeking)
                 {
-                    if(seekPos >= video.clock())
+                    static int Icount = 0;
+                    static int Pcount = 0;
+                    static int Bcount = 0;
+                    switch (video.frame->pict_type) {
+                    case AV_PICTURE_TYPE_I:
+                        ++Icount;
+                        break;
+                    case AV_PICTURE_TYPE_P:
+                        ++Pcount;
+                        break;
+                    case AV_PICTURE_TYPE_B:
+                        ++Bcount;
+                        break;
+                    }
+
+                    static int64_t firstPts = displayVideoClock;
+                    if(Icount + Pcount + Bcount == 1)
+                        firstPts = displayVideoClock;
+
+                    auto curSeconds = (displayVideoClock % 10000) / 1000;//second alignment
+                    if(seekPos >= video.clock() && (!(abs(seekPos - displayVideoClock) < 100) || curSeconds != seekSeconds))
                         break;
                     setFlag(flag_bit_flush, false);
-                    bFlag = false;
+                    bSeeking = false;
 
+                    LogB(Log_Debug, "[seek_video]pts: video:%lld/%lld[%lldS]->%lld[%lldS] [count=[%d,%d,%d]]"
+                         , firstPts - start_time
+                         , displayVideoClock - start_time
+                         , curSeconds
+                         , seekPos
+                         , seekSeconds
+                         , Icount
+                         , Pcount
+                         , Bcount
+                         );
+                    Bcount = Pcount = Icount = 0;
                 }
 
 //                if(video.isIFrame(&pk))
@@ -164,17 +205,11 @@ void core_thread_video::threadCall()
 //                         , core_util::toTime(displayAudioClock).c_str()
 //                         );
 //                }
+
+
                 media->_cb->posChange(displayVideoClock - start_time);
                 video.displayFrame(media->_cb);
-                if(testFlag(flag_bit_need_pause))
-                {
-                    media->_pause_time = av_gettime();
-                    setFlag(flag_bit_pause, true);
-                    setFlag(flag_bit_need_pause, false);
-                    audio.sdl()->pauseSDL();
-                    m_media->setState(video_player_core::state_paused);
-                }
-
+                tryPause();
 
                 break;
             }
@@ -187,40 +222,6 @@ void core_thread_video::threadCall()
     }
 
     audio.sdl()->pauseSDL();
-    setFlag(flag_bit_Stop);
-    setFlag(flag_bit_tvideo_finish);
+    tryStop(flag_bit_tvideo_finish);
     Log(Log_Info, "finished.");
-}
-
-bool core_thread_video::checkSubTitle(AVPacket *pkt)
-{
-    if(!m_media->_subtitle->check(pkt->stream_index))
-        return false;
-    int got = -1, ret = 0;
-    auto pSubtitle = m_media->_subtitle->subtitle();
-    ret = avcodec_decode_subtitle2(m_media->_subtitle->pCodecContext, pSubtitle, &got, pkt);
-
-    char* subtitleString = nullptr;
-    if(got > 0)
-    {
-        unsigned int number = pSubtitle->num_rects;
-        for (unsigned int i = 0; i < number; ++i)
-        {
-            auto rc = pSubtitle->rects[i];
-            switch (rc->type) {
-            case SUBTITLE_ASS:
-                subtitleString = rc->ass;
-                break;
-            case SUBTITLE_TEXT:
-                subtitleString = rc->text;
-                break;
-            }
-
-            m_media->_cb->displaySubTitleCall(subtitleString, i, rc->type);
-        }
-    }
-
-    if(pSubtitle)
-        avsubtitle_free(pSubtitle);
-    return true;
 }

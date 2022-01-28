@@ -28,7 +28,8 @@ D3DClass::~D3DClass()
 }
 
 
-bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, bool vsync, HWND hwnd, bool fullscreen, float screenDepth, float screenNear)
+bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, bool vsync, HWND hwnd
+                          , bool fullscreen, float screenDepth, float screenNear, float xScale, float yScale)
 {
 	HRESULT result;
 	IDXGIFactory* factory;
@@ -71,6 +72,7 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	result = adapter->EnumOutputs(0, &adapterOutput);
 	if(FAILED(result))
 	{
+        factory->Release();
 		return false;
 	}
 
@@ -85,6 +87,7 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	displayModeList = new DXGI_MODE_DESC[numModes];
 	if(!displayModeList)
 	{
+        factory->Release();
 		return false;
 	}
 
@@ -92,6 +95,8 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	result = adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, displayModeList);
 	if(FAILED(result))
 	{
+        delete []displayModeList;
+        factory->Release();
 		return false;
 	}
 
@@ -113,6 +118,9 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	result = adapter->GetDesc(&adapterDesc);
 	if(FAILED(result))
 	{
+        delete []displayModeList;
+        adapterOutput->Release();
+        factory->Release();
 		return false;
 	}
 
@@ -123,6 +131,10 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	error = wcstombs_s(&stringLength, m_videoCardDescription, 128, adapterDesc.Description, 128);
 	if(error != 0)
 	{
+        delete []displayModeList;
+        adapterOutput->Release();
+        adapter->Release();
+        factory->Release();
 		return false;
 	}
 
@@ -192,7 +204,7 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
 	// Discard the back buffer contents after presenting.
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
 	// Don't set the advanced flags.
 	swapChainDesc.Flags = 0;
@@ -200,8 +212,12 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	// Set the feature level to DirectX 11.
 	featureLevel = D3D_FEATURE_LEVEL_11_0;
 
+    UINT flags = 0;
+#if _DEBUG
+    flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
 	// Create the swap chain, Direct3D device, and Direct3D device context.
-    result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, &featureLevel, 1, D3D11_SDK_VERSION, &swapChainDesc, &m_swapChain,
+    result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, flags, &featureLevel, 1, D3D11_SDK_VERSION, &swapChainDesc, &m_swapChain,
                                            &m_device, nullptr, &m_deviceContext);
 	if(FAILED(result))
 	{
@@ -230,8 +246,8 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	ZeroMemory(&depthBufferDesc, sizeof(depthBufferDesc));
 
 	// Set up the description of the depth buffer.
-	depthBufferDesc.Width = screenWidth;
-	depthBufferDesc.Height = screenHeight;
+    depthBufferDesc.Width = screenWidth;
+    depthBufferDesc.Height = screenHeight;
 	depthBufferDesc.MipLevels = 1;
 	depthBufferDesc.ArraySize = 1;
 	depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -324,15 +340,28 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	m_deviceContext->RSSetState(m_rasterState);
 	
 	// Setup the viewport for rendering.
-    viewport.Width = 1.0f * screenWidth;
-    viewport.Height = 1.0f * screenHeight;
+    viewport.Width = xScale * screenWidth;
+    viewport.Height = yScale * screenHeight;
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
     viewport.TopLeftX = 0.0f;
     viewport.TopLeftY = 0.0f;
 
+    if(xScale != 1.0f)
+    {
+        viewport.TopLeftX = (1.0f - xScale) * screenWidth / 2;
+    }
+
+    if(yScale != 1.0f)
+    {
+        viewport.TopLeftY = (1.0f - yScale) * screenHeight / 2;
+    }
+
 	// Create the viewport.
-    m_deviceContext->RSSetViewports(1, &viewport);
+    m_viewport = viewport;
+    m_width = screenWidth;
+    m_height = screenHeight;
+    m_deviceContext->RSSetViewports(1, &m_viewport);
 
 	// Setup the projection matrix.
     fieldOfView = static_cast<float>(D3DX_PI / 4.0);
@@ -352,27 +381,27 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 
 	// Now create a second depth stencil state which turns off the Z buffer for 2D rendering.  The only difference is 
 	// that DepthEnable is set to false, all other parameters are the same as the other depth stencil state.
-	depthDisabledStencilDesc.DepthEnable = false;
-	depthDisabledStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDisabledStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	depthDisabledStencilDesc.StencilEnable = true;
-	depthDisabledStencilDesc.StencilReadMask = 0xFF;
-	depthDisabledStencilDesc.StencilWriteMask = 0xFF;
-	depthDisabledStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	depthDisabledStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	depthDisabledStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	depthDisabledStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    depthDisabledStencilDesc.DepthEnable = false;
+    depthDisabledStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depthDisabledStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    depthDisabledStencilDesc.StencilEnable = true;
+    depthDisabledStencilDesc.StencilReadMask = 0xFF;
+    depthDisabledStencilDesc.StencilWriteMask = 0xFF;
+    depthDisabledStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    depthDisabledStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+    depthDisabledStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    depthDisabledStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    depthDisabledStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    depthDisabledStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+    depthDisabledStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    depthDisabledStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-	// Create the state using the device.
-	result = m_device->CreateDepthStencilState(&depthDisabledStencilDesc, &m_depthDisabledStencilState);
-	if(FAILED(result))
-	{
-		return false;
-	}
+    // Create the state using the device.
+    result = m_device->CreateDepthStencilState(&depthDisabledStencilDesc, &m_depthDisabledStencilState);
+    if(FAILED(result))
+    {
+        return false;
+    }
 
     return true;
 }
@@ -533,6 +562,27 @@ void D3DClass::TurnZBufferOn()
 
 void D3DClass::TurnZBufferOff()
 {
-	m_deviceContext->OMSetDepthStencilState(m_depthDisabledStencilState, 1);
-	return;
+    m_deviceContext->OMSetDepthStencilState(m_depthDisabledStencilState, 1);
+    return;
+}
+
+void D3DClass::ResetViewport(float xScale, float yScale)
+{
+    m_viewport.Width = xScale * m_width;
+    m_viewport.Height = yScale * m_height;
+    m_viewport.MinDepth = 0.0f;
+    m_viewport.MaxDepth = 1.0f;
+    m_viewport.TopLeftX = 0.0f;
+    m_viewport.TopLeftY = 0.0f;
+
+    if(xScale != 1.0f)
+    {
+        m_viewport.TopLeftX = (1.0f - xScale) * m_width / 2;
+    }
+
+    if(yScale != 1.0f)
+    {
+        m_viewport.TopLeftY = (1.0f - yScale) * m_height / 2;
+    }
+    m_deviceContext->RSSetViewports(1, &m_viewport);
 }

@@ -16,6 +16,7 @@ public:
         button_play_or_continue,
         button_next,
         button_vol_mute,
+        button_mode,
         button_file_list,
 
         button_max
@@ -40,23 +41,27 @@ signals:
     void play();
     void pause();
     void continuePlay();
-    void loadOrPlay();
+    void load();
 
     void next();
     void priv();
     void stop();
     void showVolume(bool, const QPoint&, const QSize&);
 
+public slots:
+    void onPlayOrPause();
+
 private slots:
     void onPlay();
     void onPause();
-    void onPlayOrPause();
     void onStop();
     void onMute(bool);
     void onRate(int);
     void onLoadConfig();
+    void onSetConfig();
     void onTotal(int);
     void onUpdateCurrentTime(int);
+    void onMode();
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;
 private:
@@ -64,6 +69,7 @@ private:
     QLabel* m_label[label_max];
     bool m_bPlaying;
     int m_nTotal;
+    QString m_sTotal;
 };
 
 #endif // QPLAYCONTROL_H

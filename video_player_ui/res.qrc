@@ -12,6 +12,8 @@
         <file alias="volume_hover">Resources/icon/tool/volume_hover.png</file>
         <file alias="filelist">Resources/icon/tool/filelist.png</file>
         <file alias="filelist_hover">Resources/icon/tool/filelist_hover.png</file>
+        <file alias="volume_mute">Resources/icon/tool/volume_mute.png</file>
+        <file alias="volume_mute_hover">Resources/icon/tool/volume_mute_hover.png</file>
     </qresource>
     <qresource prefix="/translate">
         <file alias="zh">tr/zh_cn/vPlayTranslate.qm</file>
@@ -19,8 +21,8 @@
     <qresource prefix="/shader">
         <file alias="img_fsh">Resources/shader/img.fsh</file>
         <file alias="img_vsh">Resources/shader/img.vsh</file>
-        <file alias="dx11_ps">render/dx11/texture.ps</file>
-        <file alias="dx11_vs">render/dx11/texture.vs</file>
+        <file alias="dx11_ps">render/dx11/ps.hlsl</file>
+        <file alias="dx11_vs">render/dx11/vs.hlsl</file>
     </qresource>
     <qresource prefix="/version">
         <file>res.rc</file>
@@ -47,5 +49,27 @@
         <file alias="douyu">Resources/platform/douyu.jpg</file>
         <file alias="egame">Resources/platform/egame.jpg</file>
         <file alias="huya">Resources/platform/huya.jpg</file>
+    </qresource>
+    <qresource prefix="/app">
+        <file alias="logo">Resources/app.ico</file>
+    </qresource>
+    <qresource prefix="/menu">
+        <file alias="checkbox">Resources/icon/menu/checkbox.png</file>
+        <file alias="checkbox_hover">Resources/icon/menu/checkbox_hover.png</file>
+        <file alias="checkbox_checked">Resources/icon/menu/checkbox_checked.png</file>
+        <file alias="checkbox_checked_hover">Resources/icon/menu/checkbox_checked_hover.png</file>
+        <file alias="mode_normal">Resources/icon/menu/mode_normal.png</file>
+        <file alias="mode_normal_hover">Resources/icon/menu/mode_normal_hover.png</file>
+        <file alias="mode_single">Resources/icon/menu/mode_single.png</file>
+        <file alias="mode_single_hover">Resources/icon/menu/mode_single_hover.png</file>
+        <file alias="mode_random">Resources/icon/menu/mode_random.png</file>
+        <file alias="mode_random_hover">Resources/icon/menu/mode_random_hover.png</file>
+        <file alias="mode_normal_white">Resources/icon/menu/mode_normal_white.png</file>
+        <file alias="mode_random_white">Resources/icon/menu/mode_random_white.png</file>
+        <file alias="mode_single_white">Resources/icon/menu/mode_single_white.png</file>
+    </qresource>
+    <qresource prefix="/xml">
+        <file alias="main_menu">Resources/xml/main_menu.xml</file>
+        <file alias="file_list_menu">Resources/xml/file_list_menu.xml</file>
     </qresource>
 </RCC>

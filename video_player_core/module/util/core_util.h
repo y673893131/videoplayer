@@ -8,6 +8,7 @@ enum flag_bit{
     flag_bit_Stop,
     flag_bit_tvideo_finish,
     flag_bit_taudio_finish,
+    flag_bit_tsubtitle_finish,
     flag_bit_mute,
     flag_bit_read_finish,
     flag_bit_need_pause,
@@ -19,7 +20,7 @@ enum flag_bit{
 
 namespace core_util
 {
-    int getThreadId();
+    unsigned int getThreadId();
     bool isSetBit(unsigned int flag, int bit);
     void setBit(unsigned int& flag, int bit, bool value = true);
     std::string toDateTime(time_t tm);

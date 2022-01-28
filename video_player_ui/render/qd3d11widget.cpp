@@ -93,7 +93,7 @@ bool QD3D11Widget::initialize()
     }
 
     // Initialize the graphics object.
-    auto result = m_pGraphics->Initialize(m_width, m_height, m_hWnd);
+    auto result = m_pGraphics->Initialize(m_width, m_height, m_hWnd, 1.0f, 1.0f);
     if(!result)
     {
         return false;

@@ -26,7 +26,7 @@ public:
     void initFrame();
     void scale(AVFrame* src, video_interface* cb);
     void scalePreview(AVFrame* src, video_interface* cb);
-    void scaleFrame(AVFrame* src, video_interface* cb);
+    void scaleFrame(AVFrame* src);
 private:
     AVFrame* frame;
     uint8_t* buffer;

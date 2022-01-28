@@ -26,18 +26,21 @@ core_decoder_audio::~core_decoder_audio()
 #endif
 }
 
-bool core_decoder_audio::init(AVFormatContext* format, int index)
+bool core_decoder_audio::init(AVFormatContext* formatCtx, int index)
 {
     uninit();
-    if(!core_decoder::init(format, index))
+    if(!core_decoder::init(formatCtx, index))
         return false;
     auto audio = core_thread_audio::instance();
     s_sdl->setCodecContext(pCodecContext);
     s_sdl->init(audio->sdl_audio_call, audio);
+    s_sdl->resetSpec();
+#ifdef AUDIO_FILTER
+    if(!m_filter->init(formatCtx->streams[index], pCodecContext))
+        return false;
+#else
     if(!s_sdl->initResample())
         return false;
-#ifdef AUDIO_FILTER
-    m_filter->init(format->streams[index], pCodecContext);
 #endif
     return true;
 }
@@ -46,7 +49,7 @@ void core_decoder_audio::setIndex(int index)
 {
     nTempIndex = nStreamIndex;
     core_decoder::setIndex(index);
-    Log(Log_Info, "[thread_id]:%d", core_util::getThreadId());
+    Log(Log_Info, "[thread_id]:%u", core_util::getThreadId());
 }
 
 void core_decoder_audio::setVol(int vol)
@@ -77,7 +80,7 @@ void core_decoder_audio::start()
     s_sdl->startSDL();
 }
 
-bool core_decoder_audio::decode(AVPacket *pk)
+bool core_decoder_audio::decode(AVPacket *pk, bool& /*bTryAgain*/)
 {
     if(nStreamIndex != pk->stream_index)
     {

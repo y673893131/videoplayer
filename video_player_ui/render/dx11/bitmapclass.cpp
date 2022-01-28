@@ -209,13 +209,6 @@ void BitmapClass::ShutdownBuffers()
 
 bool BitmapClass::UpdateBuffers(ID3D11DeviceContext* deviceContext, int positionX, int positionY)
 {
-	float left, right, top, bottom;
-	VertexType* vertices;
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	VertexType* verticesPtr;
-	HRESULT result;
-
-
 	// If the position we are rendering this bitmap to has not changed then don't update the vertex buffer since it
 	// currently has the correct parameters.
 	if((positionX == m_previousPosX) && (positionY == m_previousPosY))
@@ -223,6 +216,12 @@ bool BitmapClass::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 		return true;
 	}
 	
+    float left, right, top, bottom;
+    VertexType* vertices;
+    D3D11_MAPPED_SUBRESOURCE mappedResource;
+    VertexType* verticesPtr;
+    HRESULT result;
+
 	// If it has changed then update the position it is being rendered to.
 	m_previousPosX = positionX;
 	m_previousPosY = positionY;

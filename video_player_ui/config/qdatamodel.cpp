@@ -1,12 +1,13 @@
 #include "qdatamodel.h"
 #include <QDebug>
+#include <QMetaType>
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QSqlRecord>
 #include <QFileInfo>
 #include <QTimer>
-#include "playlist/qplayfilelistmodel.h"
+#include "ui/tool/fileview/playlist/qplayfilelistmodel.h"
 #include "config.h"
 #include "Log/Log.h"
 QDataModel *QDataModel::m_instance=nullptr;
@@ -22,6 +23,8 @@ QDataModel *QDataModel::instance()
 
 QDataModel::QDataModel(QObject *parent) : QObject(parent)
 {
+    qRegisterMetaType<QVector<file_info_t>>("QVector<file_info_t>");
+    qRegisterMetaType<QVector<file_info_t>>("QVector<file_info_t>&");
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName("./data.tmp");
     connect(Config::instance(), &Config::setConfig, [this](const QString& config)
@@ -47,19 +50,19 @@ QDataModel::QDataModel(QObject *parent) : QObject(parent)
 
 void QDataModel::init()
 {
-    QVector<QStringList> data;
+    QVector<file_info_t> data;
     QSqlQuery query;
-    auto bquery = query.exec("select name, url from file_info limit 0, 30; ");
+    auto bquery = query.exec("select name, url,times from file_info; ");
     if(bquery)
     {
         auto record = query.record();
         while(query.next())
         {
-            auto name = query.value(0).toString();
-            auto url = query.value(1).toString();
-            QStringList s;
-            s << name << url;
-            data.push_back(s);
+            file_info_t t;
+            t.name = query.value(0).toString();
+            t.url = query.value(1).toString();
+            t.times = query.value(2).toInt();
+            data.push_back(t);
         }
     }
 
@@ -67,23 +70,33 @@ void QDataModel::init()
     emit loadsuccessed(data);
 }
 
-void QDataModel::onAddUrl(const QString &file)
+void QDataModel::onAddUrl(const QStringList &list)
 {
-    if(!QFileInfo::exists(file)) return;
-    auto name = file.mid(file.lastIndexOf('/') + 1);
-    QSqlQuery query;
-    auto sql = QString("insert into file_info ('name', 'url') values ('%1', '%2');").arg(name).arg(file);
-    auto bquery = query.exec(sql);
-    if(bquery)
+    QString sFile;
+
+    m_db.transaction();
+    for(auto file : list)
     {
+        if(!QFileInfo::exists(file)) continue;
+        if(sFile.isEmpty()) sFile = file;
+        auto name = file.mid(file.lastIndexOf('/') + 1);
+        QSqlQuery query;
+        auto sql = QString("insert into file_info ('name', 'url') values ('%1', '%2');").arg(name).arg(file);
+        auto bquery = query.exec(sql);
+        if(!bquery)
+        {
+            auto error = query.lastError();
+            if(!error.text().contains("UNIQUE constraint failed"))
+                reportError(query);
+        }
         query.clear();
-        bquery = query.exec(QString("delete from file_info where url not in (select url from file_info order by access_time desc limit 0, 30);"));
-        if(!bquery) reportError(query);
     }
 
+    m_db.commit();
+
     init();
-    query.clear();
-    emit addUrlSuccess(file);
+
+    emit addUrlSuccess(sFile);
 }
 
 void QDataModel::removeUrl(const QString &url)
@@ -99,6 +112,16 @@ void QDataModel::onExecSql(const QString &sql)
     query.clear();
 }
 
+void QDataModel::onUpdateTimees(const QString &file, int times)
+{
+    onExecSql(QString("update file_info set times=%1 where url='%2';").arg(times).arg(file));
+}
+
+void QDataModel::onClean()
+{
+    onExecSql(QString("delete from file_info;"));
+}
+
 void QDataModel::initConfig()
 {
     initTable("CREATE TABLE file_info ( \
@@ -110,6 +133,8 @@ void QDataModel::initConfig()
             id int NOT NULL DEFAULT(1),\
             config VARCHAR(1024) NOT NULL,\
             access_time TimeStamp NOT NULL DEFAULT(datetime('now','localtime')), PRIMARY KEY (id));");
+
+//    onExecSql("alter table file_info add last_times int NOT NULL DEFAULT('')");
 }
 
 void QDataModel::initTable(const QString &sql)

@@ -1,13 +1,28 @@
 #include "core_util.h"
-
+#include "../common.h"
 #include <sstream>
 #include <thread>
+#ifndef WIN32
+#include <unistd.h>
+#include <sys/syscall.h>
+#else
+#include <Windows.h>
+#include <string>
+#endif
 
-int core_util::getThreadId()
+#include <cstdlib>
+#include <string>
+#include <codecvt>
+
+unsigned int core_util::getThreadId()
 {
+#ifdef WIN32
     std::stringstream ss;
     ss << std::this_thread::get_id();
-    return std::stoi(ss.str());
+    return static_cast<unsigned int>(std::stoi(ss.str()));
+#else
+    return pthread_self();
+#endif
 }
 
 bool core_util::isSetBit(unsigned int flag, int bit)
@@ -26,11 +41,14 @@ void core_util::setBit(unsigned int& flag, int bit, bool value/* = true*/)
 std::string core_util::toDateTime(time_t tm)
 {
     struct tm _tm;
+#ifdef WIN32
     localtime_s(&_tm, &tm);
-
+#else
+    localtime_r(&tm, &_tm);
+#endif
     char stm[128] = {};
 
-    sprintf_s(stm, 128, "%04d-%02d-%02d_%02d.%02d.%02d",
+    _snprintf(stm, 128, "%04d-%02d-%02d_%02d.%02d.%02d",
               _tm.tm_year + 1900, _tm.tm_mon + 1, _tm.tm_mday,
               _tm.tm_hour, _tm.tm_min, _tm.tm_sec);
 
@@ -46,7 +64,7 @@ std::string core_util::toTime(time_t tm)
     auto sec = (int)tm % 60;
     char stm[128] = {};
 
-    sprintf_s(stm, 128, "%02d.%02d.%02d.%03d",
+    _snprintf(stm, 128, "%02d.%02d.%02d.%03d",
               hour, min, sec, mSec);
 
     return stm;

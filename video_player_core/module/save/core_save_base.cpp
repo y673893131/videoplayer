@@ -15,21 +15,25 @@ core_save_base::~core_save_base()
     uninit();
 }
 
-bool core_save_base::init(AVFormatContext* pFormat, int nIndex)
+bool core_save_base::init(core_media* media, int nIndex)
 {
     uninit();
-
-    m_sFileName = outoutFile();
-
-    auto pGuess = guess();
-    if(!pGuess)
+    if(nIndex < 0)
         return false;
+    m_sFileName = outoutFile();
+    auto pGuess = guess(media);
+    if(!pGuess)
+    {
+        Log(Log_Err, "guess failed. shortname=%s filename=%s"
+            , media->_format_ctx->iformat->name, media->_src.c_str());
+        return false;
+    }
 
     auto ret = avformat_alloc_output_context2(&m_format, pGuess, nullptr, m_sFileName.c_str());
     if(ret < 0 || !m_format)
         return false;
 
-    if(!initStream(pFormat, nIndex))
+    if(!initStream(media, nIndex))
         return false;
 
     if(!initHeader())
@@ -54,9 +58,24 @@ void core_save_base::uninit()
     m_lastDts = 0;
 }
 
-bool core_save_base::initStream(AVFormatContext* pFormat, int nIndex)
+AVOutputFormat *core_save_base::guess(core_media* media)
 {
-    auto in = pFormat->streams[nIndex];
+#ifdef USE_CAMERA
+    return av_guess_format("mp4", nullptr, "video/mp4");
+#elif defined (USE_DESKTOP)
+    return av_guess_format("mjpeg", nullptr, nullptr);
+#else
+//    auto shorname = media->_format_ctx->iformat->name;
+//    auto filename = media->_src;
+//    return av_guess_format(shorname, filename.c_str(), nullptr);
+
+    return av_guess_format("mp4", nullptr, "video/mp4");
+#endif
+}
+
+bool core_save_base::initStream(core_media* media, int nIndex)
+{
+    auto in = media->_format_ctx->streams[nIndex];
     m_in = in;
     m_stream = avformat_new_stream(m_format, in->codec->codec);
     auto ret = avcodec_parameters_copy(m_stream->codecpar, in->codecpar);
@@ -73,7 +92,6 @@ bool core_save_base::initStream(AVFormatContext* pFormat, int nIndex)
     {
         m_stream->codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     }
-
 
     av_dump_format(m_format, 0, m_sFileName.c_str(), 1);
     return true;
@@ -134,9 +152,9 @@ void core_save_base::rescalePacket(AVPacket* pk)
     m_lastDts = pk->dts;
 }
 
-bool core_save_base::start(AVFormatContext* pFormat, int nIndex)
+bool core_save_base::start(core_media* media, int nIndex)
 {
-    return init(pFormat, nIndex);
+    return init(media, nIndex);
 }
 
 void core_save_base::stop()

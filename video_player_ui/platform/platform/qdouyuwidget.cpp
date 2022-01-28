@@ -27,13 +27,15 @@ void QDouyuWidget::initStyle()
     setAttribute(Qt::WA_ShowModal, true);
     setDragSelf(true);
     setDoubleClickMax();
+#ifdef Q_OS_WIN
     auto hwnd = reinterpret_cast<HWND>(this->winId());
     setAreo(hwnd);
     setShadow(hwnd);
+#endif
     installEventFilter(this);
 }
 
-void QDouyuWidget::initUi(QWidget */*parent*/)
+void QDouyuWidget::initUi(QWidget *)
 {
     setObjectName("douyuWd");
     auto widget = this;

@@ -14,14 +14,9 @@ public:
 public:
     void save(AVPacket*) override;
 private:
-    bool init(AVFormatContext* pFormat, int nIndex) override;
+    bool init(core_media* media, int nIndex) override;
     std::string outoutFile() override;
-    AVOutputFormat *guess() override;
     void uninit() override;
-
-    bool initBsf();
-private:
-    AVBSFContext *m_bsfCtx;
 };
 
 #endif // CORE_SAVE_VIDEO_H

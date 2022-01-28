@@ -59,6 +59,35 @@ enum audio_channel_type
     audio_channel_right
 };
 
+struct subtitle_info
+{
+    char sName[128];
+    char sFont[128];
+    int pt;
+    int color[4];//0-frontColor 1-SecondColor 2-ouelineColor 3-shadowColor
+    int bold;
+    int italic;
+    int underLine;
+    int strikeOut;
+    int scaleX;
+    int scaleY;
+    int spacing;
+    int angle;
+    int borderStyle;
+    int outlinePix;
+    int shadowPix;
+    int alignment;
+    int marginLeft;
+    int marginRight;
+    int marginBottom;
+    int encoding;
+};
+
+struct subtitle_header
+{
+    std::vector<subtitle_info> infos;
+};
+
 class core_media;
 class VIDEO_PLAYER_CORE_EXPORT video_interface
 {
@@ -69,10 +98,13 @@ public:
     virtual void setVideoSize(int width, int hight) = 0;
     virtual void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
-    virtual void displaySubTitleCall(char*, unsigned int, int) = 0;
+    virtual void subtitleHaderCall(const subtitle_header&) = 0;
+    virtual void displaySubTitleCall(char*, unsigned int, int, int64_t start, int64_t end) = 0;
+    virtual void displayFreqCall(float*, unsigned int) = 0;
     virtual void previewDisplayCall(void* data, int width, int height) = 0;
     virtual void startCall(int) = 0;
     virtual void endCall(int) = 0;
+    virtual void exceptionEndCall(int, const char*) = 0;
 };
 
 class VIDEO_PLAYER_CORE_EXPORT video_player_core
@@ -87,7 +119,7 @@ public:
     };
 
 public:
-    video_player_core(const std::string& logDir);
+    explicit video_player_core(const std::string& logDir);
     virtual ~video_player_core();
     int _init();
     int _uninit();

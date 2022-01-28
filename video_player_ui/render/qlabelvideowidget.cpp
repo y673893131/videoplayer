@@ -6,12 +6,6 @@ QLabelVideoWidget::QLabelVideoWidget(QWidget *parent)
 
 }
 
-
-void QLabelVideoWidget::totalTime(const int64_t t)
-{
-    qDebug() << "label total: " << t;
-}
-
 void YUV420_2_RGB(unsigned char* pYUV, unsigned char* pRGB, int width, int height)
 {
     unsigned char* pY = pYUV;
@@ -192,29 +186,20 @@ void yuv420p_to_rgb24(/*YUV_TYPE type, */unsigned char* yuvbuffer,unsigned char*
     }
 }
 
-void QLabelVideoWidget::displayCall(void *data, int width, int height)
-{
-    unsigned int w = static_cast<unsigned int>(width);
-    unsigned int h = static_cast<unsigned int>(height);
-    char* rgb = new char[w * h * 3];
-    memset(rgb, 0x00, w * h * 3);
-    auto _data = reinterpret_cast<unsigned char*>(data);
-    auto _rgb = reinterpret_cast<unsigned char*>(rgb);
-    auto _rgb0 = reinterpret_cast<uchar*>(rgb);
-//    YUV420_2_RGB((unsigned char*)data, (unsigned char*)rgb, width, height);
-    yuv420p_to_rgb24(_data, _rgb, width, height);
-//    m_core->_cov(data, rgb, width, height, width * height * 3);
-    QImage img(_rgb0, width, height, QImage::Format_RGB888);
-    this->setPixmap(QPixmap::fromImage(img).scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-//    m_img->setScaledContents(true);
-    delete[] rgb;
-}
-
-void QLabelVideoWidget::previewDisplayCall(void *data, int width, int height)
-{
-
-}
-
-void QLabelVideoWidget::endCall()
-{
-}
+//void QLabelVideoWidget::displayCall(void *data, int width, int height)
+//{
+//    unsigned int w = static_cast<unsigned int>(width);
+//    unsigned int h = static_cast<unsigned int>(height);
+//    char* rgb = new char[w * h * 3];
+//    memset(rgb, 0x00, w * h * 3);
+//    auto _data = reinterpret_cast<unsigned char*>(data);
+//    auto _rgb = reinterpret_cast<unsigned char*>(rgb);
+//    auto _rgb0 = reinterpret_cast<uchar*>(rgb);
+////    YUV420_2_RGB((unsigned char*)data, (unsigned char*)rgb, width, height);
+//    yuv420p_to_rgb24(_data, _rgb, width, height);
+////    m_core->_cov(data, rgb, width, height, width * height * 3);
+//    QImage img(_rgb0, width, height, QImage::Format_RGB888);
+//    this->setPixmap(QPixmap::fromImage(img).scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+////    m_img->setScaledContents(true);
+//    delete[] rgb;
+//}

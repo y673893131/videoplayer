@@ -12,15 +12,15 @@ public:
 
 public:
     virtual void save(AVPacket*) = 0;
-    bool start(AVFormatContext* pFormat, int nIndex);
+    bool start(core_media* media, int nIndex);
     void stop();
 
 protected:
-    virtual bool init(AVFormatContext* pFormat, int nIndex);
+    virtual bool init(core_media* media, int nIndex);
     virtual void uninit();
     virtual std::string outoutFile() = 0;
-    virtual AVOutputFormat* guess() = 0;
-    bool initStream(AVFormatContext* pFormat, int nIndex);
+    AVOutputFormat *guess(core_media* media);
+    bool initStream(core_media* media,int nIndex);
     bool initHeader();
     void rescalePacket(AVPacket* pk);
 protected:
@@ -28,7 +28,7 @@ protected:
     AVFormatContext* m_format;
     AVStream* m_stream;
     AVStream* m_in;
-    _int64 m_lastDts;
+    int64_t m_lastDts;
 };
 
 #endif // CORE_SAVE_BASE_H

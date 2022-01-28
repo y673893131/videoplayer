@@ -15,15 +15,23 @@ public:
 signals:
     void loadFile();
     void play(const QString&);
+    void thumbPlayOrPause();
 public slots:
     void onAutoShow();
     void onAutoVisable(bool) override;
+    void onLoad(const QStringList&);
     void onPrev();
     void onNext();
+    void onAutoNext();
+    void onExceptionEnd();
     void onEnd();
     void onHandleStop();
+#ifdef Q_OS_WIN
+    void onThumb(int);
+#endif
 private:
     void playStep(int nStep);
+    void playRandom();
 
 private:
     void initUi();
@@ -34,6 +42,7 @@ private:
     QFileListView* m_filelist;
     QLineEdit* m_searchEdit;
     QButtonGroup* m_group;
+    bool m_bExceptionStop;
     bool m_bHandleStop;
 };
 

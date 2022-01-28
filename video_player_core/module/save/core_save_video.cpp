@@ -6,7 +6,6 @@
 
 core_save_video::core_save_video()
     : core_save_base()
-    , m_bsfCtx(nullptr)
 {
 }
 
@@ -15,59 +14,33 @@ core_save_video::~core_save_video()
     uninit();
 }
 
-bool core_save_video::init(AVFormatContext* pFormat, int nIndex)
+bool core_save_video::init(core_media* media, int nIndex)
 {
     uninit();
 
-    if(!__super::init(pFormat, nIndex))
+    if(!core_save_base::init(media, nIndex))
+    {
+        uninit();
         return false;
-
-
-    if(!initBsf())
-        return false;
+    }
 
     return true;
 }
 
 std::string core_save_video::outoutFile()
 {
-    return core_util::toTime(time(nullptr)) + ".h264";
-}
-
-AVOutputFormat *core_save_video::guess()
-{
-    return av_guess_format("mp4", NULL, "video/mp4");
+    return core_util::toDateTime(time(nullptr)) + ".h264";
 }
 
 void core_save_video::uninit()
 {
-    __super::uninit();
-
-    if(m_bsfCtx)
-    {
-        av_bsf_free(&m_bsfCtx);
-        m_bsfCtx = nullptr;
-    }
-}
-
-bool core_save_video::initBsf()
-{
-    return true;
-    auto bsf = av_bsf_get_by_name("h264_mp4toannexb");
-    if(!bsf)
-    {
-        return false;
-    }
-
-    av_bsf_alloc(bsf, &m_bsfCtx);
-    avcodec_parameters_copy(m_bsfCtx->par_in, m_stream->codecpar);
-    av_bsf_init(m_bsfCtx);
-
-    return true;
+    core_save_base::uninit();
 }
 
 void core_save_video::save(AVPacket* pk)
 {
+    if(!m_format)
+        return;
     auto _pk = av_packet_clone(pk);
     int ret = 0;
 //    int ret = av_bsf_send_packet(m_bsfCtx, _pk);

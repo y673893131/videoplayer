@@ -15,14 +15,14 @@ core_media::core_media()
     ,_video(nullptr)
     ,_audio(nullptr)
     ,_subtitle(nullptr)
-    ,_vRead(0)
-    ,_aRead(0)
     ,_channel(0)
     ,_channelSel(0)
     ,_decodeType(0)
     ,_speed(0)
+    ,_capture(false)
     ,m_preview(nullptr)
     ,_video_thread(nullptr)
+    ,_subtitle_thread(nullptr)
     ,_save(nullptr)
 {
     setFlag(flag_bit_Stop);
@@ -43,15 +43,15 @@ core_media::core_media(const core_media &src)
     ,_video(nullptr)
     ,_audio(nullptr)
     ,_subtitle(nullptr)
-    ,_vRead(src._vRead)
-    ,_aRead(src._aRead)
     ,_channel(0)
     ,_channelSel(0)
     ,_decodeType(src._decodeType)
     ,_speed(src._speed)
+    ,_capture(src._capture)
     ,m_preview(nullptr)
     ,_audio_thread(src._audio_thread)
     ,_video_thread(nullptr)
+    ,_subtitle_thread(nullptr)
     ,_save(nullptr)
 {
     init();
@@ -60,7 +60,9 @@ core_media::core_media(const core_media &src)
     setFlag(flag_bit_need_pause, false);
     _audio->setVol(src._audio->getVol());
     _video->setDecodeType(src._video->getDecodeType());
+#ifdef AUDIO_FILTER
     dynamic_cast<core_filter_audio*>(_audio->m_filter)->setAtempo(_speed);
+#endif
 }
 
 core_media::~core_media()
@@ -76,6 +78,7 @@ void core_media::init()
     INIT_NEW(&_subtitle, core_decoder_subtitle)
 //    INIT_NEW(&_audio_thread, core_thread_audio)
     INIT_NEW(&_video_thread, core_thread_video)
+    INIT_NEW(&_subtitle_thread, core_thread_subtitle)
     INIT_NEW(&m_preview, core_preview)
     INIT_NEW(&_save, core_save)
 }
@@ -97,6 +100,7 @@ void core_media::uninit()
     SAFE_RELEASE_PTR(&_subtitle)
 //    SAFE_RELEASE_PTR(&_audio_thread)
     SAFE_RELEASE_PTR(&_video_thread)
+    SAFE_RELEASE_PTR(&_subtitle_thread)
     SAFE_RELEASE_PTR(&m_preview)
     SAFE_RELEASE_PTR(&_save)
 
@@ -133,10 +137,11 @@ void core_media::play()
 
 void core_media::setPause()
 {
-    Log(Log_Info, "pause: start_time(%.2f)", _start_time/1000000);
+//    Log(Log_Info, "pause: start_time(%.2f)", _start_time/1000000);
     if(!isPause())
     {
-        setFlag(flag_bit_need_pause);
+//        setFlag(flag_bit_need_pause);
+        setFlag(flag_bit_pause, true);
     }
 }
 
@@ -149,11 +154,10 @@ void core_media::continuePlay()
 {
     if(isPause())
     {
-        auto t = _start_time;
+//        auto t = _start_time;
         _start_time += av_gettime() - _pause_time;
-        Log(Log_Info, "continue: start_time(%.2f -> %.2f)", t/1000000, _pause_time/1000000);
+//        Log(Log_Info, "continue: start_time(%.2f -> %.2f)", t/1000000, _pause_time/1000000);
 
-        setFlag(flag_bit_need_pause, false);
         setFlag(flag_bit_pause, false);
         _audio->sdl()->startSDL();
         _state = video_player_core::state_running;
@@ -162,8 +166,8 @@ void core_media::continuePlay()
 
 void core_media::stop()
 {
-    setFlag(flag_bit_Stop);
     _audio->sdl()->pauseSDL();
+    setFlag(flag_bit_Stop);
 }
 
 bool core_media::isStop()
@@ -204,7 +208,11 @@ bool core_media::jump(int64_t ms)
 
 void core_media::preview(int64_t ms)
 {
-    m_preview->preview(_src, ms, _cb);
+    if(!_video)
+        return;
+
+    m_preview->setCallBack(_cb);
+    m_preview->preview(_src, ms, getSeekFlag(_video, _video->getInteralPts(ms * 1000 + start_time())));
 }
 
 void core_media::setVol(int nVol)
@@ -224,8 +232,8 @@ void core_media::setAudioChannel(int type)
 
 void core_media::setChannel(int channel, int sel)
 {
-    _channel = channel;
-    _channelSel = sel;
+    _channel = static_cast<unsigned int>(channel);
+    _channelSel = static_cast<unsigned int>(sel);
     setFlag(flag_bit_channel_change, true);
 }
 
@@ -257,6 +265,7 @@ video_player_core::enum_state core_media::state1()
 
 int core_media::setCapture(bool bCap)
 {
+    _capture = bCap;
     if(bCap)
     {
         _save->start();
@@ -265,7 +274,7 @@ int core_media::setCapture(bool bCap)
     else
     {
         setFlag(flag_bit_save, bCap);
-        Sleep(10);
+        msleep(10);
         _save->stop();
     }
 
@@ -277,7 +286,11 @@ void av_log_call(void* /*ptr*/, int level, const char* fmt, va_list vl)
     if (level < AV_LOG_INFO)
     {
         char buffer[1024];
-        vsprintf(buffer, fmt, vl);
+#ifdef WIN32
+        _vsnprintf_s(buffer, 1024, fmt, vl);
+#else
+        _snprintf(buffer, 1024, fmt, vl);
+#endif
         LogB(Log_Debug,"[ffmpeg:%d] %s", level, buffer);
     }
 }
@@ -301,35 +314,49 @@ bool core_media::open(int index)
 {
     av_log_set_level(AV_LOG_INFO);
     av_log_set_callback(&av_log_call);
-    Log(Log_Info, "video info:%p vol:%.2f mute:%d", this, _audio->getVol(), testFlag(flag_bit_mute));
+    Log(Log_Info, "video info:%p vol:%d mute:%d", this, _audio->getVol(), testFlag(flag_bit_mute));
     if(!_cb)
     {
         Log(Log_Err, "not set callback!");
         return false;
     }
 
-    int ret = 0, videoIndex = -1, audioIndex = -1, subtitleIndex = -1;
+    int ret = 0, streamsCount = 0, videoIndex = -1, audioIndex = -1, subtitleIndex = -1;
     _cb->startCall(index);
     // allocate context
     _format_ctx = avformat_alloc_context();
     _format_ctx->interrupt_callback.callback = interruptCallback;
     _format_ctx->interrupt_callback.opaque = this;
     auto& pFormatCtx = _format_ctx;
-    Log(Log_Info, "start open input. thread:%d", core_util::getThreadId());
+    AVCodecContext* codec = nullptr;
+    Log(Log_Info, "start open input. thread:%u", core_util::getThreadId());
     // open file
-#ifdef _DESKTOP_
-//    AVInputFormat *ifmt=av_find_input_format("gdigrab");
-//    ret = avformat_open_input(&pFormatCtx, "desktop", ifmt, nullptr);
-    AVInputFormat *ifmt=av_find_input_format("dshow");
-    ret = avformat_open_input(&pFormatCtx, "video=Full HD webcam", ifmt, nullptr);
-#else
-    ret = avformat_open_input(&pFormatCtx, _src.c_str(), nullptr, nullptr);
+
+    AVInputFormat *ifmt = nullptr;
+    AVDictionary* options = nullptr;
+#ifdef USE_DESKTOP
+    _src = "desktop";
+    #ifdef WIN32
+        ifmt = av_find_input_format("gdigrab");
+    #elif defined linux
+        ifmt = av_find_input_format("x11grab");
+    #else
+        ifmt = av_find_input_format("avfoundation");//MAC
+    #endif
+#elif defined USE_CAMERA
+    _src = "video=Full HD webcam";
+    ifmt = av_find_input_format("dshow");
+
+    av_dict_set(&options, "input_format", "mjpeg", 0);
+//    av_dict_set(&options, "video_size", "1920x1080", 0);
+//    av_dict_set(&options, "framerate", "25", 0);
 #endif
+    char error[1024] = {};
+    ret = avformat_open_input(&pFormatCtx, _src.c_str(), ifmt, &options);
     if(ret < 0)
     {
-        char buf[1024] = {};
-        av_strerror(ret, buf, 1024);
-        Log(Log_Err, "open file failed, [%d,%s]", ret, buf);
+        av_strerror(ret, error, 1024);
+        Log(Log_Err, "open file failed, [%d,%s] ifmt:%p", ret, error, ifmt);
         goto media_start_end;
     }
 
@@ -337,49 +364,72 @@ bool core_media::open(int index)
     // find stream info
     if((ret = avformat_find_stream_info(pFormatCtx, nullptr)) < 0)
     {
-        Log(Log_Err, "find stream info failed, [%d]", ret);
+        av_strerror(ret, error, 1024);
+        Log(Log_Err, "find stream info failed, [%d,%s]", ret, error);
         goto media_start_end;
     }
 
     Log(Log_Info, "find stream info over.");
     // find video/audio stream index
-    int type = -1;
 
-    for(int i = 0; i < pFormatCtx->nb_streams; ++i)
+//    AVDictionaryEntry* tmp = nullptr;
+//    while((tmp = av_dict_get(pFormatCtx->metadata, "", tmp, AV_DICT_IGNORE_SUFFIX)) != nullptr)
+//    {
+//        LogB(Log_Debug, "[meta] %s: %s", tmp->key, tmp->value);
+//    }
+
+    streamsCount = static_cast<int>(pFormatCtx->nb_streams);
+    for(int i = 0; i < streamsCount; ++i)
     {
         auto stream = pFormatCtx->streams[i];
         auto metadata = stream->metadata;
+
+//        std::string sMeta;
         std::string sLanguage, sTitle;
         auto language = av_dict_get(metadata, "language", nullptr, AV_DICT_IGNORE_SUFFIX);
         auto title = av_dict_get(metadata, "title", nullptr, AV_DICT_IGNORE_SUFFIX);
+//        auto album = av_dict_get(metadata, "album", nullptr, AV_DICT_IGNORE_SUFFIX);// 专辑
+//        auto date = av_dict_get(metadata, "date", nullptr, AV_DICT_IGNORE_SUFFIX);// 日期
+//        auto artist = av_dict_get(metadata, "artist", nullptr, AV_DICT_IGNORE_SUFFIX);// 艺人
         if(language)
         {
             sLanguage = language->value;
+//            sMeta += std::string("[language]") + sLanguage;
             Log(Log_Info,"[format: index_%d] %s: %s", i, language->key, language->value);
         }
         if(title)
         {
             sTitle = title->value;
+//            sMeta += std::string("[title]") + sTitle;
             Log(Log_Info,"[format: index_%d] %s: %s", i, title->key, title->value);
         }
+//#define APPEND_META(x) \
+//    if(x)\
+//    {\
+//        sMeta += std::string(#x) + x->value; \
+//    }
 
-        auto _codec = pFormatCtx->streams[i]->codec;
-        Log(Log_Info, "stream[%d]:%d", i, _codec->codec_type);
-        type = _codec->codec_type;
-        switch (type) {
+//        APPEND_META(album)
+//        APPEND_META(date)
+//        APPEND_META(artist)
+
+//        LogB(Log_Debug, sMeta.c_str());
+        codec = pFormatCtx->streams[i]->codec;
+        Log(Log_Info, "stream[%d]:%d", i, codec->codec_type);
+        switch (codec->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
-            _video->pushStream(i);
+            _video->pushStream(static_cast<unsigned int>(i));
             videoIndex = i;
             _channels[channel_video].push_back(new _stream_channel_info_(sTitle, sLanguage, i));
             break;
         case AVMEDIA_TYPE_AUDIO:
-            _audio->pushStream(i);
+            _audio->pushStream(static_cast<unsigned int>(i));
             _channels[channel_audio].push_back(new _stream_channel_info_(sTitle, sLanguage, i));
             if(audioIndex < 0)
                 audioIndex = i;
             break;
         case AVMEDIA_TYPE_SUBTITLE:
-            _subtitle->pushStream(i);
+            _subtitle->pushStream(static_cast<unsigned int>(i));
             _channels[channel_subtitle].push_back(new _stream_channel_info_(sTitle, sLanguage, i));
             if(subtitleIndex < 0)
                 subtitleIndex = i;
@@ -398,8 +448,6 @@ bool core_media::open(int index)
         setFlag(flag_bit_tvideo_finish);
     }
 
-//    std::thread([=]{ _cb->supportHWDecoder(_video->getSupportDevices()); }).detach();
-
     // init audio decoder
     if(!_audio->init(_format_ctx, audioIndex))
     {
@@ -407,9 +455,14 @@ bool core_media::open(int index)
     }
 
     // init subtitle decoder
-    _subtitle->init(_format_ctx, subtitleIndex);
+    if(!_subtitle->init(_format_ctx, subtitleIndex))
+    {
+        setFlag(flag_bit_tsubtitle_finish);
+    }
 
     if(videoIndex < 0 && audioIndex < 0) {
+        av_strerror(ret, error, 1024);
+        sprintf(error, "no stream");
         Log(Log_Err, "[video_audio_index] invalid!", videoIndex, audioIndex);
         goto media_start_end;
     }
@@ -422,12 +475,25 @@ bool core_media::open(int index)
         _video_thread->start(this);
     if(_audio->index() >= 0)
         _audio_thread->start(this);
+    if(_subtitle->index() >= 0)
+        _subtitle_thread->start(this);
 
-    _save->init(_format_ctx, videoIndex, audioIndex);
-//    _save->start();
-//    setFlag(flag_bit_save, true);
+    // save init
+    _save->init(this, videoIndex, audioIndex);
+    if(_capture)
+    {
+        Log(Log_Info, "[save] start save with init");
+        setCapture(true);
+        _save->start();
+    }
 
+    if(_video->index() >= 0 || _audio->index() >= 0)
+        setState(video_player_core::state_running);
     decodeloop();
+    if(_capture)
+    {
+        _save->stop();
+    }
     Log(Log_Info, "down.");
     return true;
 media_start_end:
@@ -435,7 +501,7 @@ media_start_end:
     if(_cb)
     {
 //        SAFE_RELEASE_PTR(&m_threads[index]);
-        _cb->endCall(index);
+        _cb->exceptionEndCall(index, error);
         OUT_PUT_LEAK();
     }
 
@@ -457,6 +523,7 @@ void core_media::decodeloop()
     auto info = this;
     auto& aduio_pks = info->_audio->pks;
     auto& video_pks = info->_video->pks;
+    auto& subtitle_pks = info->_subtitle->pks;
 
     info->_start_time = av_gettime();
     Log(Log_Info, "t_base: %f", info->_start_time);
@@ -477,7 +544,7 @@ void core_media::decodeloop()
             channelChange();
         }
 
-        if(aduio_pks.isMax() || video_pks.isMax() || (testFlag(flag_bit_pause) && !bSeek))
+        if(aduio_pks.isMax() || video_pks.isMax() || subtitle_pks.isMax() || (testFlag(flag_bit_pause) && !bSeek))
         {
             msleep(10);
             continue;
@@ -493,12 +560,11 @@ void core_media::decodeloop()
     }
     aduio_pks.clear();
     video_pks.clear();
-
-    if(info->_audio->sdl())
-    {
-        info->_audio->sdl()->pauseSDL();
-        msleep(100);
-    }
+    subtitle_pks.clear();
+//    if(info->_audio->sdl())
+//    {
+//        info->_audio->sdl()->pauseSDL();
+//    }
 
     while(!testFlag(flag_bit_tvideo_finish))
     {
@@ -533,38 +599,58 @@ void core_media::seek()
     else
         return;
 
-    int64_t start_time = _format_ctx->start_time;
+    int64_t start_time = this->start_time();
     auto target = info->_seek_pos;
     int64_t step = 0;
-    auto cur = _video->clock();
+    auto cur = decoder->clock();
     if(decoder)
     {
         if(!info->_seek_step)
         {
-            target = decoder->getInteralPts(target) + start_time;
+            target = decoder->getInteralPts(target + start_time);
         }
         else
         {
-            step = decoder->getInteralPts(info->_seek_step) + start_time;
+            step = decoder->getInteralPts(info->_seek_step + start_time);
             target = cur + step;
             info->_seek_pos = decoder->getDisplayPts(target) * 1000;
         }
     }
 
+    if(target < 0) target = 0;
     auto curDisply = decoder->getDisplayPts(cur);
     auto targetDisplay = decoder->getDisplayPts(target);
     auto sCur = core_util::toTime(curDisply);
     auto sTarget = core_util::toTime(targetDisplay);
 //    LogB(Log_Debug, "jump: %s->%s beg", sCur.c_str(), sTarget.c_str());
-    int flag = target < cur ? AVSEEK_FLAG_BACKWARD : 0;
-    if(av_seek_frame(info->_format_ctx, decoder->index(), target, AVSEEK_FLAG_BACKWARD) < 0)
+    int flag = getSeekFlag(decoder, target);
+
+    LogB(Log_Debug, "jump: %lld(start_time:%lld)->%lld beg[flag=%d]", cur, start_time, target, flag);
+    if(av_seek_frame(info->_format_ctx, decoder->index(), target, flag) < 0)
     {
-        Log(Log_Warning, "%s:seek failed!", info->_format_ctx->filename);
+        Log(Log_Warning, "%s:seek failed!", info->_format_ctx->url);
     }
 
     else{
+        if(testFlag(flag_bit_read_finish))
+            setFlag(flag_bit_read_finish, false);
         pushSeekPkt();
     }
+}
+
+int core_media::getSeekFlag(core_decoder* decoder, int64_t target)
+{
+    return AVSEEK_FLAG_BACKWARD;
+    /*
+     *  QSV bug must be backward,
+     */
+    if(_video->getDecodeType() == AV_HWDEVICE_TYPE_QSV)
+        return AVSEEK_FLAG_BACKWARD;
+
+    if(!decoder)
+        return 0;
+
+    return target < decoder->clock() ? AVSEEK_FLAG_BACKWARD : 0;
 }
 
 void core_media::pushSeekPkt()
@@ -598,19 +684,29 @@ bool core_media::push_frame(bool &bSeek)
     auto info = this;
     auto& ctx = info->_format_ctx;
     auto& vIndex = info->_video->index();
+    auto& aIndex = info->_audio->index();
+    auto& sIndex = info->_subtitle->index();
 
     auto& vIndexs = info->_video->indexs();
     auto& aIndexs = info->_audio->indexs();
     auto& sIndexs = info->_subtitle->indexs();
 
     AVPacket pk;
+//    auto clock1 = clock();
     if((nRet = av_read_frame(ctx, &pk)) < 0)
     {
+//        if(nRet == AVERROR_EOF)
+//        {
+//            avio_seek(ctx->pb, 0, SEEK_SET);
+//            avformat_seek_file(ctx, -1, 0, 0, 0, 0);
+//            _start_time = av_gettime() - _seek_pos;
+//            return true;
+//        }
         if(!testFlag(flag_bit_read_finish))
         {
             char buf[1024] = {};
             av_strerror(nRet, buf, 1024);
-            Log(Log_Warning, "read fram failed,%s, video_pks:%d", buf,info->_video->pktSize());
+            Log(Log_Warning, "read frame failed,%s, video_pks:%d audio_pks:%d", buf,info->_video->pktSize(), info->_audio->pktSize());
         }
 
         setFlag(flag_bit_read_finish);
@@ -619,45 +715,47 @@ bool core_media::push_frame(bool &bSeek)
         msleep(10);
         return true;
     }
-
+//    auto clock2 = clock();
+//    if(clock2 - clock1 > 2)
+//        LogB(Log_Debug, "push_frame: %d", clock2 - clock1);
     if(bSeek)
     {
-        if(vIndex == pk.stream_index)
+        if(vIndex >= 0)
         {
-            bSeek = checkSeekPkt(&pk);
+            if(vIndex == pk.stream_index)
+            {
+                bSeek = checkSeekPkt(info->_video, &pk);
+            }
+        }
+        else if(aIndex == pk.stream_index)
+        {
+            bSeek = checkSeekPkt(info->_audio, &pk);
         }
 
-        if(!bSeek)
-        {
-            if(vIndex >= 0) setFlag(flag_bit_flush);
-//            Log(Log_Debug, "seek: video_pts[%.3f] audio_pts[%.3f]", info->_video->clock(), info->_audio->clock());
-        }
-        else
+        if(bSeek)
         {
             av_packet_unref(&pk);
             return true;
         }
     }
 
-    bool bVideo = vIndexs.find(pk.stream_index) != vIndexs.end();
-    bool bAudio = aIndexs.find(pk.stream_index) != aIndexs.end();
 
-    if(bVideo || sIndexs.find(pk.stream_index) != sIndexs.end())
+    auto index = static_cast<unsigned int>(pk.stream_index);
+    bool bVideo = vIndexs.find(index) != vIndexs.end();
+    bool bAudio = aIndexs.find(index) != aIndexs.end();
+    bool bSubtitle = sIndexs.find(index) != sIndexs.end();
+
+    if(bVideo)
     {
-        ++info->_vRead;
         info->_video->pks.push_back(pk);
     }
     else if(bAudio)
     {
-        if(testFlag(flag_bit_taudio_finish))
-        {
-            av_packet_unref(&pk);
-        }
-        else
-        {
-            ++info->_aRead;
-            info->_audio->pks.push_back(pk);
-        }
+        info->_audio->pks.push_back(pk);
+    }
+    else if(bSubtitle)
+    {
+        info->_subtitle->pks.push_back(pk);
     }
     else
     {
@@ -668,9 +766,9 @@ bool core_media::push_frame(bool &bSeek)
     return true;
 }
 
-bool core_media::checkSeekPkt(AVPacket *pk)
+bool core_media::checkSeekPkt(core_decoder* decoder, AVPacket *pk)
 {
-    if(_video->checkSeekPkt(pk))
+    if(decoder->checkSeekPkt(pk))
         return true;
 
     _start_time = av_gettime() - _seek_pos;
@@ -685,5 +783,14 @@ bool core_media::checkSeekPkt(AVPacket *pk)
     }
 
     setFlag(flag_bit_seek, false);
+    setFlag(flag_bit_flush);
+//    Log(Log_Debug, "seek: video_pts[%.3f] audio_pts[%.3f]", _video->clock(), _audio->clock());
     return false;
+}
+
+int64_t core_media::start_time()
+{
+    if(!_format_ctx || _format_ctx->start_time == AV_NOPTS_VALUE)
+        return 0;
+    return _format_ctx->start_time;
 }

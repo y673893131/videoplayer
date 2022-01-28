@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QDebug>
 #include <QAction>
+#include <QCursor>
 #include "qdragborder.h"
 
 #ifdef Q_OS_WIN
@@ -15,15 +16,17 @@
 QFrameLessWidget::QFrameLessWidget(QWidget *parent)
     : QWidget(parent)
     , m_bTopWindow(false)
+    , m_bDragEnable(true)
+    , m_bDrag(false)
 {
 #ifdef unix
-    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
 #else
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint);
 #endif
 
 #ifdef unix
-    m_dragBorder = new QDragBorder(this);
+//    m_dragBorder = new QDragBorder(this);
 #endif
 }
 
@@ -33,6 +36,7 @@ QFrameLessWidget::~QFrameLessWidget()
 
 void QFrameLessWidget::setDragSelf(bool bDrag)
 {
+    m_bDragEnable = bDrag;
 #ifdef Q_OS_WIN
     auto func = [=]
     {
@@ -76,22 +80,6 @@ void QFrameLessWidget::setDoubleClickMax()
     connect(this, &QFrameLessWidget::leftDoubleClicked, func);
 }
 
-void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
-{
-//    if(event->button() == Qt::LeftButton)
-//    {
-//#ifdef unix
-//        m_dragBorder->setStartPos(pos(), event->globalPos());
-//#else
-//        emit leftPress();
-//#endif
-//    }
-    if(event->button() == Qt::RightButton)
-    {
-        emit rightClicked();
-    }
-}
-
 void QFrameLessWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
     if(event->button() == Qt::LeftButton)
@@ -115,18 +103,21 @@ void QFrameLessWidget::paintEvent(QPaintEvent *event)
 
 bool QFrameLessWidget::nativeEvent(const QByteArray &eventType, void *message, long *result)
 {
+#ifdef Q_OS_WIN
     if(_nativeEvent(eventType, message, result, this))
         return true;
-
+#endif
     return QWidget::nativeEvent(eventType, message, result);
 }
 
 void QFrameLessWidget::resizeEvent(QResizeEvent *event)
 {
-    Q_UNUSED(event)
+//    Q_UNUSED(event)
+    QWidget::resizeEvent(event);
 
 #ifdef unix
-    m_dragBorder->setFixedSize(size());
+//    m_dragBorder->setFixedSize(size());
+    emit resized(event->size());
 #endif
 
     updateTopWindow();
@@ -144,7 +135,17 @@ void QFrameLessWidget::updateTopWindow()
 #ifdef Q_OS_WIN
         SetWindowPos(reinterpret_cast<HWND>(this->winId()), m_bTopWindow ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 #else
-        setWindowFlag(Qt::WindowStaysOnTopHint, m_bTopWindow);
+        auto flags = windowFlags();
+        if(m_bTopWindow)
+            flags = flags | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint;
+        else
+            flags = flags & ~Qt::WindowStaysOnTopHint & ~Qt::X11BypassWindowManagerHint;
+//        setWindowFlag(Qt::WindowStaysOnTopHint, m_bTopWindow);
+        setWindowFlags(flags);
+//        if(m_bTopWindow)
+//        {
+            show();
+//        }
 #endif
     }
     else
@@ -158,16 +159,26 @@ void QFrameLessWidget::updateTopWindow()
     }
 }
 
-void QFrameLessWidget::mouseReleaseEvent(QMouseEvent *event)
+void QFrameLessWidget::mousePressEvent(QMouseEvent *event)
 {
-    QWidget::mouseReleaseEvent(event);
-#ifdef unix
-    if(m_dragBorder->isVisible())
+    if(event->button() == Qt::LeftButton)
     {
-        m_dragBorder->hide();
-        move(m_dragBorder->pos());
-    }
+#ifdef unix
+        if(m_bDragEnable)
+        {
+            m_pos = pos();
+            m_press = QCursor::pos();
+            m_bDrag = true;
+        }
+//        m_dragBorder->setStartPos(pos(), event->globalPos());
+#else
+        emit leftPress();
 #endif
+    }
+    if(event->button() == Qt::RightButton)
+    {
+        emit rightClicked();
+    }
 }
 
 void QFrameLessWidget::mouseMoveEvent(QMouseEvent *event)
@@ -176,17 +187,37 @@ void QFrameLessWidget::mouseMoveEvent(QMouseEvent *event)
     if(event->buttons() == Qt::LeftButton)
     {
 #ifdef unix
-        m_dragBorder->setStartPos(pos(), event->globalPos());
+        if(m_bDragEnable)
+        {
+            auto pos = m_pos + QCursor::pos() - m_press;
+            move(pos);
+            emit moved(pos);
+        }
+//        m_dragBorder->setStartPos(pos(), event->globalPos());
 #else
         emit leftPress();
 #endif
     }
 #ifdef unix
-    if(event->buttons() == Qt::LeftButton)
-    {
-        m_dragBorder->show();
-        m_dragBorder->setMovePos(event->globalPos());
-    }
+
+//    if(event->buttons() == Qt::LeftButton)
+//    {
+//        m_dragBorder->show();
+//        m_dragBorder->setMovePos(event->globalPos());
+//    }
+#endif
+}
+
+void QFrameLessWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    QWidget::mouseReleaseEvent(event);
+#ifdef unix
+//    if(m_dragBorder->isVisible())
+//    {
+//        m_dragBorder->hide();
+//        move(m_dragBorder->pos());
+//    }
+    m_bDrag = false;
 #endif
 }
 
@@ -199,4 +230,14 @@ void QFrameLessWidget::keyPressEvent(QKeyEvent *event)
             showNormal();
         break;
     }
+}
+
+void QFrameLessWidget::onMoved(const QPoint & pos)
+{
+    move(pos);
+}
+
+void QFrameLessWidget::onResized(const QSize & size)
+{
+    resize(size);
 }

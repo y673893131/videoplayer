@@ -21,7 +21,7 @@ class QPlayMenu;
 #ifdef Q_OS_WIN
 class QToolWidgets : public QWidget, public CNativeEvent_Win, public QAbstractNativeEventFilter
 #else
-class QToolWidgets : public QWidget, public QAbstractNativeEventFilter
+class QToolWidgets : public QWidget
 #endif
 {
     Q_OBJECT
@@ -42,12 +42,14 @@ public:
 public:
     explicit QToolWidgets(QWidget *parent = nullptr);
 
-    int index();
+//    int index();
     void setExists(bool);
 signals:
     void showMin();
+    void showNor();
+    void showFull();
     void exit();
-    void load(const QString& = QString());
+    void load(const QStringList& = QStringList());
     void loadFile();
     void start(int);
 //    void mouseMove();
@@ -61,6 +63,7 @@ signals:
     void inputUrlFile(const QString&);
     void _move(const QPoint&);
     void _resize(const QSize&);
+    void thumb(int);
 public slots:
     void onLoadFile();
     void onLeftPress();
@@ -82,7 +85,9 @@ private:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
+#ifdef Q_OS_WIN
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
+#endif
     void resizeEvent(QResizeEvent *event) override;
 
 private:
@@ -92,7 +97,6 @@ private:
     QInputUrlWidget* m_inputUrl;
     QVolumeWidget* m_volume;
     bool m_bLocalFile;
-    int m_index, m_playMode, m_totalSeconds;
     QDataModel* m_data;
 
     QPlayMenu* m_playMenu;

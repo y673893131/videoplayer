@@ -20,21 +20,29 @@ public:
     void setToolBar(QToolWidgets* toolWidget);
     void waittingStoped();
     bool isPlaying();
+    bool isPause();
 signals:
     void support(const QMap<int, QString>&);
     void start(int);
+    void exceptionEnd(int);
     void end(int);
     void total(int);
     void setPos(int);
     void videoSizeChanged(int, int);
     void frameRate(int);
     void appendFrame(void*);
-    void subtitle(const QString&, unsigned int, int);
+    void appendFreq(float*, unsigned int);
+    void subTitleHeader(const subtitle_header&);
+    void subtitle(const QString&, unsigned int, int, int64_t, int64_t);
     void streamInfo(const QStringList&, int, int);
     void preview(void*, int, int);
     void play(const QString&);
     void info(const QString&);
     void jumpFailed();
+    void pausePlay();
+    void continuePlay();
+    void tips(const QString&);
+    void notExist();
 public slots:
     void onStatFrameRate();
     void onStart(const QString&);
@@ -63,16 +71,19 @@ public:
     void setVideoSize(int width, int hight) override;
     void displayCall(void *data, int width, int height) override;
     void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) override;
-    void displaySubTitleCall(char *, unsigned int, int) override;
+    void subtitleHaderCall(const subtitle_header &) override;
+    void displaySubTitleCall(char *, unsigned int, int, int64_t, int64_t) override;
+    void displayFreqCall(float*,  unsigned int) override;
     void previewDisplayCall(void *data, int width, int height) override;
     void startCall(int) override;
     void endCall(int) override;
+    void exceptionEndCall(int, const char*) override;
 private:
     static QVideoControl* s_instance;
     video_player_core* m_core;
     QToolWidgets* m_toolbar;
 
-    int m_frameCount, m_seekPos;
+    int m_index, m_frameCount, m_seekPos;
     QTimer* m_frameRateTimer;
     QTimer* m_seekTimer;
 };

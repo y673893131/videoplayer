@@ -2,35 +2,25 @@
 #define QPLAYSUBTITLE_H
 
 #include "../base/qtoolbase.h"
+#include "video_player_core.h"
+#include <stdint.h>
 
-struct sub_title_info
+struct sub_title_time
 {
-    sub_title_info()
+    sub_title_time()
         : tmBeg(0)
         , tmEnd(0)
-        , bShow(false)
     {
 
     }
-    int tmBeg;
-    int tmEnd;
-    bool bShow;
-    std::map<QString, QString> titls;
+    int64_t tmBeg;
+    int64_t tmEnd;
 };
 
 class QLabel;
 class QPlaySubtitle : public QToolBase
 {
     Q_OBJECT
-public:
-    enum label
-    {
-        label_main,
-        label_sub,
-
-        label_max
-    };
-
 public:
     explicit QPlaySubtitle(QWidget *parent = nullptr);
 
@@ -41,13 +31,16 @@ private:
     void resizeEvent(QResizeEvent *event) override;
 public slots:
     void onDelayClear();
+    void onPos(int);
     void onChannelModify();
 private slots:
-    void onSubtitle(const QString &str, unsigned int index, int type);
+    void onSubTitleHeader(const subtitle_header&);
+    void onSubtitle(const QString &str, unsigned int index, int type, int64_t start, int64_t end);
 private:
-    QLabel* m_label[label_max];
+    std::vector</*QSubTitleLabel*/QLabel*> m_label;
+    std::map<QString, int> m_nameToIndex;
     QTimer* m_timerDisplay;
-    sub_title_info m_subtitle;
+    sub_title_time m_delay;
 };
 
 #endif // QPLAYSUBTITLE_H

@@ -24,12 +24,10 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
     m_timeWidget->setObjectName("time_wd");
     m_time->setObjectName("label_time");
     auto layout = new QVBoxLayout(m_timeWidget);
-    auto margin = CALC_WIDGET_WIDTH(nullptr, 5);
     layout->setAlignment(Qt::AlignCenter);
     layout->setMargin(0);
     layout->addWidget(m_time);
     CALC_WIDGET_SIZE(m_timeWidget, 65, 26);
-//    UTIL->setWindowEllispeFrame(m_timeWidget, margin / 2, margin / 2);
     auto size = CALC_WIDGET_SIZE(nullptr, -20, 35);
     m_timePt.setX(size.width());
     m_timePt.setY(size.height());
@@ -37,14 +35,17 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
     m_preview = new QLabel(grandParent);
     m_preview->setWindowFlags(Qt::FramelessWindowHint | Qt::ToolTip);
     CALC_WIDGET_SIZE(m_preview, 200, 150);
+#ifdef Q_OS_WIN
+    auto margin = CALC_WIDGET_WIDTH(nullptr, 5);
     UTIL->setWindowEllispeFrame(m_preview, margin, margin);
+#endif
     m_preview->hide();
     m_preview->setObjectName("label_preview");
 
     m_getPreview = new QTimer(this);
     m_getPreview->setInterval(30);
     m_getPreview->setSingleShot(true);
-    connect(m_getPreview, &QTimer::timeout, [this]{ emit getPreview(m_nPreview); });
+    connect(m_getPreview, &QTimer::timeout, this, [this]{ emit getPreview(m_nPreview); });
 
     m_jumpTimer = new QTimer(this);
     m_jumpTimer->setInterval(100);
@@ -97,7 +98,7 @@ void QProgressSlider::onJump(bool bFuture)
     if(maximum() > 100000000)
         return;
 
-    if(!VIDEO_CONTROL->isPlaying())
+    if(!VIDEO_CONTROL->isPlaying() && !VIDEO_CONTROL->isPause())
         return;
 
     int step = (bFuture ? 10000 : -10000);
@@ -141,8 +142,8 @@ void QProgressSlider::mouseReleaseEvent(QMouseEvent *event)
 {
     QSlider::mouseReleaseEvent(event);
     auto pos = event->pos();
-    auto pro = pos.x() * 1.0 / width();
-    int num = pro * maximum();
+    auto pro = pos.x() * 1.0f / width();
+    int num = static_cast<int>(pro * maximum());
     setValue(num);
     emit gotoPos(num);
     m_bHandup = false;
@@ -169,8 +170,8 @@ void QProgressSlider::mouseMoveEvent(QMouseEvent *event)
     QSlider::mouseMoveEvent(event);
 
     auto pos = event->pos();
-    auto pro = pos.x() * 1.0 / width();
-    m_nPreview = pro * maximum();
+    auto pro = pos.x() * 1.0f / width();
+    m_nPreview = static_cast<int>(pro * maximum());
 
     pos.setY(0);
     pos = mapToGlobal(pos);

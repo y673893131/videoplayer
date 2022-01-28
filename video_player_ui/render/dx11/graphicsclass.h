@@ -12,6 +12,7 @@
 #include "cameraclass.h"
 #include "textureshaderclass.h"
 #include "bitmapclass.h"
+#include "freqclass.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: GraphicsClass
@@ -23,18 +24,20 @@ public:
 	GraphicsClass(const GraphicsClass&);
 	~GraphicsClass();
 
-    bool Initialize(unsigned int, unsigned int, HWND);
+    bool Initialize(unsigned int, unsigned int, HWND, float, float);
 	void Shutdown();
     bool Frame(void*);
-
+    bool Freq(float*, unsigned int);
+    void ResetViewport(float, float);
 private:
-    bool Render(float, void*);
+    bool Render(float, void*,float*, unsigned int);
 
 private:
 	D3DClass* m_D3D;
 	CameraClass* m_Camera;
 	TextureShaderClass* m_TextureShader;
 	BitmapClass* m_Bitmap;
+    FreqClass* m_freq;
 };
 
 #endif

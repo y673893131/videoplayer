@@ -101,68 +101,127 @@ QListView#list_file:item:hover:!focus
 
 QPushButton#btn_stop
 {
-        outline: none;
-        border-radius:0px;
-        background: white;
+    outline: none;
+    border-radius:0px;
+    background: white;
 }
 QPushButton#btn_stop::hover
 {
-    background: #FF5C38;
-        border:none;
+background: #FF5C38;
+    border:none;
 }
 QPushButton#btn_play
 {
-        background-color:transparent;
-        image:url(:/tool/play_normal);
-        outline: none;
+    background-color:transparent;
+    border-image:url(:/tool/play_normal);
+    outline: none;
 }
 QPushButton#btn_play::hover
 {
-        image:url(:/tool/play_black);
+    border-image:url(:/tool/play_black);
 }
 QPushButton#btn_pause
 {
-        background-color:transparent;
-        border-image:url(:/tool/pause_normal);
-        outline: none;
+    background-color:transparent;
+    border-image:url(:/tool/pause_normal);
+    outline: none;
 }
 QPushButton#btn_pause::hover
 {
-        image:url(:/tool/pause_black);
+    border-image:url(:/tool/pause_black);
 }
 
 QPushButton#btn_prev
 {
-        background-color:transparent;
-        border-image:url(:/tool/prev_normal);
-        outline: none;
+    background-color:transparent;
+    border-image:url(:/tool/prev_normal);
+    outline: none;
 }
 QPushButton#btn_prev::hover
 {
-        border-image:url(:/tool/prev_black);
+    border-image:url(:/tool/prev_black);
 }
 QPushButton#btn_next
 {
-        background-color:transparent;
-        image:url(:/tool/next_normal);
-        outline: none;
+    background-color:transparent;
+    border-image:url(:/tool/next_normal);
+    outline: none;
 }
 QPushButton#btn_next::hover
 {
-        image:url(:/tool/next_black);
+    border-image:url(:/tool/next_black);
 }
 
 QPushButton#btn_volume
 {
-        outline: none;
-        background: transparent;
-        image:url(:/tool/volume);
+    outline: none;
+    background: transparent;
+    border-image:url(:/tool/volume);
 }
 
-#btn_volume::hover,
+#btn_volume::hover
+{
+    border-image:url(:/tool/volume_hover);
+}
+
+
 #btn_volume::checked
 {
-    image:url(:/tool/volume_hover);
+    border-image:url(:/tool/volume_mute);
+}
+
+#btn_volume::checked:hover
+{
+    border-image:url(:/tool/volume_mute_hover);
+}
+
+QPushButton#btn_mode
+{
+    outline: none;
+    background: transparent;
+    border-image:url(:/menu/mode_normal);
+}
+
+#btn_mode::hover
+{
+    border-image:url(:/menu/mode_normal_hover);
+}
+
+QPushButton[mode="0"]#btn_mode
+{
+    outline: none;
+    background: transparent;
+    border-image:url(:/menu/mode_normal_white);
+}
+
+QPushButton[mode="0"]#btn_mode::hover
+{
+    background: transparent;
+    border-image:url(:/menu/mode_normal_hover);
+}
+
+QPushButton[mode="1"]#btn_mode
+{
+    outline: none;
+    background: transparent;
+    border-image:url(:/menu/mode_single_white);
+}
+
+QPushButton[mode="1"]#btn_mode::hover
+{
+    border-image:url(:/menu/mode_single_hover);
+}
+
+QPushButton[mode="2"]#btn_mode
+{
+    outline: none;
+    background: transparent;
+    border-image:url(:/menu/mode_random_white);
+}
+
+QPushButton[mode="2"]#btn_mode::hover
+{
+    border-image:url(:/menu/mode_random_hover);
 }
 
 QPushButton#btn_openfile
@@ -185,7 +244,7 @@ QPushButton#btn_openfile:hover
 QPushButton#file_list
 {
         background-color: transparent;
-        image:url(:/tool/filelist);
+        border-image:url(:/tool/filelist);
         outline: none;
         padding: 2px;
 }
@@ -193,7 +252,7 @@ QPushButton#file_list
 QPushButton#file_list::hover
 {
         margin: 1px;
-        image:url(:/tool/filelist_hover);
+        border-image:url(:/tool/filelist_hover);
 }
 
 QLineEdit#file_search_edit
@@ -214,7 +273,7 @@ QLineEdit#file_search_edit:hover
     background: rgba(128,128,128,128);
 }
 
-QPushButton#btn_mode
+QPushButton#btn_file_mode
 {
     background: rgba(23, 26, 29, 128);
     font: 15px "Microsoft YaHei";
@@ -223,15 +282,15 @@ QPushButton#btn_mode
     outline: none;
 }
 
-QPushButton#btn_mode:checked
+QPushButton#btn_file_mode:checked
 {
     color: #E0E0E0;
 }
 
-QPushButton#btn_mode::hover
+QPushButton#btn_file_mode::hover
 {
-        padding: 1px;
-        color: #E0E0E0;
+    padding: 1px;
+    color: #E0E0E0;
 }
 
 QPushButton#btn_file_indicator
@@ -379,15 +438,42 @@ QScrollBar#scroll1:handle:horizontal:hover
 QMenu#menu1
 {
     background: white;
-    border: 1px solid lightgray;
-    margin: 0px;
+    border: 1px solid #454545;
+    font: 13px "Microsoft YaHei";
+    color: #454545;
 }
 
 QMenu#menu1::separator
 {
     height: 2px;
-    background: lightblue;
+    background: #454545;
     margin: 5px;
+}
+
+QMenu#menu1::indicator
+{
+    width: 20px;
+    height: 20px;
+}
+
+QMenu#menu1::indicator:non-exclusive:unchecked
+{
+    image: url(:/menu/checkbox);
+}
+
+QMenu#menu1::indicator:non-exclusive:unchecked:selected
+{
+    image: url(:/menu/checkbox_hover);
+}
+
+QMenu#menu1::indicator:non-exclusive:checked
+{
+    image: url(:/menu/checkbox_checked);
+}
+
+QMenu#menu1::indicator:non-exclusive:checked:selected
+{
+    image: url(:/menu/checkbox_checked_hover);
 }
 
 QMenu#menu1::item
@@ -396,8 +482,7 @@ QMenu#menu1::item
     color: black;
     font: 13px "Microsoft YaHei";
     color: #454545;
-    padding: 5px 30px;
-    text-align: center;
+    padding: 5px 20px;
 }
 
 QMenu#menu1::item:disabled
@@ -411,13 +496,6 @@ QMenu#menu1::item:selected
     background: #EEEEEE;
     font-weight: bold;
     color: #FF5C38;
-}
-
-QMenu#menu1::indicator:checked
-{
-    subcontrol-position: left center;
-    subcontrol-origin: padding;
-    left: 5px;
 }
 
 #input_url_widget
@@ -687,7 +765,8 @@ QMenu#menu1::indicator:checked
 /* pagewidget end */
 QWidget#toolWd
 {
-    background: rgba(0,0,0,0);
+    /*background: rgba(0,0,0,0);*/
+    background: transparent;
 }
 
 QWidget#sub_title_wd
@@ -698,15 +777,15 @@ QWidget#sub_title_wd
 QLabel#sub_title_ch
 {
     background: transparent;
-    font: bold 20px "Microsoft YaHei";
+    /*font: bold 20px "Microsoft YaHei";*/
     color: white;
 }
 
 QLabel#sub_title_other
 {
     background: transparent;
-    font: bold 14px "Microsoft YaHei";
-    color: lightgray;
+    /*font: bold 14px "Microsoft YaHei";*/
+    /*color: lightgray;*/
 }
 
 QLabel#output_info
@@ -714,7 +793,7 @@ QLabel#output_info
     background: transparent;
     font: bold 18px "Microsoft YaHei";
     color: rgba(255,255,255,128);
-    margin: 10px;
+    margin: 0px 10px;
 }
 
 #volume_widget

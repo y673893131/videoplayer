@@ -15,7 +15,7 @@ struct video_output_format
     AVPixelFormat pixel_formats[2];
     int w;
     int h;
-    char scale[128];
+    std::string scale;
     unsigned int size;
     uint8_t* buffer;
 };

@@ -81,9 +81,8 @@ public:
 
     void save(AVPacket*) override;
 private:
-    bool init(AVFormatContext* pFormat, int nIndex) override;
+    bool init(core_media* media, int nIndex) override;
     void uninit() override;
-    AVOutputFormat *guess() override;
 
 private:
     std::string outoutFile() override;

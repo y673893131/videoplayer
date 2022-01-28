@@ -29,8 +29,8 @@ core_thread_audio::core_thread_audio()
 
 void core_thread_audio::sdl_audio_call(void *data, Uint8 *stream, int len)
 {
-    auto info = (core_thread_audio*)data;
-    info->audio_call(stream, len);
+    auto info = static_cast<core_thread_audio*>(data);
+    info->audio_call(stream, static_cast<unsigned int>(len));
 }
 
 void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
@@ -42,6 +42,12 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
     unsigned int decodeSize = 0, lenTMP = 0;
     while(len > 0)
     {
+        if(testFlag(flag_bit_Stop))
+        {
+            sdl->pauseSDL();
+            break;
+        }
+
         if(index >= size)
         {
             decodeSize = audio_decode();
@@ -69,14 +75,15 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
         else
         {
             memset(stream, 0, lenTMP);
-            sdl->formatChannelType(reinterpret_cast<uint8_t*>(buff) + index, lenTMP);
+            sdl->formatChannelType(reinterpret_cast<uint8_t*>(buff) + index, lenTMP, m_media->_cb);
 //#ifdef AUDIO_FILTER
 //            Log(Log_Debug, "play buff[%u], lenTmp/len=%u/%u", index, lenTMP, size);
 //#endif
 #ifdef AUDIO_FILTER
             SDL_MixAudio(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP, /*sdl->nVol*/SDL_MIX_MAXVOLUME);
 #else
-            SDL_MixAudio(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP, sdl->nVol);
+            auto vol = sdl->nVol > SDL_MIX_MAXVOLUME ? SDL_MIX_MAXVOLUME : sdl->nVol;
+            SDL_MixAudio(stream, reinterpret_cast<uint8_t*>(buff) + index, lenTMP, vol);
 #endif
         }
 
@@ -93,17 +100,19 @@ unsigned int core_thread_audio::audio_decode()
     auto& pks = m_media->_audio->pkts();
     auto sdl = m_media->_audio->sdl();
     auto& index = m_media->_audio->index();
-    int64_t start_time = m_media->_format_ctx->start_time / 1000;
+    auto& vIndex = m_media->_video->index();
+    int64_t start_time = m_media->start_time() / 1000;
 
     bool bSeek = false;
     bool bFlag = false;
+    bool bTryAgain = false;
     int64_t seekPts = 0;
     AVPacket pk;
     for(;;)
     {
         if(testFlag(flag_bit_Stop))
         {
-            pks.clear();
+//            pks.clear();
             Log(Log_Info, "audio_thread break, set stopped.");
             setFlag(flag_bit_taudio_finish);
             sdl->pauseSDL();
@@ -122,18 +131,15 @@ unsigned int core_thread_audio::audio_decode()
             {
                 audio.flush();
                 bFlag = true;
-                seekPts = audio.getInteralPts(m_media->_seek_pos);
+                seekPts = audio.getInteralPts(m_media->_seek_pos + start_time * 1000);
+                sdl->resetSpec();
+                continue;
             }
 
             if(testFlag(flag_bit_read_finish) /*&& !isSetBit(*m_flag, flag_bit_seek)*/)
             {
                 Log(Log_Info, "audio_thread break, pks is empty and read finish.");
-                setFlag(flag_bit_taudio_finish);
-                if(testFlag(flag_bit_tvideo_finish))
-                {
-                    setFlag(flag_bit_Stop);
-                }
-
+                tryStop(flag_bit_taudio_finish);
                 break;
             }
 
@@ -146,7 +152,7 @@ unsigned int core_thread_audio::audio_decode()
             m_media->_save->saveAudio(&pk);
         }
 
-        if(!audio.decode(&pk))
+        if(!audio.decode(&pk, bTryAgain))
         {
             av_packet_unref(&pk);
             continue;
@@ -161,12 +167,16 @@ unsigned int core_thread_audio::audio_decode()
             }
 
             bFlag = false;
+            if(vIndex < 0)
+                setFlag(flag_bit_flush, false);
         }
 
-        if(m_media->_video->nStreamIndex < 0)
+        if(vIndex < 0)
         {
             m_media->_cb->posChange(audio.displayClock() - start_time);
+            tryPause();
         }
+
         audio.play(buffersize);
         av_packet_unref(&pk);
         break;

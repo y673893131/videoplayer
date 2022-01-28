@@ -22,7 +22,7 @@ int QLiveListModel::rowCount(const QModelIndex &parent) const
 {
     if (!parent.isValid())
         return curData()->classCount();
-    else if (parent.internalId() == -1)
+    else if (parent.internalId() == quintptr(-1))
         return curData()->gameCount(parent.row());
 
     return 0;
@@ -122,7 +122,7 @@ void QLiveListModel::selectGame(const QModelIndex &index)
 
 void QLiveListModel::selectRoom(const QModelIndex &index)
 {
-    auto info = (_DyRoom_*)index.data(QRoomListViewModel::room_info_role).value<void*>();
+    auto info = reinterpret_cast<_DyRoom_*>(index.data(QRoomListViewModel::room_info_role).value<void*>());
     if(info->sLiveUrl.isEmpty())
         curData()->getPreviewUrl(info->sRid);
     else

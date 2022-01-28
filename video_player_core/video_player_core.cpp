@@ -22,7 +22,7 @@ video_player_core::~video_player_core()
 int video_player_core::_init()
 {
 #ifndef AVFORMAT_STATIC_REGISTER
-#ifdef _DESKTOP_
+#if defined (USE_DESKTOP) || defined (USE_CAMERA)
     avdevice_register_all();
 #endif
     avcodec_register_all();
@@ -51,7 +51,6 @@ int video_player_core::_setCallBack(video_interface * cb)
 
 int video_player_core::_setSrc(const std::string &src)
 {
-    Log(Log_Opt, "%s", src.c_str());
     m_media->setSrc(src);
     return 0;
 }
@@ -65,7 +64,7 @@ int video_player_core::_play()
 
 int video_player_core::_pause(int index)
 {
-    Log(Log_Opt, "call.");
+//    Log(Log_Opt, "call.");
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->setPause();
@@ -74,7 +73,7 @@ int video_player_core::_pause(int index)
 
 int video_player_core::_continue(int index)
 {
-    Log(Log_Opt, "call.");
+//    Log(Log_Opt, "call.");
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->continuePlay();
@@ -117,7 +116,7 @@ int video_player_core::_get_seek_img(int index, int64_t ms)
 
 int video_player_core::_setVol(int index, int nVol)
 {
-    Log(Log_Opt, "%d", nVol);
+//    Log(Log_Opt, "%d", nVol);
     if(m_media)
         m_media->setVol(nVol);
     auto pIndex = video_thread::index(index);
@@ -129,6 +128,9 @@ int video_player_core::_setVol(int index, int nVol)
 int video_player_core::_setMute(int index, bool bMute)
 {
     Log(Log_Opt, "%d", bMute);
+    if(m_media)
+        m_media->mute(bMute);
+
     auto pIndex = video_thread::index(index);
     if(pIndex)
         pIndex->setMute(bMute);
@@ -297,6 +299,9 @@ int video_player_core::_setCapture(int index, bool bCap)
     {
         pIndex->setCapture(bCap);
     }
+
+    if(m_media)
+        m_media->setCapture(bCap);
 
     return 0;
 }

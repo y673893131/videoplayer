@@ -5,7 +5,8 @@
 #include <functional>
 #include "Log/Log.h"
 
-//#define _DESKTOP_
+//#define USE_DESKTOP
+//#define USE_CAMERA
 #define USE_AVFILTER
 #define AUDIO_FILTER
 #define VIDEO_FILTER
@@ -60,6 +61,7 @@ static std::map<void*, std::string> leakMap;
 #ifdef unix
 #include <unistd.h>
 #define msleep(x) usleep(x * 1000)
+#define _snprintf snprintf
 #elif(WIN32)
 #include <Windows.h>
 #define msleep(x) Sleep(static_cast<unsigned long>(x))

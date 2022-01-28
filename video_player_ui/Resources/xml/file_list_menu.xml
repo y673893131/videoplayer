@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<menu type="0x00001000">
+    <action name="dir" description="目录"/>
+    <action name="load" description="加载"/>
+    <action name="clean" description="清空"/>
+    <action name="delete" description="删除"/>
+</menu>

@@ -1,6 +1,7 @@
 #ifndef Q_DIRECT3D11_WIDGET_H
 #define Q_DIRECT3D11_WIDGET_H
 
+#ifdef WIN32
 #include "native/qnativewidget.h"
 
 #include <D3D11.h>
@@ -24,14 +25,14 @@ private:
     void render() override;
 
 public slots:
-    void onViewAdjust(bool);
+    void onViewAdjust(bool) override;
     void onVideoSizeChanged(int,int);
+    void onAppendFreq(float*, unsigned int);
     void onStart();
     void onStop();
 private:
     GraphicsClass* m_pGraphics;
-
     bool m_bStoped;
 };
-
+#endif
 #endif /*Q_DIRECT3D11_WIDGET_H*/

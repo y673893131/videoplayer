@@ -32,7 +32,9 @@ void QOutputWidget::initLayout()
 
 void QOutputWidget::initConnect()
 {
+    auto control = VIDEO_CONTROL;
     connect(m_timerDelay, &QTimer::timeout, this, &QOutputWidget::onDelay);
+    connect(control, &QVideoControl::tips, this, &QOutputWidget::onInfo);
 }
 
 void QOutputWidget::onDelay()

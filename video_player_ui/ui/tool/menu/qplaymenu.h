@@ -14,15 +14,21 @@ public:
     {
         action_adjust,
         action_top_window,
-        action_url,
         action_capture,
+        action_line0,
+        action_url,
+        action_line1,
 
         action_max
     };
 
-    enum play_action
+    enum play_mode
     {
-        play_loop,
+        play_mode_loop,
+        play_mode_single,
+        play_mode_random,
+
+        play_mode_max
     };
 
     enum menu
@@ -46,22 +52,19 @@ public:
         channel_menu_max
     };
 
+    enum play_menu
+    {
+        play_menu_speed,
+
+        play_menu_max
+    };
+
 public:
     explicit QPlayMenu(QWidget *toolwidget, QWidget *parent = nullptr);
 
     void initConnect();
 private:
     void init();
-    void initBaseAction();
-    void initSubMenu();
-    void initSubMenuAction();
-    void initSubMenuActions(const QStringList&, menu, bool bCheckedalbe = true, bool bNeedGroup = true);
-    void initSoundTrackActions();
-    void initRenderActions();
-    void initDecoderActions();
-    void initSpeedActions();
-    void initPlayActions();
-    void initChannelSubMenu();
     void prepareData();
 signals:
     void soundTrack(int);
@@ -70,6 +73,7 @@ signals:
     void loadUrl();
     void subtitleModify();
     void speed(int);
+    void mode(int);
 
 private slots:
     void onLoadConfig();
@@ -79,22 +83,15 @@ private slots:
     void onRenderTriggered(QAction *action);
     void onDecoderTriggered(QAction *action);
     void onSpeedTriggered(QAction *action);
-    void onPlayTriggered(QAction *action);
+    void onPlayModeTriggered(QAction *action);
     void onChannelTriggered(QAction *action);
 
     void onAdjustTriggered(bool bCheck);
-    void onSupport(const QMap<int, QString>&);
     void onStreamInfo(const QStringList &list, int nChannel, int nDefault);
     void onEnd();
+    void onPlayMode(int);
 private:
     QWidget* m_parent;
-    QAction* m_actions[action_max];
-    QMenu* m_menus[menu_max];
-    QMenu* m_channelMenus[menu_max];
-
-    QActionGroup* m_group[menu_max];
-    QActionGroup* m_channelGroup[channel_menu_max];
-
     QString m_sCurRender;
     int m_nCurDecoder;
 };

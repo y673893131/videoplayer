@@ -33,7 +33,7 @@ public:
 	D3DClass(const D3DClass&);
 	~D3DClass();
 
-    bool Initialize(unsigned int,unsigned int, bool, HWND, bool, float, float);
+    bool Initialize(unsigned int,unsigned int, bool, HWND, bool, float, float, float, float);
 	void Shutdown();
 	
 	void BeginScene(float, float, float, float);
@@ -51,6 +51,8 @@ public:
 	void TurnZBufferOn();
 	void TurnZBufferOff();
 
+    void ResetViewport(float, float);
+
 private:
 	bool m_vsync_enabled;
 	int m_videoCardMemory;
@@ -67,6 +69,9 @@ private:
 	D3DXMATRIX m_worldMatrix;
 	D3DXMATRIX m_orthoMatrix;
 	ID3D11DepthStencilState* m_depthDisabledStencilState;
+    D3D11_VIEWPORT m_viewport;
+    unsigned int m_width;
+    unsigned int m_height;
 };
 
 #endif

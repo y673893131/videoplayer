@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QDateTime>
 #include <QApplication>
+#include <QIcon>
 #include <math.h>
 #include <QMessageBox>
 #include <QKeyEvent>
@@ -26,10 +27,15 @@
 #endif
 #include "render/qrenderfactory.h"
 #include "filter/qinputfilter.h"
+
 //#define QSS_MONITOR
 
 Widget::Widget(QWidget *parent)
+#ifdef Q_OS_WIN
+    : QWinThumbnail(parent)
+#else
     : QFrameLessWidget(parent)
+#endif
 {
     init();
     APPEND_EXCEPT_FILTER(this);
@@ -58,6 +64,7 @@ void Widget::initData()
 void Widget::initStyle()
 {
     qApp->setApplicationName("vPlay");
+    qApp->setWindowIcon(QIcon(":/app/logo"));
     InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_ui_");
     setAcceptDrops(true);
 }
@@ -66,16 +73,18 @@ void Widget::initResource()
 {
     m_control = new QVideoControl(this);
     m_render = new QRenderFactory(this);
-//    m_video = new VIDEO_TYPE(this);
     m_toolbar = new QToolWidgets(m_render->renderWidget());
-    m_toolbar->show();
-
     m_control->setToolBar(m_toolbar);
 
     auto layout = new QVBoxLayout(this);
     layout->setMargin(0);
     layout->addWidget(m_render->renderWidget());
 
+#ifdef unix
+    auto layoutRender = new QVBoxLayout(m_render->renderWidget());
+    layoutRender->setMargin(0);
+    layoutRender->addWidget(m_toolbar);
+#endif
     initConnect();
     flushQss();
 }
@@ -87,23 +96,38 @@ void Widget::initConnect()
     connect(this, &Widget::leftPress, m_toolbar, &QToolWidgets::onLeftPress);
     connect(this, &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
     connect(this, SIGNAL(leftDoubleClicked()), m_toolbar, SLOT(onFull()));
+#ifdef Q_OS_WIN
+    connect(this, &Widget::thumb, m_toolbar, &QToolWidgets::thumb);
+    connect(m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
+    connect(m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
+#endif
 
+    connect(m_toolbar, &QToolWidgets::showMin, this, &Widget::showMinimized);
     connect(m_control, SIGNAL(appendFrame(void*)), renderWd, SLOT(onAppendFrame(void*)), Qt::QueuedConnection);
+    connect(m_control, SIGNAL(appendFreq(float*, unsigned int)), renderWd, SLOT(onAppendFreq(float*, unsigned int)), Qt::QueuedConnection);
     connect(m_control, SIGNAL(start(int)), renderWd, SLOT(onStart()));
     connect(m_control, SIGNAL(end(int)), renderWd, SLOT(onStop()));
     connect(m_control, SIGNAL(videoSizeChanged(int, int)), renderWd, SLOT(onVideoSizeChanged(int, int)));
+    connect(m_control, &QVideoControl::play, this, [this](const QString& sPath){ auto sName = sPath.mid(sPath.lastIndexOf('/') + 1); setWindowTitle(sName); });
+    connect(m_control, &QVideoControl::end, this, [this]{ setWindowTitle("vPlay"); });
 
-    connect(m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
-    connect(m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
-    connect(m_toolbar, &QToolWidgets::showMin, this, &Widget::showMinimized);
+//    connect(m_toolbar, &QToolWidgets::_move, this, &Widget::onMoved);
+//    connect(this, &Widget::moved, m_toolbar, [=](const QPoint& pos){m_toolbar->move(pos);});
+
+//    connect(m_toolbar, &QToolWidgets::_resize, this, &Widget::onResized);
+//    connect(this, &Widget::resized, m_toolbar, [=](const QSize& size){ m_toolbar->resize(size); });
+
+//    connect(m_toolbar, &QToolWidgets::showNor, this, &Widget::showNormal);
+//    connect(m_toolbar, &QToolWidgets::showFull, this, &Widget::showFullScreen);
     connect(m_toolbar, &QToolWidgets::exit, this, &Widget::onExit);
     connect(m_toolbar, &QToolWidgets::topWindow, this, &Widget::onTopWindow);
     connect(m_toolbar, SIGNAL(viewAdjust(bool)), renderWd, SLOT(onViewAdjust(bool)));
 
-    QTimer::singleShot(1000, [=]
+    QTimer::singleShot(1000, this, [=]
     {
         auto bTop = GET_CONFIG_DATA(Config::Data_TopWindow).toBool();
         onTopWindow(bTop);
+        m_toolbar->show();
     });
 }
 
@@ -122,19 +146,12 @@ void Widget::flushQss()
 
 void Widget::flushInitSize()
 {
-    auto func = [=]{
-        CALC_WIDGET_SIZE(m_toolbar, 800, 600);
-        CENTER_DESKTOP(m_toolbar);
-    };
-
-    if(m_render->isUpdate())
-    {
-        func();
-    }
-    else
-    {
-        QTimer::singleShot(0, func);
-    }
+#ifdef unix
+    CALC_WIDGET_SIZE(this, 800, 600);
+    CENTER_DESKTOP(this);
+#else
+    m_toolbar->show();
+#endif
 }
 
 void Widget::onExit()
@@ -185,10 +202,9 @@ void Widget::mouseMoveEvent(QMouseEvent *event)
     emit m_toolbar->hideOrShow(false);
 }
 
-
 inline bool checkFile(const QString& file, const QStringList& types)
 {
-    for(auto type : types)
+    for(auto&& type : qAsConst(types))
     {
         if(type.length() > file.length()) continue;
         if(file.lastIndexOf(type, file.length() - type.length(), Qt::CaseInsensitive) > 0)
@@ -205,7 +221,7 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
     {
         auto file = urls.begin()->toLocalFile();
         QStringList types;
-        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".aac"<< ".h264";
+        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".wav" << ".aac"<< ".h264";
         if(checkFile(file, types))
             event->accept();
     }
@@ -219,7 +235,7 @@ void Widget::dropEvent(QDropEvent *event)
         emit inputUrlFile(file);
         return;
     }
-    emit m_toolbar->load(event->mimeData()->urls().begin()->toLocalFile());
+    emit m_toolbar->load(QStringList(event->mimeData()->urls().begin()->toLocalFile()));
 }
 
 

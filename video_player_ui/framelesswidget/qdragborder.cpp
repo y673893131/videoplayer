@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QDebug>
 #include <QDesktopWidget>
+#include <QPainterPath>
 QDragBorder::QDragBorder(QWidget *parent)
     : QWidget(QApplication::desktop()),m_width(10),m_parent(parent)
 {
@@ -17,12 +18,14 @@ void QDragBorder::setStartPos(const QPoint &startPos,const QPoint &mouse)
     m_bk = QGuiApplication::primaryScreen()->grabWindow(0).toImage();
     m_startPos = startPos;
     m_mouseStart = mouse;
-    move(m_startPos);
+//    move(m_startPos);
+    qDebug() << "press" << m_mouseStart;
 }
 
 void QDragBorder::setMovePos(const QPoint &movePos)
 {
-    move(m_startPos + movePos - m_mouseStart);
+//    move(/*m_startPos + */movePos - m_mouseStart);
+    qDebug() << m_startPos + movePos - m_mouseStart << movePos << m_startPos;
 //    update();
 }
 
@@ -30,7 +33,7 @@ void QDragBorder::setWidth(int width)
 {
     m_width = width;
 }
-#include <QPainterPath>
+
 void QDragBorder::paintEvent(QPaintEvent * /*event*/)
 {
 //    qDebug() << "paint";

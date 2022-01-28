@@ -7,6 +7,7 @@
 #include "../preview/core_preview.h"
 #include "../thread/core_thread_video.h"
 #include "../thread/core_thread_audio.h"
+#include "../thread/core_thread_subtitle.h"
 #include "../filter/core_filter.h"
 #include "../save/core_save.h"
 #include "video_player_core.h"
@@ -56,10 +57,12 @@ private:
     bool testFlag(int bit);
     void setState(int state);
     void seek();
+    int getSeekFlag(core_decoder* decoder, int64_t);
     void pushSeekPkt();
     void channelChange();
     bool push_frame(bool& bSeek);
-    bool checkSeekPkt(AVPacket* pk);
+    bool checkSeekPkt(core_decoder* decoder, AVPacket* pk);
+    int64_t start_time();
 public:
     video_interface* _cb;
 private:
@@ -74,19 +77,22 @@ private:
     core_decoder_audio* _audio;
     core_decoder_subtitle* _subtitle;
     std::vector<_stream_channel_info_*> _channels[channel_max];
-    int _vRead, _aRead;
-    int _channel, _channelSel;
+    unsigned int _channel, _channelSel;
     int _decodeType;
     int _speed;
+    bool _capture;
 
     core_preview* m_preview;
     core_thread_audio* _audio_thread;
     core_thread_video* _video_thread;
+    core_thread_subtitle* _subtitle_thread;
     core_save* _save;
     friend class core_thread;
     friend class core_thread_audio;
     friend class core_thread_video;
+    friend class core_thread_subtitle;
     friend class core_filter;
+    friend class core_save_base;
 };
 
 #endif // CORE_MEDIA_H

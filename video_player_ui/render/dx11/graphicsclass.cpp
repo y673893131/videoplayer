@@ -14,6 +14,7 @@ GraphicsClass::GraphicsClass()
     m_Camera = nullptr;
     m_TextureShader = nullptr;
     m_Bitmap = nullptr;
+    m_freq = nullptr;
 }
 
 
@@ -27,7 +28,7 @@ GraphicsClass::~GraphicsClass()
 }
 
 
-bool GraphicsClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, HWND hwnd)
+bool GraphicsClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, HWND hwnd, float wScale, float hScale)
 {
 	bool result;
 
@@ -40,7 +41,7 @@ bool GraphicsClass::Initialize(unsigned int screenWidth, unsigned int screenHeig
 	}
 
 	// Initialize the Direct3D object.
-	result = m_D3D->Initialize(screenWidth, screenHeight, VSYNC_ENABLED, hwnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
+    result = m_D3D->Initialize(screenWidth, screenHeight, VSYNC_ENABLED, hwnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR, wScale, hScale);
 	if(!result)
 	{
 		MessageBox(hwnd, L"Could not initialize Direct3D.", L"Error", MB_OK);
@@ -73,19 +74,33 @@ bool GraphicsClass::Initialize(unsigned int screenWidth, unsigned int screenHeig
 	}
 
 	// Create the bitmap object.
-	m_Bitmap = new BitmapClass;
-	if(!m_Bitmap)
-	{
-		return false;
-	}
+    m_Bitmap = new BitmapClass;
+    if(!m_Bitmap)
+    {
+        return false;
+    }
 
-	// Initialize the bitmap object.
+    // Initialize the bitmap object.
     result = m_Bitmap->Initialize(m_D3D->GetDevice(), screenWidth, screenHeight, m_D3D->GetDeviceContext(), screenWidth, screenHeight);
-	if(!result)
-	{
-		MessageBox(hwnd, L"Could not initialize the bitmap object.", L"Error", MB_OK);
-		return false;
-	}
+    if(!result)
+    {
+        MessageBox(hwnd, L"Could not initialize the bitmap object.", L"Error", MB_OK);
+        return false;
+    }
+
+    m_freq = new FreqClass;
+    if(!m_freq)
+    {
+        return false;
+    }
+
+    // Initialize the bitmap object.
+    result = m_freq->Initialize(m_D3D->GetDevice(), screenWidth, screenHeight, m_D3D->GetDeviceContext(), screenWidth, screenHeight);
+    if(!result)
+    {
+        MessageBox(hwnd, L"Could not initialize the freq object.", L"Error", MB_OK);
+        return false;
+    }
 
 	return true;
 }
@@ -100,6 +115,13 @@ void GraphicsClass::Shutdown()
 		delete m_Bitmap;
         m_Bitmap = nullptr;
 	}
+
+    if(m_freq)
+    {
+        m_freq->Shutdown();
+        delete m_freq;
+        m_freq = nullptr;
+    }
 
 	// Release the texture shader object.
 	if(m_TextureShader)
@@ -142,17 +164,43 @@ bool GraphicsClass::Frame(void* data)
 	}
 	
 	// Render the graphics scene.
-    result = Render(rotation, data);
+    result = Render(rotation, data, nullptr, 0);
 	if(!result)
 	{
 		return false;
 	}
 
-	return true;
+    return true;
 }
 
+bool GraphicsClass::Freq(float * data, unsigned int size)
+{
+    bool result;
+    static float rotation = 0.0f;
 
-bool GraphicsClass::Render(float /*rotation*/, void* data)
+    // Update the rotation variable each frame.
+    rotation += static_cast<float>(D3DX_PI * 0.005);
+    if(rotation > 360.0f)
+    {
+        rotation -= 360.0f;
+    }
+
+    // Render the graphics scene.
+    result = Render(rotation, nullptr, data, size);
+    if(!result)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void GraphicsClass::ResetViewport(float fScaleX, float fScaleY)
+{
+    m_D3D->ResetViewport(fScaleX, fScaleY);
+}
+
+bool GraphicsClass::Render(float /*rotation*/, void* data, float* freq, unsigned int freqSize)
 {
 	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
 	bool result;
@@ -160,7 +208,7 @@ bool GraphicsClass::Render(float /*rotation*/, void* data)
 	// Clear the buffers to begin the scene.
     m_D3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
 
-    if(!data)
+    if(!data && !freq)
     {
         m_D3D->EndScene();
         return true;
@@ -177,20 +225,37 @@ bool GraphicsClass::Render(float /*rotation*/, void* data)
 	// Turn off the Z buffer to begin all 2D rendering.
 	m_D3D->TurnZBufferOff();
 
-	// Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
-	result = m_Bitmap->Render(m_D3D->GetDeviceContext(), 0, 0);
-	if(!result)
-	{
-		return false;
-	}
+    if(data)
+    {
+        // Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
+        result = m_Bitmap->Render(m_D3D->GetDeviceContext(), 0, 0);
+        if(!result)
+        {
+            return false;
+        }
 
-	// Render the bitmap with the texture shader.
-    result = m_TextureShader->Render(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), m_Bitmap->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Bitmap->texture(), data);
-	if(!result)
-	{
-		return false;
-	}
+        // Render the bitmap with the texture shader.
+        result = m_TextureShader->Render(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), m_Bitmap->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Bitmap->texture(), data);
+        if(!result)
+        {
+            return false;
+        }
+    }
+    else if(freq)
+    {
+        result = m_freq->Render(m_D3D->GetDeviceContext(), 0, 0, freq, freqSize);
+        if(!result)
+        {
+            return false;
+        }
 
+        // Render the bitmap with the texture shader.
+        result = m_TextureShader->Render(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), m_freq->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_freq, freq);
+        if(!result)
+        {
+            return false;
+        }
+    }
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_D3D->TurnZBufferOn();
 

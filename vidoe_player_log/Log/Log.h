@@ -29,22 +29,25 @@ enum Log_Level
 	Log_Err
 };
 
+#ifndef WIN32
+class __attribute__((visibility("hidden"))) CLog
+#else
 class CLog
+#endif
 {
 public:
 	~CLog();
     static CLog* Instanse(const char* sDir = nullptr, const char* sPrifix = nullptr);
     bool AddLog(Log_Level level, const char* function, int line, const char* sFormat, ...);
-    bool AddLogB(Log_Level level, const char* sFormat, ...);
 private:
     CLog(const char* sDir = nullptr, const char* sPrifix = nullptr);
 	CLog(const CLog&);
     char* CurTime(char* buff, struct tm* time1 = nullptr, time_t subSecond = 0, int* microSec = nullptr);
-	void Open(const char* sDate);
+    void Open(const char* sDate);
     void write(char* str, int nlength, int nLevel);
 	void AutoDeleteFile();
 private:
-//	static CLog* m_log;
+    static CLog* m_log;
 	FILE* m_file;
 	char m_sText[MAX_BUFFER];
 	char m_attrDir[MAX_ATTR];
@@ -59,4 +62,4 @@ private:
 #define InitLogInstance(x, y) CLog::Instanse(x, y)
 
 #define Log(l, format, ...) CLog::Instanse()->AddLog(l, __FUNCTION__, __LINE__, format, ##__VA_ARGS__)
-#define LogB(l, format, ...) CLog::Instanse()->AddLogB(l, format, ##__VA_ARGS__)
+#define LogB(l, format, ...) CLog::Instanse()->AddLog(l, nullptr, 0, format, ##__VA_ARGS__)

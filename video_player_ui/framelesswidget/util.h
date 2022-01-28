@@ -23,8 +23,14 @@ public:
     int setDesktopPercentHeight(QWidget* widget, int w);
     void centerDesktop(QWidget* widget = Q_NULLPTR);
     void center(QWidget* widget = Q_NULLPTR);
+#ifdef Q_OS_WIN
     void setWindowEllispeFrame(QWidget* widget, int nWidthEllipse, int nHeightEllipse);
+#endif
     int getMs(const QString& s);
+
+    QSize desktopSize() const;
+
+    void flush(QWidget*);
 private:
     CUtil();
 private:

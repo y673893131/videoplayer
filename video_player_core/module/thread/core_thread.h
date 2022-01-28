@@ -14,6 +14,8 @@ protected:
     bool checkOpt();
     void setFlag(int bit, bool value = true);
     bool testFlag(int bit);
+    bool tryPause();
+    void tryStop(int bit);
 protected:
     core_media* m_media;
 };

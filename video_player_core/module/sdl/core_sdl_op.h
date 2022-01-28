@@ -32,12 +32,15 @@
 
 typedef void (*audioCallback)(void*, unsigned char*, int);
 class core_thread_audio;
+class video_interface;
+class FFTRealWrapper;
 class core_sdl_op
 {
 public:
     core_sdl_op();
     virtual ~core_sdl_op();
 
+    void resetSpec();
     void setCodecContext(AVCodecContext* ctx);
     bool initResample();
     bool init(audioCallback cb, void* userdata);
@@ -45,7 +48,8 @@ public:
     int getVol();
     void setChannelType(int);
 
-    void formatChannelType(Uint8*,int);
+    void formatChannelType(Uint8*, unsigned int, video_interface*);
+    void formatFreq(Uint8*, unsigned int, video_interface*);
     void resampleFrame(AVFrame*, unsigned int& bufferSize);
 
     bool checkSDL();
@@ -54,8 +58,6 @@ public:
     void closeSDL();
     void startSDL();
     void pauseSDL();
-
-
 private:
     int nAudioId;
     AVCodecContext* decodectx;
@@ -70,8 +72,11 @@ private:
     float fVolPercent;
     int nVol;
     int m_audioChannelType;
+    unsigned int m_spectrumIndex;
+#define FREQ_POINT 16384
+    FFTRealWrapper* m_fft;
+    char m_spec[FREQ_POINT];
     SwrContext *swrCtx;
-
     friend class core_thread_audio;
 };
 

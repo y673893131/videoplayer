@@ -4,13 +4,6 @@
 #include "video_player_core.h"
 #include "../common.h"
 
-#define set_int_list(filter, name, value) av_opt_set_int_list(\
-        filter,\
-        name,\
-        value,\
-        -1,\
-        AV_OPT_SEARCH_CHILDREN);
-
 class core_filter_private;
 class core_filter_base
 {

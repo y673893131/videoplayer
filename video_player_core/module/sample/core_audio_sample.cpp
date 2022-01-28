@@ -8,7 +8,6 @@ core_audio_sample::core_audio_sample()
 {
     layout = av_get_default_channel_layout(channels);
     layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
-    LogB(Log_Info, "[dst audio layout] %p", layout);
 }
 
 core_audio_sample::core_audio_sample(const AVCodecContext *ctx)

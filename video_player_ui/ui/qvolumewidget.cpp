@@ -12,8 +12,10 @@ QVolumeWidget::QVolumeWidget(QWidget *parent)
 {
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_ShowModal, false);
+#ifdef Q_OS_WIN
     setResizeable(false);
-
+#endif
+    setDragSelf(false);
     setObjectName("volume_widget");
     m_volume = new QColumeSlider(Qt::Orientation::Vertical, this);
 

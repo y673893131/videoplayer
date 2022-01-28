@@ -17,9 +17,9 @@ struct audio_output_format
     int64_t channel_layouts[2];
     int sample_rates[2];
     int atempo;
-    char sAtempo[20];
+    std::string sAtempo;
     int volume;
-    char sVolume[20];
+    std::string sVolume;
 };
 
 class core_filter_audio : public core_filter_base
