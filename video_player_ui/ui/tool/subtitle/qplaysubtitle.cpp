@@ -97,7 +97,7 @@ void QPlaySubtitle::onChannelModify()
 void QPlaySubtitle::onSetEngine(int index)
 {
     VP_D(QPlaySubtitle);
-//    d->m_engine->setEngine(index);
+    d->m_engine->setEngine(index);
 }
 
 
