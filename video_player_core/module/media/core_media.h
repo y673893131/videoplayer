@@ -89,6 +89,7 @@ private:
     core_save* _save;
     friend class core_thread;
     friend class core_thread_audio;
+    friend class core_thread_demux;
     friend class core_thread_video;
     friend class core_thread_subtitle;
     friend class core_filter;

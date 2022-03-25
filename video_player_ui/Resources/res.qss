@@ -101,14 +101,13 @@ QListView#list_file:item:hover:!focus
 
 QPushButton#btn_stop
 {
+    background-color:transparent;
+    border-image:url(:/tool/stop);
     outline: none;
-    border-radius:0px;
-    background: white;
 }
 QPushButton#btn_stop::hover
 {
-background: #FF5C38;
-    border:none;
+    border-image:url(:/tool/stop_hover);
 }
 QPushButton#btn_play
 {
@@ -501,6 +500,7 @@ QMenu#menu1::item:selected
 #input_url_widget
 {
     background: white;
+    border: 1px solid #257ABF;
 }
 
 #input_url_title_widget
@@ -532,6 +532,29 @@ QMenu#menu1::item:selected
 }
 
 #input_url_btn:hover
+{
+    background: #2E2F30;
+}
+
+#media_info_widget
+{
+    background: white;
+    border: 1px solid #257ABF;
+}
+
+#media_info_title
+{
+    font: 14px "Microsoft YaHei";
+    color: #2E2F30;
+}
+
+#media_info_value
+{
+    font: 14px "Microsoft YaHei";
+    color: black;
+}
+
+#bit_rate_display_widget
 {
     background: #2E2F30;
 }

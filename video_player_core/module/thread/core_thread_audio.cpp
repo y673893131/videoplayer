@@ -29,6 +29,8 @@ core_thread_audio::core_thread_audio()
 
 void core_thread_audio::sdl_audio_call(void *data, Uint8 *stream, int len)
 {
+//    SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_HIGH);
+//    ::SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
     auto info = static_cast<core_thread_audio*>(data);
     info->audio_call(stream, static_cast<unsigned int>(len));
 }
@@ -76,6 +78,12 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
         {
             memset(stream, 0, lenTMP);
             sdl->formatChannelType(reinterpret_cast<uint8_t*>(buff) + index, lenTMP, m_media->_cb);
+#ifdef AUDIO_WAVE_DISPLAY
+            if(m_media->_video->index() < 0)
+            {
+                sdl->formatFreq(reinterpret_cast<uint8_t*>(buff) + index, lenTMP, m_media->_cb);
+            }
+#endif
 //#ifdef AUDIO_FILTER
 //            Log(Log_Debug, "play buff[%u], lenTmp/len=%u/%u", index, lenTMP, size);
 //#endif
@@ -174,6 +182,7 @@ unsigned int core_thread_audio::audio_decode()
         if(vIndex < 0)
         {
             m_media->_cb->posChange(audio.displayClock() - start_time);
+            m_media->_cb->bitRate(pk.size);
             tryPause();
         }
 

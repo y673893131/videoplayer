@@ -49,7 +49,7 @@ public:
     void setChannelType(int);
 
     void formatChannelType(Uint8*, unsigned int, video_interface*);
-    void formatFreq(Uint8*, unsigned int, video_interface*);
+    bool formatFreq(Uint8*, unsigned int, video_interface*);
     void resampleFrame(AVFrame*, unsigned int& bufferSize);
 
     bool checkSDL();

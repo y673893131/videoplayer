@@ -4,13 +4,9 @@
 #include <QObject>
 #include <QtSql/QSqlDatabase>
 #include <QSqlQuery>
+#include <memory>
 
-struct file_info_t
-{
-    QString name;
-    QString url;
-    int times;
-};
+struct file_info_t;
 
 class QDataModel : public QObject
 {
@@ -23,7 +19,7 @@ private:
 
     void init();
 signals:
-    void loadsuccessed(const QVector<file_info_t>&);
+    void loadsuccessed(const QVector<std::shared_ptr<file_info_t>>&);
     void addUrlSuccess(const QString&);
 public slots:
     void onAddUrl(const QStringList& list);

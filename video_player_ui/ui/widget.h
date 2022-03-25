@@ -4,11 +4,8 @@
 #include <QWidget>
 #include <framelesswidget/framelesswidget.h>
 #include <QDateTime>
-#include "qtoolwidgets.h"
 
-class QRenderFactory;
-class QToolWidgets;
-class QVideoControl;
+class WidgetPrivate;
 #ifdef Q_OS_WIN
 #include "ui/thumb/qwinthumbnail.h"
 class Widget : public QWinThumbnail
@@ -17,7 +14,7 @@ class Widget : public QFrameLessWidget
 #endif
 {
     Q_OBJECT
-
+    VP_DECLARE_PRIVATE(Widget)
 public:
     Widget(QWidget *parent = nullptr);
     ~Widget() override;
@@ -30,7 +27,6 @@ private slots:
     void onTopWindow(bool);
     void onFlushSheetStyle();
 private:
-    Q_DISABLE_COPY(Widget)
     void init();
     void initData();
     void initStyle();
@@ -43,9 +39,5 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
-private:
-    QRenderFactory* m_render;
-    QToolWidgets* m_toolbar;
-    QVideoControl* m_control;
 };
 #endif // WIDGET_H

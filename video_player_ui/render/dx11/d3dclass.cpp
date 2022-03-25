@@ -46,10 +46,8 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	D3D11_RASTERIZER_DESC rasterDesc;
-	D3D11_VIEWPORT viewport;
 	float fieldOfView, screenAspect;
 	D3D11_DEPTH_STENCIL_DESC depthDisabledStencilDesc;
-
 
 	// Store the vsync setting.
 	m_vsync_enabled = vsync;
@@ -340,28 +338,9 @@ bool D3DClass::Initialize(unsigned int screenWidth, unsigned int screenHeight, b
 	m_deviceContext->RSSetState(m_rasterState);
 	
 	// Setup the viewport for rendering.
-    viewport.Width = xScale * screenWidth;
-    viewport.Height = yScale * screenHeight;
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
-    viewport.TopLeftX = 0.0f;
-    viewport.TopLeftY = 0.0f;
-
-    if(xScale != 1.0f)
-    {
-        viewport.TopLeftX = (1.0f - xScale) * screenWidth / 2;
-    }
-
-    if(yScale != 1.0f)
-    {
-        viewport.TopLeftY = (1.0f - yScale) * screenHeight / 2;
-    }
-
-	// Create the viewport.
-    m_viewport = viewport;
     m_width = screenWidth;
     m_height = screenHeight;
-    m_deviceContext->RSSetViewports(1, &m_viewport);
+    ResetViewport(xScale, yScale);
 
 	// Setup the projection matrix.
     fieldOfView = static_cast<float>(D3DX_PI / 4.0);
@@ -584,5 +563,7 @@ void D3DClass::ResetViewport(float xScale, float yScale)
     {
         m_viewport.TopLeftY = (1.0f - yScale) * m_height / 2;
     }
+
+    // Create the viewport.
     m_deviceContext->RSSetViewports(1, &m_viewport);
 }

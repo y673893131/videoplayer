@@ -11,6 +11,7 @@ public:
 
     bool start(core_media* media) override;
 private:
+    static unsigned __stdcall video_entry(void* p);
     void threadCall();
 };
 

@@ -11,6 +11,7 @@
 #include <D3D11.h>
 #include <D3DX11tex.h>
 #include "video_player_core.h"
+#include "render/videoframe.h"
 
 #ifdef FRAME_RGB
 #define USE_RGBA
@@ -32,7 +33,7 @@ public:
 	~TextureClass();
 
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, unsigned int width, unsigned int height);
-    void Render(ID3D11Device* device, ID3D11DeviceContext* deviceContext, void* data);
+    void Render(ID3D11Device* device, ID3D11DeviceContext* deviceContext, _VideoFramePtr frame);
 	void Shutdown();
     ID3D11Texture2D **tex();
     ID3D11ShaderResourceView** GetTexture();

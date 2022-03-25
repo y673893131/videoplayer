@@ -56,7 +56,7 @@ decoder_check:
     m_convert->setsrcCodec(pCodecContext);
 #endif
     Log(Log_Info, "thread_id:%u", core_util::getThreadId());
-    Log(Log_Info, "video src size (%d,%d)!", pCodecContext->width, pCodecContext->height);
+    Log(Log_Info, "video src size (%d,%d) bit_rate[%lld]!", pCodecContext->width, pCodecContext->height, pCodecContext->bit_rate);
 
     return true;
 }
@@ -107,6 +107,11 @@ bool core_decoder_video::checkSeekPkt(AVPacket *pk)
         return true;
 
     return false;
+}
+
+void core_decoder_video::initDecodeType(int type)
+{
+    m_decodeType = type;
 }
 
 bool core_decoder_video::changeDecodeType(AVPacket *pk, int type)
@@ -189,7 +194,6 @@ void core_decoder_video::displayFrame(video_interface *cb)
 #else
     if(m_convert)
     {
-
         m_convert->scale(frame, cb);
     }
 #endif

@@ -21,8 +21,8 @@ core_filter_video::~core_filter_video()
 
 void core_filter_video::setScale(int w, int h)
 {
-    w = FFALIGN(w, 64);
-    h = FFALIGN(h, 64);
+//    w = FFALIGN(w, 64);
+//    h = FFALIGN(h, 16);
     if(outFormat.w != w || outFormat.h != h)
     {
         outFormat.w = w;
@@ -65,15 +65,29 @@ uint8_t *core_filter_video::buffer()
 
 bool core_filter_video::initParam(AVStream *stream, AVCodecContext *pCodecContext)
 {
+    if(pCodecContext->width <= 0 || pCodecContext->height <= 0)
+    {
+        return false;
+    }
+
+    auto pix_fmt = pCodecContext->pix_fmt;
+    auto aspect_num = pCodecContext->sample_aspect_ratio.num;
+    auto aspect_den = pCodecContext->sample_aspect_ratio.den;
+    if(pCodecContext->sw_pix_fmt != AV_PIX_FMT_NONE)
+    {
+        pix_fmt = pCodecContext->sw_pix_fmt;
+    }
+
     char args[256] = {};
     _snprintf(args, sizeof(args),
                 "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                 pCodecContext->width,
                 pCodecContext->height,
-                pCodecContext->pix_fmt,
-                stream->time_base.num, stream->time_base.den,
-                stream->codecpar->sample_aspect_ratio.num,
-                stream->codecpar->sample_aspect_ratio.den);
+                pix_fmt,
+                stream->time_base.num,
+                stream->time_base.den,
+                aspect_num,
+                aspect_den);
 
     m_private->m_sGraphArg = args;
 
@@ -114,18 +128,37 @@ bool core_filter_video::initFilter()
 
 AVFrame *core_filter_video::mix(AVFrame *in)
 {
+    if(!m_bInit)
+    {
+        if(!init(m_private->m_stream, m_private->m_codecCtx))
+            return nullptr;
+    }
     auto frame = core_filter_base::mix(in);
     if(frame)
     {
 //        int ret = av_image_fill_arrays(frame->data, frame->linesize, outFormat.buffer, outFormat.pixel_formats[0], outFormat.w, outFormat.h, 1);
-        auto length = frame->linesize[0] * frame->height;
-        auto index = 0;
-        memcpy(outFormat.buffer + index, frame->data[0], length);
-        index += length;
-        length /= 4;
-        memcpy(outFormat.buffer + index, frame->data[1], length);
-        index += length;
-        memcpy(outFormat.buffer + index, frame->data[2], length);
+//        auto length = frame->linesize[0] * frame->height;
+//        auto index = 0;
+//        memcpy(outFormat.buffer + index, frame->data[0], length);
+//        index += length;
+//        length /= 4;
+//        memcpy(outFormat.buffer + index, frame->data[1], length);
+//        index += length;
+//        memcpy(outFormat.buffer + index, frame->data[2], length);
+
+        int ret = av_image_copy_to_buffer(
+                    outFormat.buffer,
+                    static_cast<int>(outFormat.size),
+                    const_cast<const uint8_t * const *>(frame->data),
+                    frame->linesize,
+                    static_cast<AVPixelFormat>(frame->format),
+                    frame->width, frame->height, 1);
+        if(ret < 0)
+        {
+            char error[1024] ={};
+            av_strerror(ret, error, 1024);
+            LogB(Log_Err, error);
+        }
     }
 
     return frame;

@@ -3,24 +3,20 @@
 
 #include "qplaymenubase.h"
 #include "video_player_core.h"
+#include "video_pimpl.h"
 
 class QActionGroup;
+class QPlayMenuPrivate;
 class QPlayMenu : public QPlayMenuBase
 {
     Q_OBJECT
-
+    VP_DECLARE(QPlayMenu)
+    VP_DECLARE_PRIVATE(QPlayMenu)
 public:
-    enum action
-    {
-        action_adjust,
-        action_top_window,
-        action_capture,
-        action_line0,
-        action_url,
-        action_line1,
+    explicit QPlayMenu(QWidget *toolwidget, QWidget *parent = nullptr);
+    ~QPlayMenu() override;
 
-        action_max
-    };
+    void initConnect();
 
     enum play_mode
     {
@@ -31,69 +27,43 @@ public:
         play_mode_max
     };
 
-    enum menu
+    enum play_size
     {
-        menu_sound_track,
-        menu_render,
-        menu_channel,
-        menu_decoder,
-        menu_speed,
-        menu_play,
+        play_size_video,
+        play_size_window,
+        play_size_16_9,
+        play_size_4_3,
 
-        menu_max
+        play_size_max
     };
 
-    enum channel_menu
-    {
-        channel_menu_video = channel_video,
-        channel_menu_audio = channel_audio,
-        channel_menu_subtitle = channel_subtitle,
-
-        channel_menu_max
-    };
-
-    enum play_menu
-    {
-        play_menu_speed,
-
-        play_menu_max
-    };
-
-public:
-    explicit QPlayMenu(QWidget *toolwidget, QWidget *parent = nullptr);
-
-    void initConnect();
-private:
-    void init();
-    void prepareData();
 signals:
     void soundTrack(int);
     void setDecodeType(int);
     void activeChannel(int,int);
     void loadUrl();
     void subtitleModify();
+    void subtitleEngineModify(int);
     void speed(int);
     void mode(int);
 
-private slots:
-    void onLoadConfig();
-    void onConfigChanged();
+public slots:
     void onPop();
+    void onLoadConfig();
+
+private slots:
+    void onConfigChanged();
     void onSoundTrackTriggered(QAction *action);
     void onRenderTriggered(QAction *action);
     void onDecoderTriggered(QAction *action);
     void onSpeedTriggered(QAction *action);
+    void onSubtitleEngineTriggered(QAction *action);
     void onPlayModeTriggered(QAction *action);
     void onChannelTriggered(QAction *action);
 
-    void onAdjustTriggered(bool bCheck);
     void onStreamInfo(const QStringList &list, int nChannel, int nDefault);
     void onEnd();
     void onPlayMode(int);
-private:
-    QWidget* m_parent;
-    QString m_sCurRender;
-    int m_nCurDecoder;
 };
 
 #endif // QPLAYMENU_H

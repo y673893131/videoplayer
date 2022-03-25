@@ -3,36 +3,26 @@
 
 #ifdef WIN32
 #include "native/qnativewidget.h"
+#include "video_pimpl.h"
 
-#include <D3D11.h>
-#include <D3DX11.h>
-#include <D3Dcompiler.h>
-#include <D3DX10math.h>
-#include "dx11/inputclass.h"
-#include "dx11/graphicsclass.h"
-
+class QDirect3D11WidgetPrivate;
 class QDirect3D11Widget : public QNativeWidget
 {
     Q_OBJECT
+    VP_DECLARE_PRIVATE(QDirect3D11Widget)
 
 public:
-    QDirect3D11Widget(QWidget * parent);
+    explicit QDirect3D11Widget(QWidget * parent = nullptr);
     virtual ~QDirect3D11Widget() override;
 
 private:
-    bool initialize() override;
-    void release();
-    void render() override;
+    bool init(const QSize& size, float x, float y) override;
+    void render(_VideoFramePtr frame, float* freq, unsigned int freqCount) override;
+    void resetView(float, float) override;
 
 public slots:
-    void onViewAdjust(bool) override;
-    void onVideoSizeChanged(int,int);
-    void onAppendFreq(float*, unsigned int);
     void onStart();
     void onStop();
-private:
-    GraphicsClass* m_pGraphics;
-    bool m_bStoped;
 };
 #endif
 #endif /*Q_DIRECT3D11_WIDGET_H*/

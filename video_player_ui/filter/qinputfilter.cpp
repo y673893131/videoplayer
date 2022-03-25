@@ -79,6 +79,9 @@ bool QInputFilter::eventFilter(QObject *watched, QEvent *event)
         case Qt::Key_Space:
             emit space();
             break;
+        case Qt::Key_F3:
+            emit cap();
+            break;
         default:
             return QObject::eventFilter(watched, event);
         }

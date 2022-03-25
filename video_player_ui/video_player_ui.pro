@@ -26,3 +26,24 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 DISTFILES += \
     tr/zh_cn/vPlayTranslate.ts \
     ui.pri
+
+HEADERS += \
+    qtsingleapplication/QtLockedFile \
+    qtsingleapplication/QtSingleApplication \
+    qtsingleapplication/qtlocalpeer.h \
+    qtsingleapplication/qtlockedfile.h \
+    qtsingleapplication/qtsingleapplication.h \
+    qtsingleapplication/qtsinglecoreapplication.h
+
+SOURCES += \
+    qtsingleapplication/qtlocalpeer.cpp \
+    qtsingleapplication/qtlockedfile.cpp \
+    qtsingleapplication/qtsingleapplication.cpp \
+    qtsingleapplication/qtsinglecoreapplication.cpp
+
+win32 {
+SOURCES += qtsingleapplication/qtlockedfile_win.cpp
+}
+else{
+SOURCES += qtsingleapplication/qtlockedfile_unix.cpp
+}

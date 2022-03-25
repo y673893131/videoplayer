@@ -3,17 +3,16 @@
 
 #include <QWidget>
 #include <QAbstractNativeEventFilter>
-#include "nativeevent_win.h"
 #include "util.h"
+#include "video_pimpl.h"
 
-class QDragBorder;
-#ifdef Q_OS_WIN
-class QFrameLessWidget : public QWidget, public CNativeEvent_Win
-#else
+class QFrameLessWidgetPrivate;
 class QFrameLessWidget : public QWidget
-#endif
 {
     Q_OBJECT
+    VP_DECLARE_PRIVATE(QFrameLessWidget)
+protected:
+    VP_DECLARE(QFrameLessWidget)
 signals:
     void leftPress();
     void rightClicked();
@@ -24,7 +23,8 @@ public slots:
     void onMoved(const QPoint&);
     void onResized(const QSize&);
 public:
-    QFrameLessWidget(QWidget *parent = nullptr);
+    explicit QFrameLessWidget(QWidget *parent = nullptr);
+    QFrameLessWidget(QFrameLessWidgetPrivate*, QWidget *parent = nullptr);
     virtual ~QFrameLessWidget() override;
 
     void setDragSelf(bool);
@@ -42,13 +42,6 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
     virtual bool isValid();
     void updateTopWindow();
-protected:
-    bool m_bTopWindow;
-    bool m_bDragEnable;
-    bool m_bDrag;
-private:
-    QImage m_bkImg;
-//    QDragBorder* m_dragBorder;
-    QPoint m_press, m_pos;
+    void setTopWindow(bool);
 };
 #endif // QFrameLessWidget_H

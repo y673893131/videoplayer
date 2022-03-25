@@ -237,13 +237,9 @@ void core_sdl_op::formatChannelType(Uint8* buff, unsigned int size, video_interf
         }
         break;
     }
-
-#ifdef AUDIO_WAVE_DISPLAY
-    formatFreq(buff, size, cb);
-#endif
 }
 
-void core_sdl_op::formatFreq(Uint8 *buff, unsigned int size, video_interface *cb)
+bool core_sdl_op::formatFreq(Uint8 *buff, unsigned int size, video_interface *cb)
 {
     if(m_spectrumIndex + size >= FREQ_POINT)
     {
@@ -267,7 +263,8 @@ void core_sdl_op::formatFreq(Uint8 *buff, unsigned int size, video_interface *cb
 #define LOW_FREQ 0.0
 #define HIGH_FREQ 2000.0
 #define INPUT_FREQ 44100
-        float bar[FREQ_BAR_COUNT] = {};
+        static float bar[FREQ_BAR_COUNT] = {};
+        memset(bar, 0x00, sizeof(bar));
         for(unsigned int i = 2; i <= count; ++i){
 
             auto real = output[i];
@@ -295,11 +292,13 @@ void core_sdl_op::formatFreq(Uint8 *buff, unsigned int size, video_interface *cb
 
 //        LogB(Log_Debug, "%d", size);
         m_spectrumIndex = 0;
+        return true;
     }
     else
     {
         memcpy(static_cast<char*>(m_spec) + m_spectrumIndex, buff, size);
         m_spectrumIndex += size;
+        return false;
     }
 }
 

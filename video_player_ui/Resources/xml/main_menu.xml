@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <menu type="0x00001000">
-    <action name="adjust" type="0x00000001" description="自适应"/>
     <action name="topwindow" type="0x00000001" description="置顶"/>
     <action name="capture" type="0x00000001" description="录制"/>
     <action type="0x00000100"/>
-    <action name="url" type="0x00000000" description="直播流"/>
     <action type="0x00000100"/>
+    <menu name="pop" type="0x00001000" description="打开">
+        <action name="url" type="0x00000000" description="直播流"/>
+        <action name="media_info" type="0x00000000" description="媒体信息"/>
+    </menu>
     <menu name="soundtrack" type="0x00001000" description="声道">
         <action name="all" type="0x00000011" description="全部"/>
         <action name="left" type="0x00000011" description="左"/>
@@ -39,5 +41,19 @@
             <action name="1.0" type="0x00000011" description="1.0倍"/>
             <action name="2.0" type="0x00000011" description="2.0倍"/>
         </menu>
+        <menu name="subtitle_eng" type="0x00001000" description="字幕">
+            <action name="player" type="0x00000011" description="播放器"/>
+            <action name="ass" type="0x00000011" description="ass"/>
+        </menu>
+        <menu name="play_size" type="0x00001000" description="比例">
+            <action name="video" type="0x00000011" description="视频"/>
+            <action name="window" type="0x00000011" description="窗口"/>
+            <action name="16_9" type="0x00000011" description="16:9"/>
+            <action name="4_3" type="0x00000011" description="4:3"/>
+        </menu>
+    </menu>
+    <menu name="setting" type="0x00001000" description="设置">
+        <action name="recent" type="0x00000001" description="最近播放"/>
+        <action name="zero_copy" type="0x00000001" description="0拷贝"/>
     </menu>
 </menu>

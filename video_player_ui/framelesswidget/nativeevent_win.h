@@ -4,20 +4,20 @@
 #include <QWidget>
 #ifdef Q_OS_WIN
 
-#define PADDING 10
-class CNativeEvent_Win
+#include "qframelesswidget_p.h"
+
+class CNativeEvent_Win : public QFrameLessWidgetPrivate
 {
 public:
-    CNativeEvent_Win();
-    virtual ~CNativeEvent_Win();
+    CNativeEvent_Win(QFrameLessWidget* parent = nullptr);
+    ~CNativeEvent_Win() override;
     void setAreo(void*);
     void setShadow(void*);
-    void setResizeable(bool);
-    bool _nativeEvent(const QByteArray &eventType, void *message, long *result, QWidget* widget);
+    bool nativeEvent(const QByteArray &eventType, void *message, long *result, QWidget* widget) override;
     virtual bool isCaption();
-    virtual bool check(void *message, long *result);
+    bool check(void *message, long *result) override;
 private:
-    bool m_bResizeable, m_bShadow;
+    bool m_bShadow;
 };
 
 #endif

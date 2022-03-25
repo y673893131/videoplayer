@@ -1,30 +1,17 @@
 #ifndef QTOOLWIDGETS_H
 #define QTOOLWIDGETS_H
 
-#include <QWidget>
 #include "framelesswidget/framelesswidget.h"
 
-class QLabel;
-class QBoxLayout;
-class QPushButton;
-class QDataModel;
-class QInputUrlWidget;
-class QVolumeWidget;
-class QDouyuWidget;
-class QLivePlatformManager;
-class QVideoControl;
-class QMenu;
-class QActionGroup;
-class QToolBase;
-class QPlayMenu;
-
+class QToolWidgetsPrivate;
 #ifdef Q_OS_WIN
-class QToolWidgets : public QWidget, public CNativeEvent_Win, public QAbstractNativeEventFilter
+class QToolWidgets : public QFrameLessWidget, public QAbstractNativeEventFilter
 #else
-class QToolWidgets : public QWidget
+class QToolWidgets : public QFrameLessWidget
 #endif
 {
     Q_OBJECT
+    VP_DECLARE_PRIVATE(QToolWidgets)
 public:
     enum tools
     {
@@ -59,11 +46,13 @@ signals:
     void showMenu();
     void viewAdjust(bool);
     void topWindow(bool);
-    void inputUrl();
+    void pop(const QString&);
     void inputUrlFile(const QString&);
     void _move(const QPoint&);
     void _resize(const QSize&);
     void thumb(int);
+    void cmd(int, const QString&);
+    void playSize(int);
 public slots:
     void onLoadFile();
     void onLeftPress();
@@ -78,9 +67,6 @@ private:
     void initSize();
     void initConnect();
 
-    void CreateCenterToolbar();
-
-    void CreateMenu(QWidget* parent);
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -89,20 +75,7 @@ private:
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
 #endif
     void resizeEvent(QResizeEvent *event) override;
-
-private:
-    QWidget* m_backWd;
-    QToolBase* m_tools[tool_max];
-    QPushButton *m_openfile/*,* m_filelistIndicator*/,*m_min,*m_max,*m_close;
-    QInputUrlWidget* m_inputUrl;
-    QVolumeWidget* m_volume;
-    bool m_bLocalFile;
-    QDataModel* m_data;
-
-    QPlayMenu* m_playMenu;
-
-    QVideoControl* m_contorl;
-    QTimer* m_autoHidetimer;
+    void paintEvent(QPaintEvent *event) override;
 };
 
 #endif // QTOOLWIDGETS_H

@@ -5,12 +5,14 @@
 #include <QBoxLayout>
 #include <QApplication>
 #include <QTime>
+#include <QFile>
 #include "playlist/qplayfilelistmodel.h"
 #include "playlist/qfilelistview.h"
 #include "ui/qtoolwidgets.h"
 #include "ui/tool/title/qplaytitle.h"
 #include "ui/tool/play_control/qplaycontrol.h"
 #include "ui/tool/menu/qplaymenu.h"
+#include "ui/tool/output/qoutputwidget.h"
 #include "control/videocontrol.h"
 #include "config/config.h"
 
@@ -26,6 +28,12 @@ QFileView::QFileView(QWidget *parent)
 {
     initUi();
     initLayout();
+}
+
+QString QFileView::title(const QString &sUrl)
+{
+    auto model = qobject_cast<QPlayFileListModel*>(m_filelist->model());
+    return model->title(sUrl);
 }
 
 void QFileView::initUi()
@@ -82,6 +90,7 @@ void QFileView::initConnect()
     connect(toolWidget, &QToolWidgets::inputUrlFile, m_filelist, &QFileListView::inputUrlFile);
 #ifdef Q_OS_WIN
     connect(toolWidget, &QToolWidgets::thumb, this, &QFileView::onThumb);
+    connect(toolWidget, &QToolWidgets::cmd, this, &QFileView::onCmd);
 #endif
     connect(m_filelist, &QFileListView::select, this, &QFileView::onHandleStop);
     connect(m_filelist, &QFileListView::select, this, &QFileView::play);
@@ -93,6 +102,7 @@ void QFileView::initConnect()
     connect(control, &QVideoControl::exceptionEnd, this, &QFileView::onExceptionEnd);
 
     connect(this, &QFileView::thumbPlayOrPause, playControl, &QPlayControl::onPlayOrPause);
+    connect(this, &QFileView::thumbStop, control, &QVideoControl::onStoped);
 }
 
 void QFileView::onAutoShow()
@@ -190,6 +200,52 @@ void QFileView::onThumb(int type)
         onNext();
         break;
     }
+}
+
+void QFileView::onCmd(int type, const QString & args)
+{
+    switch (type) {
+    case cmd_type_prev:
+        onHandleStop();
+        onPrev();
+        break;
+    case cmd_type_next:
+        onHandleStop();
+        onNext();
+        break;
+    case cmd_type_play:
+    {
+        auto model = qobject_cast<QPlayFileListModel*>(m_filelist->model());
+        auto index = model->findIndex(args);
+        if(index.isValid())
+        {
+            m_filelist->setCurrentIndex(index);
+            emit m_filelist->select(args);
+        }
+        else
+        {
+            if(QFile::exists(args))
+            {
+                emit m_filelist->addLocalUrl(QStringList(args));
+                auto index = model->findIndex(args);
+                m_filelist->setCurrentIndex(index);
+                emit m_filelist->select(args);
+            }
+            else
+            {
+                auto output = m_parent->findChild<QOutputWidget*>();
+                output->onError(QString("%1 not exist.").arg(args));
+            }
+        }
+    }break;
+    case cmd_type_stop:
+        onHandleStop();
+        emit thumbStop();
+        break;
+    default:
+        break;
+    }
+
 }
 #endif
 

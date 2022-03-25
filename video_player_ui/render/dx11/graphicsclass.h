@@ -13,6 +13,7 @@
 #include "textureshaderclass.h"
 #include "bitmapclass.h"
 #include "freqclass.h"
+#include "render/videoframe.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: GraphicsClass
@@ -26,11 +27,11 @@ public:
 
     bool Initialize(unsigned int, unsigned int, HWND, float, float);
 	void Shutdown();
-    bool Frame(void*);
+    bool Frame(_VideoFramePtr);
     bool Freq(float*, unsigned int);
     void ResetViewport(float, float);
 private:
-    bool Render(float, void*,float*, unsigned int);
+    bool Render(float, _VideoFramePtr,float*, unsigned int);
 
 private:
 	D3DClass* m_D3D;

@@ -143,6 +143,7 @@ void core_thread_subtitle::threadCall()
 
 
 //                media->_cb->posChange(displayVideoClock - start_time);
+                m_media->_cb->bitRate(pk.size);
                 subtitle.displayFrame(media->_cb, start_time);
                 tryPause();
 

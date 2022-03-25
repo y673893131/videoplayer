@@ -53,6 +53,7 @@ protected:
     core_filter_base* m_filter;
 
     friend class core_thread_video;
+    friend class core_thread_demux;
     friend class core_thread_audio;
     friend class core_thread_subtitle;
     friend class core_media;

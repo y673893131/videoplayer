@@ -14,9 +14,22 @@ core_thread_video::~core_thread_video()
 bool core_thread_video::start(core_media* media)
 {
     core_thread::start(media);
+#ifdef _WIN32
+    auto thread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, video_entry, this, 0, nullptr));
+    ::SetThreadPriority(thread, THREAD_PRIORITY_ABOVE_NORMAL);
+    auto pro = ::SetThreadIdealProcessor(thread, MAXIMUM_PROCESSORS);
+    ::SetThreadIdealProcessor(thread, pro);
+#else
     std::thread([&]{ this->threadCall(); }).detach();
-
+#endif
     return true;
+}
+
+unsigned core_thread_video::video_entry(void *p)
+{
+    auto thread = reinterpret_cast<core_thread_video*>(p);
+    thread->threadCall();
+    return 0;
 }
 
 void core_thread_video::threadCall()
@@ -185,7 +198,7 @@ void core_thread_video::threadCall()
                     setFlag(flag_bit_flush, false);
                     bSeeking = false;
 
-                    LogB(Log_Debug, "[seek_video]pts: video:%lld/%lld[%lldS]->%lld[%lldS] [count=[%d,%d,%d]]"
+                    LogB(Log_Debug, "[seek_video]pts: video:%lld/%lld[%llds]->%lld[%llds] [count=[%d,%d,%d]]"
                          , firstPts - start_time
                          , displayVideoClock - start_time
                          , curSeconds
@@ -206,9 +219,10 @@ void core_thread_video::threadCall()
 //                         );
 //                }
 
-
                 media->_cb->posChange(displayVideoClock - start_time);
+                media->_cb->bitRate(pk.size);
                 video.displayFrame(media->_cb);
+
                 tryPause();
 
                 break;

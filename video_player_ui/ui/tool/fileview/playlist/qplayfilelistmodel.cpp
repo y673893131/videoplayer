@@ -8,6 +8,8 @@
 #include <QTimer>
 #include <QFile>
 #include "framelesswidget/util.h"
+#include "config/configDef.h"
+
 QWorker::QWorker(QObject* /*parent*/)
     :QObject()
 {
@@ -36,7 +38,7 @@ void QWorker::run()
 //        return;
         int start = 0;
         int pos = 0;
-        QVector<file_info_t> datas;
+        QVector<std::shared_ptr<file_info_t>> datas;
         while(1)
         {
             pos = data.indexOf("<p>", start);
@@ -53,9 +55,9 @@ void QWorker::run()
             if(pos1 < 0) break;
             auto url = "http://ivi.bupt.edu.cn" + data.mid(pos, pos1 - pos);
 
-            file_info_t t;
-            t.name = name;
-            t.url = url;
+            auto t = std::make_shared<file_info_t>();
+            t->name = name;
+            t->url = url;
             datas.push_back(t);
             pos = pos1;
             start = pos1;
@@ -73,42 +75,157 @@ void QWorker::run()
     net->get(request);
 }
 
+class QPlayFileListModelPrivate : public VP_Data<QPlayFileListModel>
+{
+    VP_DECLARE_PUBLIC(QPlayFileListModel)
+    inline QPlayFileListModelPrivate(QPlayFileListModel* parent)
+        : VP_Data(parent)
+        , m_nPlayMode(QPlayFileListModel::play_mode_local)
+    {
+    }
+
+    bool remove(const QString&, QVector<std::shared_ptr<file_info_t>>& datas);
+    void filter(const QString&, const QVector<std::shared_ptr<file_info_t>>& datas, QVector<std::shared_ptr<file_info_t>>& filters);
+    QModelIndex findIndex(const QString&, const QVector<std::shared_ptr<file_info_t>>& datas);
+private:
+    QPlayFileListModel::play_mode m_nPlayMode;
+
+    QVector<std::shared_ptr<file_info_t>> m_datas[QPlayFileListModel::play_mode_max];
+    QVector<std::shared_ptr<file_info_t>> m_filters[QPlayFileListModel::play_mode_max];
+
+    QString m_sFilter;
+    QWorker* m_worker;
+    QString m_playFile;
+    QSize m_itemSize;
+    friend class QWorker;
+};
+
+bool QPlayFileListModelPrivate::remove(const QString &sUrl, QVector<std::shared_ptr<file_info_t>> &datas)
+{
+    int row = 0;
+    for(QVector<std::shared_ptr<file_info_t>>::iterator it = datas.begin();
+        it != datas.end(); ++it)
+    {
+        if((*it)->url == sUrl)
+        {
+            datas.remove(row);
+            return true;
+        }
+
+        ++row;
+    }
+
+    return false;
+}
+
+void QPlayFileListModelPrivate::filter(const QString & sFilter, const  QVector<std::shared_ptr<file_info_t>> &datas,  QVector<std::shared_ptr<file_info_t>>& filters)
+{
+    filters.clear();
+    for(auto it = datas.constBegin();
+        it != datas.constEnd(); ++it)
+    {
+        if((*it)->name.contains(sFilter, Qt::CaseInsensitive))
+        {
+            filters.push_back(*it);
+        }
+    }
+}
+
+QModelIndex QPlayFileListModelPrivate::findIndex(const QString & sUrl, const QVector<std::shared_ptr<file_info_t>> &datas)
+{
+    VP_Q(QPlayFileListModel);
+    int row = 0;
+    for(auto it = datas.constBegin();
+        it != datas.constEnd(); ++it)
+    {
+        if((*it)->url == sUrl)
+            return q->index(row, 0);
+        ++row;
+    }
+
+    return QModelIndex();
+}
+
+QPlayFileListModel::QPlayFileListModel(QObject *parent)
+    : QAbstractListModel(parent)
+    , VP_INIT(new QPlayFileListModelPrivate(this))
+{
+    VP_D(QPlayFileListModel);
+    d->m_itemSize = CALC_WIDGET_SIZE(nullptr, 200, 20);
+    d->m_worker = new QWorker(this);
+//    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
+    connect(this, &QPlayFileListModel::liveflush, [=]{
+        QNetworkAccessManager net;
+//        qDebug() << net.supportedSchemes();
+        onInputUrlFile(":/url/iptv");
+    });
+
+    connect(d->m_worker, &QWorker::finishWork, this, [this](const QVector<std::shared_ptr<file_info_t>>& datas)
+    {
+        VP_D(QPlayFileListModel);
+        d->m_datas[play_mode_live] = datas;
+        onFilter(d->m_sFilter);
+        emit layoutChanged();
+    }, Qt::ConnectionType::QueuedConnection);
+
+    QTimer::singleShot(0, [this]{ liveflush();});
+}
+
+QPlayFileListModel::~QPlayFileListModel()
+{
+}
+
 bool QPlayFileListModel::isSelected(const QModelIndex &index) const
 {
-    return index.data(role_url).toString() == m_playFile;
+    VP_D(const QPlayFileListModel);
+    return index.data(role_url).toString() == d->m_playFile;
 }
 
 bool QPlayFileListModel::isOnline()
 {
-    return m_nPlayMode == play_mode_live;
+    VP_D(QPlayFileListModel);
+    return d->m_nPlayMode == play_mode_live;
 }
 
 QModelIndex QPlayFileListModel::findIndex(const QString &url)
 {
-    auto index = findIndex(url, m_datas[play_mode_live]);
+    VP_D(QPlayFileListModel);
+    auto index = d->findIndex(url, d->m_datas[play_mode_live]);
     if(index.isValid())
         return index;
-    return findIndex(url, m_datas[play_mode_local]);
+    return d->findIndex(url, d->m_datas[play_mode_local]);
 }
 
 QString QPlayFileListModel::current()
 {
-    return m_playFile;
+    VP_D(QPlayFileListModel);
+    return d->m_playFile;
+}
+
+QString QPlayFileListModel::title(const QString& sUrl)
+{
+    VP_D(QPlayFileListModel);
+    auto index = d->findIndex(sUrl, d->m_datas[play_mode_live]);
+    if(index.isValid())
+        return index.data().toString();
+    return QString();
 }
 
 void QPlayFileListModel::setMode(int mode)
 {
-    if(m_nPlayMode != mode)
+    VP_D(QPlayFileListModel);
+    if(d->m_nPlayMode != mode)
     {
-        m_nPlayMode = static_cast<play_mode>(mode);
+        d->m_nPlayMode = static_cast<QPlayFileListModel::play_mode>(mode);
         emit layoutChanged();
     }
 }
 
-void QPlayFileListModel::setLocaleFiles(const QVector<file_info_t> &fileInfos)
+void QPlayFileListModel::setLocaleFiles(const QVector<std::shared_ptr<file_info_t>> &fileInfos)
 {
-    m_datas[play_mode_local] = fileInfos;
-    onFilter(m_sFilter);
+    VP_D(QPlayFileListModel);
+    d->m_datas[play_mode_local] = fileInfos;
+    onFilter(d->m_sFilter);
     emit layoutChanged();
 }
 
@@ -119,25 +236,28 @@ void QPlayFileListModel::onEnd()
 
 void QPlayFileListModel::play(const QString &sFile)
 {
-    m_playFile = sFile;
+    VP_D(QPlayFileListModel);
+    d->m_playFile = sFile;
     emit layoutChanged();
 }
 
 void QPlayFileListModel::removeIndex(const QModelIndex &index)
 {
+    VP_D(QPlayFileListModel);
     auto name = index.data().toString();
     auto url = index.data(role_url).toString();
     emit removeUrl(url);
-    if(remove(url, m_datas[play_mode_live]) || remove(url, m_datas[play_mode_local]))
+    if(d->remove(url, d->m_datas[play_mode_live]) || d->remove(url, d->m_datas[play_mode_local]))
     {
-        onFilter(m_sFilter);
+        onFilter(d->m_sFilter);
         emit layoutChanged();
     }
 }
 
 void QPlayFileListModel::onInputUrlFile(const QString &file)
 {
-    m_datas[play_mode_live].clear();
+    VP_D(QPlayFileListModel);
+    d->m_datas[play_mode_live].clear();
     QFile f(file);
     QStringList title;
     if(f.open(QFile::ReadOnly))
@@ -155,54 +275,34 @@ void QPlayFileListModel::onInputUrlFile(const QString &file)
             if(title.contains(list[0]))
                 continue;
 
-            file_info_t t;
-            t.name = list[0];
-            t.url = list[1].replace("\r\n", "");
-            title.push_back(t.name);
-            m_datas[play_mode_live].push_back(t);
+            auto t = std::make_shared<file_info_t>();
+            t->name = list[0];
+            t->url = list[1].replace("\r\n", "");
+            title.push_back(t->name);
+            d->m_datas[play_mode_live].push_back(t);
         }while (true);
         f.close();
 
-        onFilter(m_sFilter);
+        onFilter(d->m_sFilter);
         emit layoutChanged();
     }
 }
 
 void QPlayFileListModel::onFilter(const QString &sFilter)
 {
-    m_sFilter = sFilter;
-    filter(sFilter, m_datas[play_mode_live], m_filters[play_mode_live]);
-    filter(sFilter, m_datas[play_mode_local], m_filters[play_mode_local]);
+    VP_D(QPlayFileListModel);
+    d->m_sFilter = sFilter;
+    d->filter(sFilter, d->m_datas[play_mode_live], d->m_filters[play_mode_live]);
+    d->filter(sFilter, d->m_datas[play_mode_local], d->m_filters[play_mode_local]);
     emit layoutChanged();
 }
 
 void QPlayFileListModel::onClean()
 {
-    m_datas[play_mode_local].clear();
-    onFilter(m_sFilter);
+    VP_D(QPlayFileListModel);
+    d->m_datas[play_mode_local].clear();
+    onFilter(d->m_sFilter);
     emit layoutChanged();
-}
-
-QPlayFileListModel::QPlayFileListModel(QObject *parent)
-    : QAbstractListModel(parent), m_nPlayMode(play_mode_local)
-{
-    m_itemSize = CALC_WIDGET_SIZE(nullptr, 200, 20);
-    m_worker = new QWorker(this);
-//    connect(this, &QPlayFileListModel::liveflush, m_worker, &QWorker::run);
-    connect(this, &QPlayFileListModel::liveflush, [=]{
-        QNetworkAccessManager net;
-//        qDebug() << net.supportedSchemes();
-        onInputUrlFile(":/url/iptv");
-    });
-
-    connect(m_worker, &QWorker::finishWork, this, [this](const QVector<file_info_t>& datas)
-    {
-        m_datas[play_mode_live] = datas;
-        onFilter(m_sFilter);
-        emit layoutChanged();
-    }, Qt::ConnectionType::QueuedConnection);
-
-    QTimer::singleShot(0, [this]{ liveflush();});
 }
 
 QVariant QPlayFileListModel::headerData(int /*section*/, Qt::Orientation /*orientation*/, int /*role*/) const
@@ -212,32 +312,34 @@ QVariant QPlayFileListModel::headerData(int /*section*/, Qt::Orientation /*orien
 
 int QPlayFileListModel::rowCount(const QModelIndex &parent) const
 {
+    VP_D(const QPlayFileListModel);
     if (parent.isValid())
         return 0;
 
-    return m_filters[m_nPlayMode].size();
+    return d->m_filters[d->m_nPlayMode].size();
 }
 
 QVariant QPlayFileListModel::data(const QModelIndex &index, int role) const
 {
+    VP_D(const QPlayFileListModel);
     if (!index.isValid())
         return QVariant();
 
     switch (role) {
     case role_play_mode:
-        return m_nPlayMode;
+        return d->m_nPlayMode;
     case Qt::DisplayRole:
-        if(index.row() < m_filters[m_nPlayMode].size())
+        if(index.row() < d->m_filters[d->m_nPlayMode].size())
         {
-            return m_filters[m_nPlayMode][index.row()].name;
+            return d->m_filters[d->m_nPlayMode][index.row()]->name;
         }
         break;
 //    case Qt::SizeHintRole:
 //        return m_itemSize;
     case role_url:
-        if(index.row() < m_filters[m_nPlayMode].size())
+        if(index.row() < d->m_filters[d->m_nPlayMode].size())
         {
-            return m_filters[m_nPlayMode][index.row()].url;
+            return d->m_filters[d->m_nPlayMode][index.row()]->url;
         }
         break;
     }
@@ -252,49 +354,4 @@ Qt::ItemFlags QPlayFileListModel::flags(const QModelIndex &index) const
         return QAbstractListModel::flags(index) | Qt::ItemIsSelectable;
     else
         return QAbstractListModel::flags(index) & ~Qt::ItemIsSelectable;
-}
-
-QModelIndex QPlayFileListModel::findIndex(const QString & sUrl, const QVector<file_info_t> &datas)
-{
-    int row = 0;
-    for(QVector<file_info_t>::const_iterator it = datas.constBegin();
-        it != datas.constEnd(); ++it)
-    {
-        if(it->url == sUrl)
-            return index(row, 0);
-        ++row;
-    }
-
-    return QModelIndex();
-}
-
-bool QPlayFileListModel::remove(const QString &sUrl, QVector<file_info_t> &datas)
-{
-    int row = 0;
-    for(QVector<file_info_t>::iterator it = datas.begin();
-        it != datas.end(); ++it)
-    {
-        if(it->url == sUrl)
-        {
-            datas.remove(row);
-            return true;
-        }
-
-        ++row;
-    }
-
-    return false;
-}
-
-void QPlayFileListModel::filter(const QString & sFilter, const QVector<file_info_t> &datas, QVector<file_info_t>& filters)
-{
-    filters.clear();
-    for(QVector<file_info_t>::const_iterator it = datas.constBegin();
-        it != datas.constEnd(); ++it)
-    {
-        if(it->name.contains(sFilter, Qt::CaseInsensitive))
-        {
-            filters.push_back(*it);
-        }
-    }
 }

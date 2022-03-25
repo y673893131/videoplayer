@@ -48,6 +48,7 @@ public:
 protected:
     QActionGroup* group(const QString&);
     QMenu* subMenu(const QString&);
+    QAction* action(const QString&,const QString&);
 private:
     void initMenuFile(const QString& path);
     void analyzeMenu(const QDomElement&, menu_attr_t*);

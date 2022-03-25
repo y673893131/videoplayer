@@ -109,31 +109,13 @@ void core_frame_convert::initFrame()
     if(!w) w = srcCodec->width;
     if(!h) h = srcCodec->height;
     // 16pix align
-//    w = (w >> 16) << 16;
-//    h = (h >> 16) << 16;
-    w = FFALIGN(w, 64);
-    h = FFALIGN(h, 64);
+//    w = FFALIGN(w, 64);
+//    h = FFALIGN(h, 16);
     srcWidth = srcCodec->width;
     srcHeight = srcCodec->height;
     frame = av_frame_alloc();
 
-    int flags = /*SWS_FAST_BILINEAR*/ SWS_BICUBIC;
-
-    swsCov = sws_getContext(
-                srcCodec->width,
-                srcCodec->height,
-                srcCodec->pix_fmt,
-                w,
-                h,
-                picflag,
-                flags,
-                nullptr,
-                nullptr,
-                nullptr);
-    size = static_cast<unsigned int>(av_image_get_buffer_size(picflag, w, h, 1));
-    buffer = reinterpret_cast<uint8_t*>(av_malloc(size * sizeof(uint8_t)));
-    av_image_fill_arrays(frame->data, frame->linesize, buffer, picflag, w, h, 1);
-    Log(Log_Info, "srcWidth=%d, srcHeight=%d size=%d, w=%d, h=%d", srcWidth, srcHeight, size, w, h);
+    initBuffer();
 }
 
 void core_frame_convert::scalePreview(AVFrame *src, video_interface *cb)
@@ -141,7 +123,7 @@ void core_frame_convert::scalePreview(AVFrame *src, video_interface *cb)
     scaleFrame(src);
     if(cb)
     {
-        cb->previewDisplayCall(buffer, w, h);
+        cb->previewDisplayCall(buffer, srcWidth, srcHeight);
     }
 }
 
@@ -150,7 +132,7 @@ void core_frame_convert::scale(AVFrame* src, video_interface* cb)
     scaleFrame(src);
     if(cb)
     {
-        cb->displayCall(buffer, w, h);
+        cb->displayCall(buffer, srcWidth, srcHeight);
     }
 }
 
@@ -158,6 +140,29 @@ void core_frame_convert::scaleFrame(AVFrame* src)
 {
     if(srcWidth != srcCodec->width || srcHeight != srcCodec->height)
         initFrame();
+
+//    LogB(Log_Debug, "src_line_size:[%d-%d-%d], format=%d w=%d, h=%d dst_line_size:[%d-%d-%d] format=%d w=%d h=%d", src->linesize[0], src->linesize[1], src->linesize[2]
+//            , src->format, src->width, src->height, frame->linesize[0], frame->linesize[1], frame->linesize[2]
+//            , picflag, w, h);
+
+    if(w != src->linesize[0])
+    {
+        if(buffer)
+        {
+            av_free(buffer);
+        }
+
+        w = src->linesize[0];
+        initBuffer();
+    }
+
+    auto flags = (src->width == w && src->height == h) ? SWS_POINT : SWS_FAST_BILINEAR;
+    swsCov = sws_getCachedContext(swsCov
+                , src->width, src->height, static_cast<AVPixelFormat>(src->format)
+                , srcWidth, srcHeight, picflag
+                , flags
+                , nullptr, nullptr, nullptr
+                );
     sws_scale(
         swsCov,
         reinterpret_cast<const uint8_t *const *>(src->data),
@@ -166,6 +171,26 @@ void core_frame_convert::scaleFrame(AVFrame* src)
         src->height,
         frame->data,
         frame->linesize);
-//        Log(Log_Info, "src_line_size:[%d-%d-%d], width: %d, height: %d dst_line_size:[%d-%d-%d]", src->linesize[0], src->linesize[1], src->linesize[2]
-//                , w, h, frame->linesize[0], frame->linesize[1], frame->linesize[2]);
+
+    int ret = av_image_copy_to_buffer(
+        buffer,
+        static_cast<int>(sizeReal),
+        frame->data,
+        frame->linesize, picflag,
+        srcWidth, srcHeight, 1);
+    if(ret < 0)
+    {
+        char error[1024] ={};
+        av_strerror(ret, error, 1024);
+        LogB(Log_Err, error);
+    }
+}
+
+void core_frame_convert::initBuffer()
+{
+    sizeReal = static_cast<unsigned int>(av_image_get_buffer_size(picflag, srcWidth, srcHeight, 1));
+    size = static_cast<unsigned int>(av_image_get_buffer_size(picflag, w, h, 1));
+    buffer = reinterpret_cast<uint8_t*>(av_malloc(size * sizeof(uint8_t)));
+    av_image_fill_arrays(frame->data, frame->linesize, buffer, picflag, w, h, 1);
+    Log(Log_Info, "pix_fmt=%d srcWidth=%d, srcHeight=%d size=%d, w=%d, h=%d", srcCodec->pix_fmt, srcWidth, srcHeight, size, w, h);
 }

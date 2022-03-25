@@ -4,7 +4,10 @@
 #include <QAbstractListModel>
 #include <QThread>
 #include <QSize>
-#include "config/qdatamodel.h"
+#include <memory>
+#include "video_pimpl.h"
+
+struct file_info_t;
 
 class QWorker : public QObject
 {
@@ -13,7 +16,7 @@ public:
     QWorker(QObject* parnet);
     virtual ~QWorker();
 signals:
-    void finishWork(const QVector<file_info_t>&);
+    void finishWork(const QVector<std::shared_ptr<file_info_t>>&);
     // QThread interface
 public slots:
     void run();
@@ -21,16 +24,13 @@ private:
     QThread* m_thread;
 };
 
+class QPlayFileListModelPrivate;
 class QPlayFileListModel : public QAbstractListModel
 {
     Q_OBJECT
-public:
-    enum user_role
-    {
-        role_play_mode = Qt::UserRole + 1,
-        role_url
-    };
+    VP_DECLARE_PRIVATE(QPlayFileListModel)
 
+public:
     enum play_mode
     {
         play_mode_local,
@@ -38,18 +38,26 @@ public:
 
         play_mode_max
     };
+
+    enum user_role
+    {
+        role_play_mode = Qt::UserRole + 1,
+        role_url
+    };
+
 public:
     bool isSelected(const QModelIndex& index) const;
     bool isOnline();
     QModelIndex findIndex(const QString&);
     QString current();
+    QString title(const QString& sUrl);
 signals:
     void urlflush();
     void liveflush();
     void removeUrl(const QString&);
 public slots:
     void setMode(int);
-    void setLocaleFiles(const QVector<file_info_t>&);
+    void setLocaleFiles(const QVector<std::shared_ptr<file_info_t>>&);
     void onEnd();
     void play(const QString&);
     void removeIndex(const QModelIndex&);
@@ -58,7 +66,7 @@ public slots:
     void onClean();
 public:
     explicit QPlayFileListModel(QObject *parent = nullptr);
-
+    ~QPlayFileListModel() override;
     // Header:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
@@ -68,20 +76,8 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 private:
     Qt::ItemFlags flags(const QModelIndex &index) const override;
-    QModelIndex findIndex(const QString&, const QVector<file_info_t>& datas);
-    bool remove(const QString&, QVector<file_info_t>& datas);
-    void filter(const QString&, const QVector<file_info_t>& datas, QVector<file_info_t>& filters);
 private:
-    play_mode m_nPlayMode;
-
-    QVector<file_info_t> m_datas[play_mode_max];
-    QVector<file_info_t> m_filters[play_mode_max];
-
-    QString m_sFilter;
-    QWorker* m_worker;
-    QString m_playFile;
-    QSize m_itemSize;
-    friend class QWorker;
+    VP_DECLARE(QPlayFileListModel)
 };
 
 #endif // QPLAYFILELISTMODEL_H

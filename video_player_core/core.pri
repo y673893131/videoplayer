@@ -1,5 +1,14 @@
 CONFIG += c++11
 
+win32{
+QMAKE_LFLAGS_DEBUG += /MAP
+QMAKE_LFLAGS_DEBUG += /Zi
+QMAKE_LFLAGS_DEBUG += /debug /opt:ref
+QMAKE_LFLAGS_RELEASE += /MAP
+QMAKE_CFLAGS_RELEASE += /Zi
+QMAKE_LFLAGS_RELEASE += /debug /opt:ref
+}
+
 INCLUDEPATH += $$PWD/../vidoe_player_log \
     $$PWD/module/third
 
@@ -29,11 +38,11 @@ SOURCES += \
     $$PWD/module/sdl/core_sdl_op.cpp \
     $$PWD/module/thread/core_thread.cpp \
     $$PWD/module/thread/core_thread_audio.cpp \
+    $$PWD/module/thread/core_thread_demux.cpp \
     $$PWD/module/thread/core_thread_subtitle.cpp \
     $$PWD/module/thread/core_thread_video.cpp \
     $$PWD/module/util/core_util.cpp \
-    $$PWD/video_player_core.cpp \
-    $$PWD/video_thread.cpp
+    $$PWD/video_player_core.cpp
 
 HEADERS += \
     $$PWD/module/common.h \
@@ -60,11 +69,11 @@ HEADERS += \
     $$PWD/module/sdl/core_sdl_op.h \
     $$PWD/module/thread/core_thread.h \
     $$PWD/module/thread/core_thread_audio.h \
+    $$PWD/module/thread/core_thread_demux.h \
     $$PWD/module/thread/core_thread_subtitle.h \
     $$PWD/module/thread/core_thread_video.h \
     $$PWD/module/util/core_util.h \
-    $$PWD/video_player_core.h \
-    $$PWD/video_thread.h
+    $$PWD/video_player_core.h
 
 win32{
     contains(QT_ARCH, i386){

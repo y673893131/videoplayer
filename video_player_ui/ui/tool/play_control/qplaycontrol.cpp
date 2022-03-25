@@ -63,7 +63,8 @@ void QPlayControl::initUi()
     m_button[button_vol_mute]->setToolTip(tr("set mute"));
 
     auto btnSize = CALC_WIDGET_SIZE(nullptr, 50, 50);
-    m_button[button_stop]->setFixedSize(btnSize / 6 * 2);
+//    m_button[button_stop]->setFixedSize(btnSize / 6 * 2);
+    m_button[button_stop]->setFixedSize(btnSize / 5 * 2.5);
     m_button[button_prev]->setFixedSize(btnSize / 5 * 2.5);
     m_button[button_play_or_continue]->setFixedSize(btnSize / 5 * 2.5);
     m_button[button_next]->setFixedSize(btnSize / 5 * 2.5);
@@ -253,6 +254,8 @@ void QPlayControl::onMode()
     auto cur = GET_CONFIG_DATA(Config::Data_PlayMode).toInt();
     cur = (cur + 1) % QPlayMenu::play_mode_max;
     SET_CONFIG_DATA(cur, Config::Data_PlayMode);
+    auto output = m_parent->findChild<QOutputWidget*>();
+    output->onInfo(m_button[button_mode]->toolTip());
 }
 
 bool QPlayControl::eventFilter(QObject *watched, QEvent *event)

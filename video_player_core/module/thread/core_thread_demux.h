@@ -5,12 +5,12 @@
 //#include "video_define.h"
 #include "module/media/core_media.h"
 
-class video_thread
+class core_thread_demux
 {
 public:
-    virtual ~video_thread();
+    virtual ~core_thread_demux();
     static void start(const core_media&);
-    static video_thread* index(size_t);
+    static core_thread_demux* index(size_t);
     void setSize(int w, int h);
     void play();
     void setPause();
@@ -30,15 +30,17 @@ public:
     int state();
     video_player_core::enum_state state1();
     int setCapture(bool);
+    void* frame();
 private:
-    video_thread(std::shared_ptr<core_media>);
-    video_thread(const core_media&);
-    video_thread(const video_thread&);
+    core_thread_demux(std::shared_ptr<core_media>);
+    core_thread_demux(const core_media&);
+    core_thread_demux(const core_thread_demux&);
+    static unsigned __stdcall dumux_entry(void *p);
     void startPlay();
 private:
     int m_index;
     core_media* m_media;
-    static std::vector<video_thread*> m_threads;
+    static std::vector<core_thread_demux*> m_threads;
 };
 
 #endif // VIDEO_THREAD_H

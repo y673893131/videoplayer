@@ -26,6 +26,7 @@ protected:
 protected:
     core_filter_private* m_private;
     unsigned int m_flag;
+    bool m_bInit;
 };
 
 #endif // CORE_FILTER_BASE_H

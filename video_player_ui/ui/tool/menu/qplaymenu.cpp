@@ -3,53 +3,132 @@
 #include "control/videocontrol.h"
 #include "config/config.h"
 #include "ui/qtoolwidgets.h"
-#include "ui/qinputurlwidget.h"
+#include "ui/pop/qinputurlwidget.h"
 #include "ui/tool/subtitle/qplaysubtitle.h"
 
-QPlayMenu::QPlayMenu(QWidget *toolwidget, QWidget *parent)
-    :QPlayMenuBase(":/xml/main_menu", parent)
-    ,m_parent(toolwidget)
-    ,m_nCurDecoder(0)
+class QPlayMenuPrivate : public VP_Data<QPlayMenu>
 {
-    init();
-}
+    VP_DECLARE_PUBLIC(QPlayMenu)
+    inline QPlayMenuPrivate(QPlayMenu* parent, QWidget* grand)
+        : VP_Data(parent)
+        , m_parent(grand)
+        , m_nCurDecoder(0)
+    {
+        init();
+    }
 
-void QPlayMenu::init()
+    enum action
+    {
+        action_top_window,
+        action_capture,
+        action_line0,
+        action_line1,
+
+        action_max
+    };
+
+    enum menu
+    {
+        menu_pop,
+        menu_sound_track,
+        menu_render,
+        menu_channel,
+        menu_decoder,
+        menu_speed,
+        menu_play,
+
+        menu_max
+    };
+
+    enum channel_menu
+    {
+        channel_menu_video = channel_video,
+        channel_menu_audio = channel_audio,
+        channel_menu_subtitle = channel_subtitle,
+
+        channel_menu_max
+    };
+
+    enum play_menu
+    {
+        play_menu_speed,
+
+        play_menu_max
+    };
+
+    void init();
+    void prepareData();
+private:
+    QWidget* m_parent;
+    QString m_sCurRender;
+    int m_nCurDecoder;
+};
+
+void QPlayMenuPrivate::init()
 {
     prepareData();
 }
 
-void QPlayMenu::prepareData()
+void QPlayMenuPrivate::prepareData()
 {
-    auto actions = this->actions();
+    VP_Q(QPlayMenu);
+    auto actions = q->actions();
 
-    actions[action_adjust]->setChecked(GET_CONFIG_DATA(Config::Data_Adjust).toBool());
     actions[action_top_window]->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
-    group("soundtrack")->actions()[audio_channel_both]->setChecked(true);
-    group("speed")->actions()[0]->setChecked(true);
+    q->group("soundtrack")->actions()[audio_channel_both]->setChecked(true);
+    q->group("speed")->actions()[0]->setChecked(true);
+}
+
+QPlayMenu::QPlayMenu(QWidget *toolwidget, QWidget *parent)
+    :QPlayMenuBase(":/xml/main_menu", parent)
+    ,VP_INIT(new QPlayMenuPrivate(this, toolwidget))
+{
+}
+
+QPlayMenu::~QPlayMenu()
+{
 }
 
 void QPlayMenu::initConnect()
 {
+    VP_D(QPlayMenu);
+
     auto control = VIDEO_CONTROL;
-    auto toolwidget = qobject_cast<QToolWidgets*>(m_parent);
-    auto subtitle = m_parent->findChild<QPlaySubtitle*>();
+    auto toolwidget = qobject_cast<QToolWidgets*>(d->m_parent);
+    auto subtitle = d->m_parent->findChild<QPlaySubtitle*>();
     auto actions = this->actions();
 
     connect(Config::instance(), &Config::loadConfig, this, &QPlayMenu::onLoadConfig);
     connect(Config::instance(), &Config::setConfig, this, &QPlayMenu::onConfigChanged);
 
-    connect(toolwidget, &QToolWidgets::showMenu, this, &QPlayMenu::onPop);
-
-    connect(actions[action_adjust], &QAction::triggered, this, &QPlayMenu::onAdjustTriggered);
-    connect(actions[action_adjust], &QAction::triggered, toolwidget, &QToolWidgets::viewAdjust);
-    connect(actions[action_top_window], &QAction::triggered, toolwidget, &QToolWidgets::topWindow);
-    connect(actions[action_capture], &QAction::triggered, control, &QVideoControl::onSetCapture);
-    connect(actions[action_url], &QAction::triggered, toolwidget, &QToolWidgets::inputUrl);
+    connect(actions[d->action_top_window], &QAction::triggered, toolwidget, &QToolWidgets::topWindow);
+    connect(actions[d->action_capture], &QAction::triggered, control, &QVideoControl::onSetCapture);
 
     connect(subMenu("video"), &QMenu::triggered, this, &QPlayMenu::onChannelTriggered);
     connect(subMenu("audio"), &QMenu::triggered, this, &QPlayMenu::onChannelTriggered);
     connect(subMenu("subtitle"), &QMenu::triggered, this, &QPlayMenu::onChannelTriggered);
+    connect(subMenu("subtitle_eng"), &QMenu::triggered, this, &QPlayMenu::onSubtitleEngineTriggered);
+    connect(subMenu("play_size"), &QMenu::triggered, this, [=](QAction* action){
+        auto menu = qobject_cast<QMenu*>(sender());
+        int index = menu->actions().indexOf(action);
+        SET_CONFIG_DATA(index, Config::Data_PlaySize);
+    });
+
+    connect(subMenu("pop"), &QMenu::triggered, this, [=](QAction* action){
+        emit toolwidget->pop(action->property("name").toString());
+    });
+
+    connect(subMenu("setting"), &QMenu::triggered, this, [=](QAction* action){
+        if(action->property("name") == "recent")
+        {
+            SET_CONFIG_DATA(action->isChecked(), Config::Data_Recent);
+        }
+        else if(action->property("name") == "zero_copy")
+        {
+            SET_CONFIG_DATA(action->isChecked(), Config::Data_ZeroCopy);
+        }
+    });
+
     connect(group("soundtrack"), &QActionGroup::triggered, this, &QPlayMenu::onSoundTrackTriggered);
     connect(group("render"), &QActionGroup::triggered, this, &QPlayMenu::onRenderTriggered);
     connect(group("decoder"), &QActionGroup::triggered, this, &QPlayMenu::onDecoderTriggered);
@@ -64,40 +143,53 @@ void QPlayMenu::initConnect()
     connect(control, &QVideoControl::end, this, &QPlayMenu::onEnd);
 
     connect(this, &QPlayMenu::subtitleModify, subtitle, &QPlaySubtitle::onChannelModify);
+    connect(this, &QPlayMenu::subtitleEngineModify, subtitle, &QPlaySubtitle::onSetEngine);
     connect(this, &QPlayMenu::mode, this, &QPlayMenu::onPlayMode);
 }
 
 void QPlayMenu::onLoadConfig()
 {
-    m_sCurRender = GET_CONFIG_DATA(Config::Data_Render).toString();
+    VP_D(QPlayMenu);
+    d->m_sCurRender = GET_CONFIG_DATA(Config::Data_Render).toString();
     auto actions = group("render")->actions();
     for(auto&& ac : qAsConst(actions))
     {
-        if(ac->text().contains(m_sCurRender))
+        if(ac->text().contains(d->m_sCurRender))
         {
             ac->setChecked(true);
             break;
         }
     }
 
-    m_nCurDecoder = GET_CONFIG_DATA(Config::Data_Decode).toInt();
+    d->m_nCurDecoder = GET_CONFIG_DATA(Config::Data_Decode).toInt();
     actions = group("decoder")->actions();
     for(auto&& ac : qAsConst(actions))
     {
-        if(ac->data().toInt() == m_nCurDecoder)
+        if(ac->data().toInt() == d->m_nCurDecoder)
             ac->setChecked(true);
     }
 
-    emit setDecodeType(m_nCurDecoder);
+    emit setDecodeType(d->m_nCurDecoder);
+
+    subMenu("subtitle_eng")->actions()[0]->setChecked(true);
+
+    auto playSize = GET_CONFIG_DATA(Config::Data_PlaySize).toInt();
+    subMenu("play_size")->actions()[playSize]->setChecked(true);
+
+    auto bRecent = GET_CONFIG_DATA(Config::Data_Recent).toBool();
+    action("setting", "recent")->setChecked(bRecent);
+
+    auto bZeroCopy = GET_CONFIG_DATA(Config::Data_ZeroCopy).toBool();
+    action("setting", "zero_copy")->setChecked(bZeroCopy);
 
     onConfigChanged();
 }
 
 void QPlayMenu::onConfigChanged()
 {
-    if(GET_CONFIG_DATA(Config::Data_TopWindow).toBool() != actions()[action_top_window]->isChecked())
+    if(GET_CONFIG_DATA(Config::Data_TopWindow).toBool() != actions()[QPlayMenuPrivate::action_top_window]->isChecked())
     {
-        actions()[action_top_window]->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
+        actions()[QPlayMenuPrivate::action_top_window]->setChecked(GET_CONFIG_DATA(Config::Data_TopWindow).toBool());
     }
 
     auto curMode = GET_CONFIG_DATA(Config::Data_PlayMode).toInt();
@@ -118,10 +210,11 @@ void QPlayMenu::onSoundTrackTriggered(QAction *action)
 
 void QPlayMenu::onRenderTriggered(QAction *action)
 {
+    VP_D(QPlayMenu);
     auto actions = group("render")->actions();
     for(auto&& ac : qAsConst(actions))
     {
-        if(!ac->text().contains(m_sCurRender) && action == ac)
+        if(!ac->text().contains(d->m_sCurRender) && action == ac)
         {
             ac->setText(ac->text() + tr("(restart valid)"));
         }
@@ -149,6 +242,12 @@ void QPlayMenu::onSpeedTriggered(QAction *action)
     emit speed(nSel);
 }
 
+void QPlayMenu::onSubtitleEngineTriggered(QAction *action)
+{
+    auto nSel = subMenu("subtitle_eng")->actions().indexOf(action);
+    emit subtitleEngineModify(nSel);
+}
+
 void QPlayMenu::onPlayModeTriggered(QAction *action)
 {
     auto nSel = group("mode")->actions().indexOf(action);
@@ -163,15 +262,10 @@ void QPlayMenu::onChannelTriggered(QAction *action)
     auto menuIndex = data.toInt();
     auto actionIndex = menu->actions().indexOf(action);
     emit activeChannel(menuIndex, actionIndex);
-    if(menuIndex == channel_menu_subtitle)
+    if(menuIndex == QPlayMenuPrivate::channel_menu_subtitle)
     {
         emit subtitleModify();
     }
-}
-
-void QPlayMenu::onAdjustTriggered(bool bCheck)
-{
-    SET_CONFIG_DATA(bCheck, Config::Data_Adjust);
 }
 
 void QPlayMenu::onStreamInfo(const QStringList &list, int nChannel, int nDefault)

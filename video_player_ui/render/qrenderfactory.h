@@ -12,6 +12,7 @@ public:
     bool isUpdate();
     QWidget *renderWidget();
 public slots:
+    void onCap();
 private:
     QWidget* m_renderWidget;
     bool m_bUpdate;

@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QApplication>
 #include <QIcon>
+#include <QThread>
 #include <math.h>
 #include <QMessageBox>
 #include <QKeyEvent>
@@ -28,13 +29,40 @@
 #include "render/qrenderfactory.h"
 #include "filter/qinputfilter.h"
 
+#include "render/videoframe.h"
 //#define QSS_MONITOR
+
+#ifdef Q_OS_WIN
+#include "ui/thumb/qwinthumbnail_p.h"
+class WidgetPrivate : public QWinThumbnailPrivate
+#else
+#include "framelesswidget/nativeevent_p.h"
+class WidgetPrivate : public CNativeEvent_p
+#endif
+{
+    VP_DECLARE_PUBLIC(Widget)
+    inline WidgetPrivate(Widget* parent)
+#ifdef Q_OS_WIN
+        : QWinThumbnailPrivate(parent)
+#else
+        : CNativeEvent_p(parent)
+#endif
+        , m_render(nullptr)
+        , m_toolbar(nullptr)
+        , m_control(nullptr)
+    {
+    }
+
+    QRenderFactory* m_render;
+    QToolWidgets* m_toolbar;
+    QVideoControl* m_control;
+};
 
 Widget::Widget(QWidget *parent)
 #ifdef Q_OS_WIN
-    : QWinThumbnail(parent)
+    : QWinThumbnail(new WidgetPrivate(this), parent)
 #else
-    : QFrameLessWidget(parent)
+    : QFrameLessWidget(new WidgetPrivate(this), parent)
 #endif
 {
     init();
@@ -67,23 +95,25 @@ void Widget::initStyle()
     qApp->setWindowIcon(QIcon(":/app/logo"));
     InitLogInstance(qApp->applicationDirPath().toStdString().c_str(), "log_ui_");
     setAcceptDrops(true);
+    setMouseTracking(true);
 }
 
 void Widget::initResource()
 {
-    m_control = new QVideoControl(this);
-    m_render = new QRenderFactory(this);
-    m_toolbar = new QToolWidgets(m_render->renderWidget());
-    m_control->setToolBar(m_toolbar);
+    VP_D(Widget);
 
+    d->m_control = new QVideoControl(this);
+    d->m_render = new QRenderFactory(this);
+    d->m_toolbar = new QToolWidgets(d->m_render->renderWidget());   
+    d->m_control->setToolBar(d->m_toolbar);
     auto layout = new QVBoxLayout(this);
     layout->setMargin(0);
-    layout->addWidget(m_render->renderWidget());
+    layout->addWidget(d->m_render->renderWidget());
 
 #ifdef unix
-    auto layoutRender = new QVBoxLayout(m_render->renderWidget());
+    auto layoutRender = new QVBoxLayout(d->m_render->renderWidget());
     layoutRender->setMargin(0);
-    layoutRender->addWidget(m_toolbar);
+    layoutRender->addWidget(d->m_toolbar);
 #endif
     initConnect();
     flushQss();
@@ -91,43 +121,37 @@ void Widget::initResource()
 
 void Widget::initConnect()
 {
-    auto renderWd = m_render->renderWidget();
-    connect(this, &Widget::rightClicked, m_toolbar, &QToolWidgets::showMenu, Qt::QueuedConnection);
-    connect(this, &Widget::leftPress, m_toolbar, &QToolWidgets::onLeftPress);
-    connect(this, &Widget::inputUrlFile, m_toolbar, &QToolWidgets::inputUrlFile);
-    connect(this, SIGNAL(leftDoubleClicked()), m_toolbar, SLOT(onFull()));
+    VP_D(Widget);
+    auto renderWd = d->m_render->renderWidget();
+    connect(this, &Widget::rightClicked, d->m_toolbar, &QToolWidgets::showMenu, Qt::QueuedConnection);
+    connect(this, &Widget::leftPress, d->m_toolbar, &QToolWidgets::onLeftPress);
+    connect(this, &Widget::inputUrlFile, d->m_toolbar, &QToolWidgets::inputUrlFile);
+    connect(this, SIGNAL(leftDoubleClicked()), d->m_toolbar, SLOT(onFull()));
 #ifdef Q_OS_WIN
-    connect(this, &Widget::thumb, m_toolbar, &QToolWidgets::thumb);
-    connect(m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
-    connect(m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
+    connect(this, &Widget::thumb, d->m_toolbar, &QToolWidgets::thumb);
+    connect(this, &Widget::cmd, d->m_toolbar, &QToolWidgets::cmd);
+    connect(d->m_toolbar, &QToolWidgets::_move, this, [this](const QPoint& pt){ if(pos() != pt){ move(pt);} });
+    connect(d->m_toolbar, &QToolWidgets::_resize, this, [this](const QSize& sz){ if(size() != sz){ resize(sz);} });
 #endif
 
-    connect(m_toolbar, &QToolWidgets::showMin, this, &Widget::showMinimized);
-    connect(m_control, SIGNAL(appendFrame(void*)), renderWd, SLOT(onAppendFrame(void*)), Qt::QueuedConnection);
-    connect(m_control, SIGNAL(appendFreq(float*, unsigned int)), renderWd, SLOT(onAppendFreq(float*, unsigned int)), Qt::QueuedConnection);
-    connect(m_control, SIGNAL(start(int)), renderWd, SLOT(onStart()));
-    connect(m_control, SIGNAL(end(int)), renderWd, SLOT(onStop()));
-    connect(m_control, SIGNAL(videoSizeChanged(int, int)), renderWd, SLOT(onVideoSizeChanged(int, int)));
-    connect(m_control, &QVideoControl::play, this, [this](const QString& sPath){ auto sName = sPath.mid(sPath.lastIndexOf('/') + 1); setWindowTitle(sName); });
-    connect(m_control, &QVideoControl::end, this, [this]{ setWindowTitle("vPlay"); });
+    connect(d->m_toolbar, &QToolWidgets::showMin, this, &Widget::showMinimized);
+    connect(d->m_control, SIGNAL(appendFrame(_VideoFramePtr)), renderWd, SLOT(onAppendFrame(_VideoFramePtr)), Qt::QueuedConnection);
+    connect(d->m_control, SIGNAL(appendFreq(float*, unsigned int)), renderWd, SLOT(onAppendFreq(float*, unsigned int)), Qt::QueuedConnection);
+    connect(d->m_control, SIGNAL(start(int)), renderWd, SLOT(onStart()));
+    connect(d->m_control, SIGNAL(end(int)), renderWd, SLOT(onStop()));
+    connect(d->m_control, SIGNAL(videoSizeChanged(int, int)), renderWd, SLOT(onVideoSizeChanged(int, int)));
+    connect(d->m_toolbar, &QToolWidgets::windowTitleChanged, this, &Widget::setWindowTitle);
 
-//    connect(m_toolbar, &QToolWidgets::_move, this, &Widget::onMoved);
-//    connect(this, &Widget::moved, m_toolbar, [=](const QPoint& pos){m_toolbar->move(pos);});
-
-//    connect(m_toolbar, &QToolWidgets::_resize, this, &Widget::onResized);
-//    connect(this, &Widget::resized, m_toolbar, [=](const QSize& size){ m_toolbar->resize(size); });
-
-//    connect(m_toolbar, &QToolWidgets::showNor, this, &Widget::showNormal);
-//    connect(m_toolbar, &QToolWidgets::showFull, this, &Widget::showFullScreen);
-    connect(m_toolbar, &QToolWidgets::exit, this, &Widget::onExit);
-    connect(m_toolbar, &QToolWidgets::topWindow, this, &Widget::onTopWindow);
-    connect(m_toolbar, SIGNAL(viewAdjust(bool)), renderWd, SLOT(onViewAdjust(bool)));
+    connect(QInputFilter::instance(), &QInputFilter::cap, d->m_render, &QRenderFactory::onCap);
+    connect(d->m_toolbar, &QToolWidgets::exit, this, &Widget::onExit);
+    connect(d->m_toolbar, &QToolWidgets::topWindow, this, &Widget::onTopWindow);
+    connect(d->m_toolbar, SIGNAL(viewAdjust(bool)), renderWd, SLOT(onViewAdjust(bool)));
 
     QTimer::singleShot(1000, this, [=]
     {
         auto bTop = GET_CONFIG_DATA(Config::Data_TopWindow).toBool();
         onTopWindow(bTop);
-        m_toolbar->show();
+        d->m_toolbar->show();
     });
 }
 
@@ -135,7 +159,7 @@ void Widget::flushQss()
 {
     onFlushSheetStyle();
 
-#if QSS_MONITOR
+#if defined(QSS_MONITOR) or _DEBUG
     auto timer = new QTimer();
     timer->setInterval(200);
     connect(timer, &QTimer::timeout, this, &Widget::onFlushSheetStyle);
@@ -146,11 +170,12 @@ void Widget::flushQss()
 
 void Widget::flushInitSize()
 {
+    VP_D(Widget);
 #ifdef unix
     CALC_WIDGET_SIZE(this, 800, 600);
     CENTER_DESKTOP(this);
 #else
-    m_toolbar->show();
+    d->m_toolbar->show();
 #endif
 }
 
@@ -162,8 +187,10 @@ void Widget::onExit()
     Log(Log_Opt, "quit end.");
     return;
 #endif
+
+    VP_D(Widget);
     Log(Log_Opt, "quit begin.");
-    m_control->waittingStoped();
+    d->m_control->waittingStoped();
     Log(Log_Opt, "quit end.");
     qApp->quit();
 }
@@ -171,7 +198,7 @@ void Widget::onExit()
 void Widget::onTopWindow(bool bTop)
 {
     qDebug() << "topWindow:" << bTop;
-    m_bTopWindow = bTop;
+    setTopWindow(bTop);
     updateTopWindow();
 }
 
@@ -198,8 +225,9 @@ void Widget::onFlushSheetStyle()
 
 void Widget::mouseMoveEvent(QMouseEvent *event)
 {
+    VP_D(Widget);
     QFrameLessWidget::mouseMoveEvent(event);
-    emit m_toolbar->hideOrShow(false);
+    emit d->m_toolbar->hideOrShow(false);
 }
 
 inline bool checkFile(const QString& file, const QStringList& types)
@@ -221,7 +249,7 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
     {
         auto file = urls.begin()->toLocalFile();
         QStringList types;
-        types << ".mp4" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".wav" << ".aac"<< ".h264";
+        types << ".mp4" << ".m4a" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".wav" << ".aac"<< ".h264";
         if(checkFile(file, types))
             event->accept();
     }
@@ -229,13 +257,14 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
 
 void Widget::dropEvent(QDropEvent *event)
 {
+    VP_D(Widget);
     auto file = event->mimeData()->urls().begin()->toLocalFile();
     if(file.contains(".url"))
     {
         emit inputUrlFile(file);
         return;
     }
-    emit m_toolbar->load(QStringList(event->mimeData()->urls().begin()->toLocalFile()));
+    emit d->m_toolbar->load(QStringList(event->mimeData()->urls().begin()->toLocalFile()));
 }
 
 

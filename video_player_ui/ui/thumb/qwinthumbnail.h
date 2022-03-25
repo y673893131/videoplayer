@@ -3,8 +3,8 @@
 
 #if WIN32
 #include <QWidget>
-# include <ShObjIdl.h>
 #include "framelesswidget/framelesswidget.h"
+#include "video_pimpl.h"
 
 enum HBitmapFormat
 {
@@ -20,33 +20,38 @@ enum thumb_type
     thumb_play_or_pause,
     thumb_next,
 
+
     thumb_max
 };
 
+enum cmd_type
+{
+    cmd_type_prev,
+    cmd_type_next,
+    cmd_type_clean,
+    cmd_type_stop,
+
+    cmd_type_play,
+
+    cmd_type_max
+};
+
+class QWinThumbnailPrivate;
 class QWinThumbnail : public QFrameLessWidget
 {
     Q_OBJECT
+    VP_DECLARE_PRIVATE(QWinThumbnail)
 public:
-    explicit QWinThumbnail(QWidget* parent);
+    QWinThumbnail(QWinThumbnailPrivate* pri, QWidget* parent);
     ~QWinThumbnail() override;
 signals:
     void thumb(int);
+    void cmd(int, const QString&);
 
 public slots:
     void onStart();
     void onPause();
     void onEnd();
-
-private:
-    void init();
-    void modifyBtn(bool bPlay);
-protected:
-    bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
-
-private:
-    UINT taskbar_wmsg;
-    HIMAGELIST himl;
-    ITaskbarList3 *p_taskbl;
 };
 #endif
 

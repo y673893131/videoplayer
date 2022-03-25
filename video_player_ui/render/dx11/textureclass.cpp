@@ -94,15 +94,14 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
     return true;
 }
 
-void TextureClass::Render(ID3D11Device* device, ID3D11DeviceContext *deviceContext, void* data)
+void TextureClass::Render(ID3D11Device* device, ID3D11DeviceContext *deviceContext, _VideoFramePtr frame)
 {
-    if(!data)
+    if(!frame)
         return;
-    auto frame = reinterpret_cast<_video_frame_*>(data);
-    if(frame->w != m_width || frame->h != m_height)
+    if(frame->W() != m_width || frame->H() != m_height)
     {
         Shutdown();
-        Initialize(device, deviceContext, frame->w, frame->h);
+        Initialize(device, deviceContext, frame->W(), frame->H());
     }
 
     unsigned int w = 0,h = 0;

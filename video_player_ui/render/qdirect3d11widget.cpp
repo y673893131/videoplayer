@@ -5,28 +5,65 @@
 #include "config/config.h"
 #include "Log/Log.h"
 
+#include <D3D11.h>
+#include <D3DX11.h>
+#include <D3Dcompiler.h>
+#include <D3DX10math.h>
+#include "dx11/inputclass.h"
+#include "dx11/graphicsclass.h"
+
+#include "qrenderprivate.h"
+#include "native/qnativewidget_p.h"
+
+class QDirect3D11WidgetPrivate : public QNativeWidgetPrivate
+{
+    VP_DECLARE_PUBLIC(QDirect3D11Widget)
+public:
+    inline QDirect3D11WidgetPrivate(QDirect3D11Widget* parent)
+        : QNativeWidgetPrivate(parent)
+        , m_bStoped(true)
+    {
+    }
+
+    ~QDirect3D11WidgetPrivate()
+    {
+        if(m_pGraphics)
+        {
+            m_pGraphics->Shutdown();
+            delete m_pGraphics;
+            m_pGraphics = nullptr;
+        }
+    }
+
+    GraphicsClass* m_pGraphics;
+    bool m_bStoped;
+};
+
 QDirect3D11Widget::QDirect3D11Widget(QWidget * parent)
-    : QNativeWidget(parent)
-    , m_bStoped(true)
+    : QNativeWidget(new QDirect3D11WidgetPrivate(this), parent)
 {
 }
 
 QDirect3D11Widget::~QDirect3D11Widget()
 {
-    release();
 }
 
-bool QDirect3D11Widget::initialize()
+bool QDirect3D11Widget::init(const QSize& size, float x, float y)
 {
+    VP_D(QDirect3D11Widget);
+
     // Create the graphics object.  This object will handle rendering all the graphics for this application.
-    m_pGraphics = new GraphicsClass;
-    if(!m_pGraphics)
+    d->m_pGraphics = new GraphicsClass;
+    if(!d->m_pGraphics)
     {
         return false;
     }
 
     // Initialize the graphics object.
-    auto result = m_pGraphics->Initialize(m_width, m_height, reinterpret_cast<HWND>(winId()), m_fScaleX, m_fScaleY);
+    auto result = d->m_pGraphics->Initialize(
+                static_cast<unsigned int>(size.width()),
+                static_cast<unsigned int>(size.height()),
+                reinterpret_cast<HWND>(winId()), x, y);
     if(!result)
     {
         return false;
@@ -35,99 +72,46 @@ bool QDirect3D11Widget::initialize()
     return true;
 }
 
-void QDirect3D11Widget::release()
+void QDirect3D11Widget::render(_VideoFramePtr frame, float* freq, unsigned int freqCount)
 {
-    // Release the graphics object.
-    if(m_pGraphics)
+    VP_D(QDirect3D11Widget);
+    if(!d->m_bStoped)
     {
-        m_pGraphics->Shutdown();
-        delete m_pGraphics;
-        m_pGraphics = nullptr;
-    }
-}
-
-void QDirect3D11Widget::render()
-{
-    if(!m_bStoped)
-    {
-        if(m_pFrame)
-            m_pGraphics->Frame(m_pFrame);
-        else if(m_freq)
+        if(frame)
+            d->m_pGraphics->Frame(frame);
+        else if(freq)
         {
-            if(m_freq)
-                m_pGraphics->Freq(m_freq, m_freqCount);
+            if(freq)
+                d->m_pGraphics->Freq(freq, freqCount);
             else
-                m_pGraphics->Freq(Q_NULLPTR, m_freqCount);
+                d->m_pGraphics->Freq(Q_NULLPTR, freqCount);
         }
     }
     else
-        m_pGraphics->Frame(Q_NULLPTR);
+        d->m_pGraphics->Frame(Q_NULLPTR);
 }
 
-void QDirect3D11Widget::onViewAdjust(bool bViewAdjust)
+void QDirect3D11Widget::resetView(float x, float y)
 {
-    if(m_bViewAdjust != bViewAdjust)
+    VP_D(QDirect3D11Widget);
+    if(d->m_pGraphics)
     {
-        m_bViewAdjust = bViewAdjust;
-        if(m_pGraphics)
-        {
-            if(m_bViewAdjust)
-                m_pGraphics->ResetViewport(m_fScaleX, m_fScaleY);
-            else
-                m_pGraphics->ResetViewport(1.0f, 1.0f);
-        }
-    }
-}
-
-void QDirect3D11Widget::onVideoSizeChanged(int width, int height)
-{
-    float f0 = width * 1.0f / height;
-    float f1 = this->width() * 1.0f / this->height();
-    float fX = 1.0;
-    float fY = 1.0;
-    if(f0 > f1)
-        fY = f1 / f0;
-    else if(f0 < f1)
-        fX = f0 / f1;
-
-    if(m_fScaleX == fX && m_fScaleY == fY)
-        return;
-    m_fScaleX = fX;
-    m_fScaleY = fY;
-
-    if(m_bViewAdjust)
-    {
-        m_pGraphics->ResetViewport(m_fScaleX, m_fScaleY);
-    }
-    qDebug() << __FUNCTION__ << m_fScaleX << m_fScaleY;
-}
-
-void QDirect3D11Widget::onAppendFreq(float *data, unsigned int size)
-{
-
-    if(!m_pFrame)
-    {
-        removeFreq();
-        m_freq = data;
-        m_freqCount = size;
-        update();
-    }
-    else
-    {
-        delete[] data;
+        qDebug() << "scale:" << x << y;
+        d->m_pGraphics->ResetViewport(x, y);
     }
 }
 
 void QDirect3D11Widget::onStart()
 {
-    m_bStoped = false;
+    VP_D(QDirect3D11Widget);
+    d->m_bStoped = false;
 }
 
 void QDirect3D11Widget::onStop()
 {
-    m_bStoped = true;
+    VP_D(QDirect3D11Widget);
+    d->m_bStoped = true;
     removeFrame();
-    removeFreq();
     update();
 }
 

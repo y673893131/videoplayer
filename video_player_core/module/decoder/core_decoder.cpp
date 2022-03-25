@@ -36,7 +36,7 @@ bool core_decoder::init(AVFormatContext *formatCtx, int index)
 
     avcodec_parameters_to_context(pCodecContext, stream->codecpar);
     pCodecContext->pkt_timebase = stream->time_base;
-    pCodecContext->thread_count = 5;
+    pCodecContext->thread_count = 4;
     pCodecContext->thread_type = FF_THREAD_FRAME;
     if(pCodecContext->channel_layout <= 0)
         pCodecContext->channel_layout = static_cast<uint64_t>(av_get_default_channel_layout(pCodecContext->channels));

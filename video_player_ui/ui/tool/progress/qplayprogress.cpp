@@ -16,7 +16,7 @@ QPlayProgress::QPlayProgress(QWidget* parent)
 
 void QPlayProgress::initUi()
 {
-    m_progress = new QProgressSlider(Qt::Orientation::Horizontal, this, this);
+    m_progress = new QProgressSlider(Qt::Orientation::Horizontal, this, m_parent);
     m_progress->setObjectName("slider_pro");
     m_progress->setValue(0);
     m_progress->setDisabled(true);
@@ -44,7 +44,7 @@ void QPlayProgress::initConnect()
 
     connect(m_progress, &QProgressSlider::gotoPos, control, &QVideoControl::onSeekPos);
     connect(m_progress, &QProgressSlider::jumpPos, control, &QVideoControl::onJumpPos);
-    connect(m_progress, &QProgressSlider::gotoPos, subtitle, &QPlaySubtitle::onDelayClear);
+    connect(m_progress, &QProgressSlider::gotoPos, subtitle, &QPlaySubtitle::onGotoPos);
     connect(m_progress, &QProgressSlider::getPreview, control, &QVideoControl::onSeekPosImg);
     connect(m_progress, &QProgressSlider::jumpStr, output, &QOutputWidget::onInfo);
 

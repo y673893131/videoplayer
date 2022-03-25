@@ -5,6 +5,7 @@
 #include <QApplication>
 #include "control/videocontrol.h"
 #include "ui/qtoolwidgets.h"
+#include "ui/tool/fileview/qfileview.h"
 #include "config/config.h"
 
 QPlayTitle::QPlayTitle(QWidget *parent)
@@ -77,14 +78,27 @@ void QPlayTitle::onConfigChanged()
 
 void QPlayTitle::onPlay(const QString &sUrl)
 {
-    auto sName = sUrl.mid(sUrl.lastIndexOf('/') + 1);
-    m_title->setToolTip(sName);
-    auto font = m_title->fontMetrics();
-    auto sText = font.elidedText(sName, Qt::ElideRight, m_title->width());
-    m_title->setText(sText);
+    auto fileView = m_parent->findChild<QFileView*>();
+    auto sTitle = fileView->title(sUrl);
+    QString sToolTip;
+    if(sTitle.isEmpty())
+    {
+        sToolTip = sUrl.mid(sUrl.lastIndexOf('/') + 1);
+        auto font = m_title->fontMetrics();
+        sTitle = font.elidedText(sToolTip, Qt::ElideRight, m_title->width());
+    }
+    else
+    {
+        sToolTip = sTitle;
+    }
+
+    m_title->setToolTip(sToolTip);
+    m_title->setText(sTitle);
+    m_parent->setWindowTitle(sTitle);
 }
 
 void QPlayTitle::onEnd()
 {
     m_title->setText(qApp->applicationName());
+    m_parent->setWindowTitle("vPlay");
 }

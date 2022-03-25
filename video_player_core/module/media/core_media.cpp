@@ -142,6 +142,7 @@ void core_media::setPause()
     {
 //        setFlag(flag_bit_need_pause);
         setFlag(flag_bit_pause, true);
+        setState(video_player_core::state_paused);
     }
 }
 
@@ -160,7 +161,7 @@ void core_media::continuePlay()
 
         setFlag(flag_bit_pause, false);
         _audio->sdl()->startSDL();
-        _state = video_player_core::state_running;
+        setState(video_player_core::state_running);
     }
 }
 
@@ -287,6 +288,7 @@ void av_log_call(void* /*ptr*/, int level, const char* fmt, va_list vl)
     {
         char buffer[1024];
 #ifdef WIN32
+//        int size = _vsnprintf(nullptr, 0, fmt, vl);
         _vsnprintf_s(buffer, 1024, fmt, vl);
 #else
         _snprintf(buffer, 1024, fmt, vl);
@@ -369,7 +371,7 @@ bool core_media::open(int index)
         goto media_start_end;
     }
 
-    Log(Log_Info, "find stream info over.");
+    Log(Log_Info, "find stream info over. bitrate[%lld]", pFormatCtx->bit_rate);
     // find video/audio stream index
 
 //    AVDictionaryEntry* tmp = nullptr;
@@ -414,7 +416,7 @@ bool core_media::open(int index)
 //        APPEND_META(artist)
 
 //        LogB(Log_Debug, sMeta.c_str());
-        codec = pFormatCtx->streams[i]->codec;
+        codec = stream->codec;
         Log(Log_Info, "stream[%d]:%d", i, codec->codec_type);
         switch (codec->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
@@ -443,6 +445,7 @@ bool core_media::open(int index)
     _cb->displayStreamChannelInfo(channel_subtitle, _channels[channel_subtitle], subtitleIndex);
 
     // init video decoder
+//    _video->initDecodeType(_decodeType);
     if(!_video->init(_format_ctx, videoIndex))
     {
         setFlag(flag_bit_tvideo_finish);
@@ -717,7 +720,7 @@ bool core_media::push_frame(bool &bSeek)
     }
 //    auto clock2 = clock();
 //    if(clock2 - clock1 > 2)
-//        LogB(Log_Debug, "push_frame: %d", clock2 - clock1);
+//        LogB(Log_Debug, "push_frame: %d [%d]", clock2 - clock1, info->_audio->pks.size());
     if(bSeek)
     {
         if(vIndex >= 0)

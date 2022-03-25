@@ -15,7 +15,7 @@ public slots:
     virtual void onAutoVisable(bool);
 public:
     virtual void initConnect() = 0;
-private:
+protected:
     void paintEvent(QPaintEvent *event) override;
 protected:
     QWidget* m_parent;

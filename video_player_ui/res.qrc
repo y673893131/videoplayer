@@ -14,6 +14,8 @@
         <file alias="filelist_hover">Resources/icon/tool/filelist_hover.png</file>
         <file alias="volume_mute">Resources/icon/tool/volume_mute.png</file>
         <file alias="volume_mute_hover">Resources/icon/tool/volume_mute_hover.png</file>
+        <file alias="stop">Resources/icon/tool/stop.png</file>
+        <file alias="stop_hover">Resources/icon/tool/stop_hover.png</file>
     </qresource>
     <qresource prefix="/translate">
         <file alias="zh">tr/zh_cn/vPlayTranslate.qm</file>

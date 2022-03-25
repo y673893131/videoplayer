@@ -27,6 +27,7 @@ private:
 public slots:
     void onDelay();
     void onInfo(const QString&);
+    void onError(const QString&);
 private:
     QLabel* m_label[label_max];
 

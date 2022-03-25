@@ -150,7 +150,7 @@ void GraphicsClass::Shutdown()
 }
 
 
-bool GraphicsClass::Frame(void* data)
+bool GraphicsClass::Frame(_VideoFramePtr data)
 {
 	bool result;
 	static float rotation = 0.0f;
@@ -200,7 +200,7 @@ void GraphicsClass::ResetViewport(float fScaleX, float fScaleY)
     m_D3D->ResetViewport(fScaleX, fScaleY);
 }
 
-bool GraphicsClass::Render(float /*rotation*/, void* data, float* freq, unsigned int freqSize)
+bool GraphicsClass::Render(float /*rotation*/, _VideoFramePtr data, float* freq, unsigned int freqSize)
 {
 	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
 	bool result;

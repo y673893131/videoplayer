@@ -8,6 +8,7 @@
 core_filter_base::core_filter_base()
     : m_private(nullptr)
     , m_flag(0)
+    , m_bInit(false)
 {
     INIT_NEW(&m_private, core_filter_private)
 }
@@ -34,12 +35,14 @@ bool core_filter_base::init(AVStream* stream, AVCodecContext* pCodecContext)
     if(!m_private->link())
         return false;
 
+    m_bInit = true;
     return true;
 }
 
 void core_filter_base::uninit()
 {
     m_private->uninit();
+    m_bInit = false;
 }
 
 void core_filter_base::setFlag(int index)

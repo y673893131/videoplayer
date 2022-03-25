@@ -12,10 +12,12 @@ class QFileView : public QToolBase
 public:
     explicit QFileView(QWidget *parent = nullptr);
 
+    QString title(const QString& sUrl);
 signals:
     void loadFile();
     void play(const QString&);
     void thumbPlayOrPause();
+    void thumbStop();
 public slots:
     void onAutoShow();
     void onAutoVisable(bool) override;
@@ -28,6 +30,7 @@ public slots:
     void onHandleStop();
 #ifdef Q_OS_WIN
     void onThumb(int);
+    void onCmd(int, const QString&);
 #endif
 private:
     void playStep(int nStep);

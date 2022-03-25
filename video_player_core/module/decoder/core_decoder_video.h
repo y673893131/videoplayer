@@ -17,6 +17,7 @@ public:
     void uninit() override;
     bool decode(AVPacket *pk, bool& bTryAgain) override;
     bool checkSeekPkt(AVPacket *pk) override;
+    void initDecodeType(int);
     bool setDecodeType(int);
     int getDecodeType();
 

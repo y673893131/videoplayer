@@ -10,6 +10,8 @@
 #include "ui/tool/fileview/playlist/qplayfilelistmodel.h"
 #include "config.h"
 #include "Log/Log.h"
+#include "configDef.h"
+
 QDataModel *QDataModel::m_instance=nullptr;
 QDataModel *QDataModel::instance()
 {
@@ -23,8 +25,8 @@ QDataModel *QDataModel::instance()
 
 QDataModel::QDataModel(QObject *parent) : QObject(parent)
 {
-    qRegisterMetaType<QVector<file_info_t>>("QVector<file_info_t>");
-    qRegisterMetaType<QVector<file_info_t>>("QVector<file_info_t>&");
+    qRegisterMetaType<QVector<file_info_t>>("QVector<std::shared_ptr<file_info_t>>");
+    qRegisterMetaType<QVector<file_info_t>>("QVector<std::shared_ptr<file_info_t>>&");
     m_db = QSqlDatabase::addDatabase("QSQLITE");
     m_db.setDatabaseName("./data.tmp");
     connect(Config::instance(), &Config::setConfig, [this](const QString& config)
@@ -50,7 +52,7 @@ QDataModel::QDataModel(QObject *parent) : QObject(parent)
 
 void QDataModel::init()
 {
-    QVector<file_info_t> data;
+    QVector<std::shared_ptr<file_info_t>> data;
     QSqlQuery query;
     auto bquery = query.exec("select name, url,times from file_info; ");
     if(bquery)
@@ -58,10 +60,10 @@ void QDataModel::init()
         auto record = query.record();
         while(query.next())
         {
-            file_info_t t;
-            t.name = query.value(0).toString();
-            t.url = query.value(1).toString();
-            t.times = query.value(2).toInt();
+            auto t = std::make_shared<file_info_t>();
+            t->name = query.value(0).toString();
+            t->url = query.value(1).toString();
+            t->times = query.value(2).toInt();
             data.push_back(t);
         }
     }

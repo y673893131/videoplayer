@@ -78,7 +78,11 @@ void core_packets::push_flush()
 bool core_packets::push_back(const AVPacket& pk)
 {
     LOCK(mutex)
-    if(isMax()) return false;
+    if(isMax())
+    {
+        return false;
+    }
+
     m_packets.push_back(pk);
     return true;
 }

@@ -5,7 +5,6 @@
 #include <QTime>
 #include <QLabel>
 #include <QBoxLayout>
-#include <QDebug>
 #include "framelesswidget/util.h"
 #include "control/videocontrol.h"
 
@@ -31,7 +30,6 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
     auto size = CALC_WIDGET_SIZE(nullptr, -20, 35);
     m_timePt.setX(size.width());
     m_timePt.setY(size.height());
-
     m_preview = new QLabel(grandParent);
     m_preview->setWindowFlags(Qt::FramelessWindowHint | Qt::ToolTip);
     CALC_WIDGET_SIZE(m_preview, 200, 150);
@@ -41,7 +39,6 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
 #endif
     m_preview->hide();
     m_preview->setObjectName("label_preview");
-
     m_getPreview = new QTimer(this);
     m_getPreview->setInterval(30);
     m_getPreview->setSingleShot(true);

@@ -2,6 +2,7 @@
 #define QPLAYTITLE_H
 
 #include "../base/qtoolbase.h"
+#include <stdint.h>
 
 class QPushButton;
 class QLabel;

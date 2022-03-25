@@ -94,10 +94,22 @@ void QSubTitleLabel::paintEvent(QPaintEvent *)
     qp.setRenderHint(QPainter::Antialiasing);
 
     m_pen.setWidthF(w * 2);
-    qp.strokePath(path, m_pen);
-    if (1 < m_brush.style() && m_brush.style() < 15)
-        qp.fillPath(path, palette().window());
-    qp.fillPath(path, m_brush);
+//    qp.strokePath(path, m_pen);
+//    if (1 < m_brush.style() && m_brush.style() < 15)
+//        qp.fillPath(path, palette().window());
+//    qp.fillPath(path, m_brush);
+
+    if(true) {
+        qp.setBrush(Qt::NoBrush);
+        qp.setPen(QPen(m_pen.color(), w * 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        for(const auto &polygon : path.toSubpathPolygons())
+            qp.drawPolygon(polygon, Qt::OddEvenFill);
+    }
+
+    qp.setBrush(m_brush);
+    qp.setPen(Qt::NoPen);
+    for(const auto &polygon : path.toFillPolygons())
+        qp.drawPolygon(polygon, Qt::OddEvenFill);
 }
 
 void QSubTitleLabel::init()

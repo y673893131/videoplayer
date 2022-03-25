@@ -52,7 +52,7 @@ void TextureShaderClass::Shutdown()
 
 
 bool TextureShaderClass::Render(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int indexCount, D3DXMATRIX& worldMatrix, D3DXMATRIX& viewMatrix,
-                                D3DXMATRIX& projectionMatrix, TextureClass* texture, void* data)
+                                D3DXMATRIX& projectionMatrix, TextureClass* texture, _VideoFramePtr data)
 {
 	bool result;
 
@@ -330,7 +330,7 @@ void TextureShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND
 
 
 bool TextureShaderClass::SetShaderParameters(ID3D11Device* device, ID3D11DeviceContext* deviceContext, D3DXMATRIX& worldMatrix, D3DXMATRIX& viewMatrix,
-                                             D3DXMATRIX& projectionMatrix, TextureClass* texture, void* data)
+                                             D3DXMATRIX& projectionMatrix, TextureClass* texture, _VideoFramePtr data)
 {
 	HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;

@@ -3,6 +3,7 @@
 #include <QBoxLayout>
 #include <QTimer>
 #include "control/videocontrol.h"
+#include "filter/qinputfilter.h"
 
 QOutputWidget::QOutputWidget(QWidget *parent)
     :QToolBase(parent, false)
@@ -33,8 +34,10 @@ void QOutputWidget::initLayout()
 void QOutputWidget::initConnect()
 {
     auto control = VIDEO_CONTROL;
+
     connect(m_timerDelay, &QTimer::timeout, this, &QOutputWidget::onDelay);
     connect(control, &QVideoControl::tips, this, &QOutputWidget::onInfo);
+    connect(QInputFilter::instance(), &QInputFilter::error, this, &QOutputWidget::onError);
 }
 
 void QOutputWidget::onDelay()
@@ -49,4 +52,9 @@ void QOutputWidget::onInfo(const QString & info)
     m_timerDelay->start();
 
     m_label[label_info]->setText(info);
+}
+
+void QOutputWidget::onError(const QString & info)
+{
+    onInfo(info);
 }

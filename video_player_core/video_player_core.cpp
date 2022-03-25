@@ -2,7 +2,7 @@
 #include "Log/Log.h"
 //#include "video_define.h"
 #include "module/media/core_media.h"
-#include "video_thread.h"
+#include "module/thread/core_thread_demux.h"
 
 #include <memory>
 
@@ -58,14 +58,14 @@ int video_player_core::_setSrc(const std::string &src)
 int video_player_core::_play()
 {
     Log(Log_Opt, "call.");
-    video_thread::start(*m_media);
+    core_thread_demux::start(*m_media);
     return 0;
 }
 
 int video_player_core::_pause(int index)
 {
 //    Log(Log_Opt, "call.");
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->setPause();
     return 0;
@@ -74,7 +74,7 @@ int video_player_core::_pause(int index)
 int video_player_core::_continue(int index)
 {
 //    Log(Log_Opt, "call.");
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->continuePlay();
     return 0;
@@ -83,7 +83,7 @@ int video_player_core::_continue(int index)
 int video_player_core::_stop(int index)
 {
     Log(Log_Opt, "call.");
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->setStop();
     return 0;
@@ -92,7 +92,7 @@ int video_player_core::_stop(int index)
 int video_player_core::_seek(int index, int64_t ms)
 {
 //    Log(Log_Opt, "%lld", ms);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->seekPos(ms);
     return 0;
@@ -100,7 +100,7 @@ int video_player_core::_seek(int index, int64_t ms)
 
 bool video_player_core::_seekJump(int index, int64_t ms)
 {
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         return pIndex->seekJump(ms);
     return false;
@@ -108,7 +108,7 @@ bool video_player_core::_seekJump(int index, int64_t ms)
 
 int video_player_core::_get_seek_img(int index, int64_t ms)
 {
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->getSeekImg(ms);
     return 0;
@@ -119,7 +119,7 @@ int video_player_core::_setVol(int index, int nVol)
 //    Log(Log_Opt, "%d", nVol);
     if(m_media)
         m_media->setVol(nVol);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->setVol(nVol);
     return 0;
@@ -131,7 +131,7 @@ int video_player_core::_setMute(int index, bool bMute)
     if(m_media)
         m_media->mute(bMute);
 
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->setMute(bMute);
     return 0;
@@ -140,7 +140,7 @@ int video_player_core::_setMute(int index, bool bMute)
 int video_player_core::_setAudioChannel(int index, audio_channel_type type)
 {
     Log(Log_Opt, "%d", type);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->setAudioChannel(type);
     return 0;
@@ -149,7 +149,7 @@ int video_player_core::_setAudioChannel(int index, audio_channel_type type)
 int video_player_core::_setsize(int index, int w, int h)
 {
     Log(Log_Opt, "(%d,%d)", w, h);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
     {
         pIndex->setSize(w, h);
@@ -160,7 +160,7 @@ int video_player_core::_setsize(int index, int w, int h)
 int video_player_core::_setStreamChannel(int index, int channel, int sel)
 {
     Log(Log_Opt, " select (%d,%d)", channel, sel);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
     {
         pIndex->setChannel(channel, sel);
@@ -171,20 +171,21 @@ int video_player_core::_setStreamChannel(int index, int channel, int sel)
 int video_player_core::_setDecodeType(int index, int type)
 {
     Log(Log_Opt, "(%d)", type);
-    auto pIndex = video_thread::index(index);
+    if(m_media)
+        m_media->setDecode(type);
+
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
     {
         pIndex->setDecode(type);
     }
 
-    if(m_media)
-        m_media->setDecode(type);
     return 0;
 }
 
 int video_player_core::_setSpeedType(int index, int type)
 {
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
         pIndex->setSpeed(type);
     if(m_media)
@@ -195,7 +196,7 @@ int video_player_core::_setSpeedType(int index, int type)
 int video_player_core::_state(int index)
 {
 //    Log(Log_Opt, "[%d]", index);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
     {
 //        Log(Log_Opt, "%d", pIndex->state());
@@ -207,7 +208,7 @@ int video_player_core::_state(int index)
 
 video_player_core::enum_state video_player_core::_getState(int index)
 {
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
     {
         Log(Log_Opt, "%d", pIndex->state1());
@@ -215,6 +216,17 @@ video_player_core::enum_state video_player_core::_getState(int index)
     }
 
     return state_stopped;
+}
+
+void *video_player_core::_frame(int index)
+{
+    auto pIndex = core_thread_demux::index(index);
+    if(pIndex)
+    {
+        return pIndex->frame();
+    }
+
+    return  nullptr;
 }
 
 bool pixel_format_convert(unsigned char *pdata_src, int src_width, int src_height, AVPixelFormat src_pixfmt,
@@ -294,7 +306,7 @@ bool video_player_core::_cov(void *indata, void* outdata, int w, int h, int outs
 int video_player_core::_setCapture(int index, bool bCap)
 {
     Log(Log_Opt, "%d", bCap);
-    auto pIndex = video_thread::index(index);
+    auto pIndex = core_thread_demux::index(index);
     if(pIndex)
     {
         pIndex->setCapture(bCap);

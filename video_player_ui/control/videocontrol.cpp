@@ -2,6 +2,7 @@
 #include "render/videoframe.h"
 #include "ui/qtoolwidgets.h"
 #include "Log/Log.h"
+#include "config/config.h"
 #include <QMetaType>
 #include <QApplication>
 #include <QFileInfo>
@@ -21,8 +22,13 @@ QVideoControl::QVideoControl(QObject* parent)
     , m_index(0)
     , m_frameCount(0)
     , m_seekPos(0)
+    , m_bitRate(0)
+    , m_frameSize(-1,-1)
+    , m_frame(new _video_frame_())
 {
     setObjectName("video_control");
+
+    qRegisterMetaType<_VideoFramePtr>("_VideoFramePtr");
     //const QMap<int, QString>&
     qRegisterMetaType<QMap<int, QString>>("QMap<int, QString>");
     qRegisterMetaType<QMap<int, QString>>("QMap<int, QString>&");
@@ -41,6 +47,7 @@ QVideoControl::QVideoControl(QObject* parent)
 
     m_frameRateTimer = new QTimer;
     m_frameRateTimer->setInterval(1000);
+    m_frameRateTimer->start();
     connect(m_frameRateTimer, &QTimer::timeout, this, &QVideoControl::onStatFrameRate, Qt::QueuedConnection);
     connect(this, &QVideoControl::start, m_frameRateTimer, static_cast<void(QTimer::*)()>(&QTimer::start), Qt::QueuedConnection);
     connect(this, &QVideoControl::end, m_frameRateTimer, &QTimer::stop, Qt::QueuedConnection);
@@ -57,8 +64,12 @@ void QVideoControl::setToolBar(QToolWidgets *toolWidget)
 
 void QVideoControl::onStatFrameRate()
 {
+//    static int count = 0;
+//    Log(Log_Debug, "%s %d %d", __FUNCTION__, m_frameCount, count++);
     emit frameRate(m_frameCount);
+    emit bitRateChanged(m_bitRate);
     m_frameCount = 0;
+    m_bitRate = 0;
 }
 
 void QVideoControl::onStart(const QString &filename)
@@ -96,6 +107,7 @@ void QVideoControl::onStart(const QString &filename)
 void QVideoControl::onStoped()
 {
     m_core->_stop(m_index);
+    m_bitRate = 0;
 }
 
 void QVideoControl::onPause()
@@ -108,7 +120,7 @@ void QVideoControl::onPause()
 
 void QVideoControl::onContinue()
 {
-    if(!isPlaying())
+    if(isPause())
         emit continuePlay();
     m_core->_continue(m_index);
     qDebug() << "[continue]" << m_index;
@@ -214,6 +226,21 @@ bool QVideoControl::isPause()
     return (state == video_player_core::state_paused);
 }
 
+QSize QVideoControl::frameSize()
+{
+    return m_frameSize;
+}
+
+_VideoFramePtr QVideoControl::frame()
+{
+    return m_frame;
+}
+
+void *QVideoControl::buffer()
+{
+    return m_core->_frame(m_index);
+}
+
 void QVideoControl::totalTime(const int64_t t, const char* sName)
 {
     auto tm = QTime::fromMSecsSinceStartOfDay(static_cast<int>(t / 1000));
@@ -228,15 +255,25 @@ void QVideoControl::posChange(const int64_t t)
     ++m_frameCount;
 }
 
+void QVideoControl::bitRate(const int64_t size)
+{
+    m_bitRate += size;
+}
+
 void QVideoControl::setVideoSize(int width, int height)
 {
+    m_frameSize = QSize(width, height);
     emit videoSizeChanged(width, height);
 }
 
 void QVideoControl::displayCall(void *data, int width, int height)
 {
-    auto frame = new _video_frame_(reinterpret_cast<unsigned char*>(data), width, height);
-    emit appendFrame(frame);
+    auto bZeroCopy = GET_CONFIG_DATA(Config::Data_ZeroCopy).toBool();
+    if(bZeroCopy)
+        m_frame->set(data, width, height);
+    else
+        m_frame = std::make_shared<_video_frame_>(reinterpret_cast<unsigned char*>(data), width, height);
+    emit appendFrame(m_frame);
 }
 
 void QVideoControl::displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_ *>& infos, int defalut)
@@ -271,9 +308,9 @@ void QVideoControl::displaySubTitleCall(char * str, unsigned int index, int type
 
 void QVideoControl::displayFreqCall(float *data, unsigned int size)
 {
-    auto d = new float[size];
-    memcpy(d, data, sizeof(float) * size);
-    emit appendFreq(d, size);
+//    auto d = new float[size];
+//    memcpy(d, data, sizeof(float) * size);
+    emit appendFreq(data, size);
 }
 
 void QVideoControl::previewDisplayCall(void *data, int width, int height)

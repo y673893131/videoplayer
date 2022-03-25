@@ -3,6 +3,7 @@
 
 #include <QSlider>
 
+
 class QColumeSlider : public QSlider
 {
     Q_OBJECT
@@ -15,7 +16,6 @@ public slots:
     void onValueChanged(int);
 private:
     bool m_bFirst;
-
 };
 
 #endif // QCOLUMESLIDER_H

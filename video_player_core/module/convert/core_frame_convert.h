@@ -27,6 +27,7 @@ public:
     void scale(AVFrame* src, video_interface* cb);
     void scalePreview(AVFrame* src, video_interface* cb);
     void scaleFrame(AVFrame* src);
+    void initBuffer();
 private:
     AVFrame* frame;
     uint8_t* buffer;
@@ -34,6 +35,7 @@ private:
     AVCodecContext* srcCodec;
     core_graud_lock mutex;
     size_t size;
+    size_t sizeReal;
     int w;
     int h;
     int srcWidth;

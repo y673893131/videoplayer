@@ -1,18 +1,28 @@
 #include "qnativewidget.h"
 #include "../../config/config.h"
 #include <QDebug>
+#include "../qrenderprivate.h"
+#include "qnativewidget_p.h"
 
 QNativeWidget::QNativeWidget(QWidget *parent)
     : QWidget(parent)
-    , m_width(0)
-    , m_height(0)
-    , m_bDeviceInitialized(false)
-    , m_bViewAdjust(GET_CONFIG_DATA(Config::Data_Adjust).toBool())
-    , m_pFrame(nullptr)
-    , m_freq(nullptr)
-    , m_freqCount(0)
-    , m_fScaleX(1.0f)
-    , m_fScaleY(1.0f)
+    , VP_INIT(new QNativeWidgetPrivate(this))
+{
+    setup();
+}
+
+QNativeWidget::QNativeWidget(QNativeWidgetPrivate *pri, QWidget *parent)
+    : QWidget(parent)
+    , VP_INIT(pri)
+{
+    setup();
+}
+
+QNativeWidget::~QNativeWidget()
+{
+}
+
+void QNativeWidget::setup()
 {
     QPalette pal = palette();
     pal.setColor(QPalette::Window, Qt::black);
@@ -27,45 +37,66 @@ QNativeWidget::QNativeWidget(QWidget *parent)
     setAutoFillBackground(false);
     setAttribute(Qt::WA_PaintOnScreen, true);
 
-    connect(Config::instance(), &Config::loadConfig, [this]
+    auto func = [this]
     {
-        m_bViewAdjust = GET_CONFIG_DATA(Config::Data_Adjust).toBool();
-        qDebug() << "m_bViewAdjust" << m_bViewAdjust;
-        onViewAdjust(m_bViewAdjust);
-    });
+        VP_D(QNativeWidget);
+        d->initConfig();
+        onViewAdjust(true);
+    };
+
+    connect(Config::instance(), &Config::loadConfig, this, func);
+    connect(Config::instance(), &Config::setConfig, this, func);
 }
 
-QNativeWidget::~QNativeWidget()
-{
-}
 
-void QNativeWidget::onAppendFrame(void *frame)
+void QNativeWidget::onAppendFrame(_VideoFramePtr frame)
 {
-    removeFrame();
-    m_pFrame = reinterpret_cast<_video_frame_*>(frame);
+    VP_D(QNativeWidget);
+    d->m_frame = frame;
     update();
 }
 
-void QNativeWidget::onViewAdjust(bool)
+void QNativeWidget::onViewAdjust(bool bViewAdjust)
 {
+    VP_D(QNativeWidget);
+    if(d->setScale(width(), height()) || bViewAdjust)
+        resetView(d->m_fScaleX, d->m_fScaleY);
+}
+
+void QNativeWidget::onVideoSizeChanged(int w, int h)
+{
+    VP_D(QNativeWidget);
+    d->setVideoSize(w, h);
+    onViewAdjust(false);
+}
+
+void QNativeWidget::onAppendFreq(float *data, unsigned int size)
+{
+    VP_D(QNativeWidget);
+    if(!d->m_frame)
+    {
+        d->m_freq = data;
+        d->m_freqCount = size;
+        update();
+    }
+}
+
+bool QNativeWidget::initialize()
+{
+    VP_D(QNativeWidget);
+    return init(d->m_window, d->m_fScaleX, d->m_fScaleY);
 }
 
 void QNativeWidget::removeFrame()
 {
-    if(m_pFrame)
-    {
-        delete m_pFrame;
-        m_pFrame = nullptr;
-    }
+    VP_D(QNativeWidget);
+    d->removeFrame();
 }
 
-void QNativeWidget::removeFreq()
+void QNativeWidget::render()
 {
-    if(m_freq)
-    {
-        delete m_freq;
-        m_freq = nullptr;
-    }
+    VP_D(QNativeWidget);
+    render(d->m_frame, d->m_freq, d->m_freqCount);
 }
 
 QPaintEngine* QNativeWidget::paintEngine() const
@@ -75,10 +106,11 @@ QPaintEngine* QNativeWidget::paintEngine() const
 
 void QNativeWidget::showEvent(QShowEvent * event)
 {
-    if (!m_bDeviceInitialized)
+    VP_D(QNativeWidget);
+    if (!d->m_bDeviceInitialized)
     {
-        m_bDeviceInitialized = initialize();
-        emit deviceInitialized(m_bDeviceInitialized);
+        d->m_bDeviceInitialized = initialize();
+        emit deviceInitialized(d->m_bDeviceInitialized);
     }
 
     QWidget::showEvent(event);
@@ -91,8 +123,7 @@ void QNativeWidget::paintEvent(QPaintEvent * /*event*/)
 
 void QNativeWidget::resizeEvent(QResizeEvent * event)
 {
-    m_width = static_cast<unsigned int>(width());
-    m_height = static_cast<unsigned int>(height());
-
+    VP_D(QNativeWidget);
+    d->setWindowSize(width(), height());
     QWidget::resizeEvent(event);
 }

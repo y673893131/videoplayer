@@ -182,10 +182,10 @@ bool FreqClass::UpdateBuffers(
         int positionX,
         int positionY,
         float* data,
-        unsigned int /*count*/)
+        unsigned int count)
 {
     float left, right, top, bottom;
-    VertexType* vertices;
+    static VertexType* vertices = new VertexType[m_vertexCount];
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     VertexType* verticesPtr;
     HRESULT result;
@@ -206,14 +206,14 @@ bool FreqClass::UpdateBuffers(
     // Calculate the screen coordinates of the bottom of the bitmap.
     bottom = top - 1.0f * m_height;
 
-    // Create the vertex array.
-    vertices = new VertexType[m_vertexCount];
-    if(!vertices)
-    {
-        return false;
-    }
+//    // Create the vertex array.
+//    vertices = new VertexType[m_vertexCount];
+//    if(!vertices)
+//    {
+//        return false;
+//    }
 
-    unsigned int count = 128;
+//    unsigned int count = 128;
     auto size = CALC_WIDGET_SIZE(nullptr, count / 64 * 400, 200);
     float maxHeight = size.height();
     float maxWidth = size.width();
@@ -236,7 +236,7 @@ bool FreqClass::UpdateBuffers(
     result = deviceContext->Map(m_vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result))
     {
-        delete[] vertices;
+//        delete[] vertices;
         return false;
     }
 
@@ -250,8 +250,8 @@ bool FreqClass::UpdateBuffers(
     deviceContext->Unmap(m_vertexBuffer, 0);
 
     // Release the vertex array as it is no longer needed.
-    delete [] vertices;
-    vertices = nullptr;
+//    delete [] vertices;
+//    vertices = nullptr;
 
     return true;
 }

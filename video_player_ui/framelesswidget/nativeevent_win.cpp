@@ -6,8 +6,8 @@
 #include <windowsx.h>
 #include <dwmapi.h>
 
-CNativeEvent_Win::CNativeEvent_Win()
-    : m_bResizeable(true)
+CNativeEvent_Win::CNativeEvent_Win(QFrameLessWidget* pub)
+    : QFrameLessWidgetPrivate(pub)
     , m_bShadow(false)
 {
 
@@ -44,14 +44,10 @@ void CNativeEvent_Win::setShadow(void *wnd)
 #endif
 }
 
-void CNativeEvent_Win::setResizeable(bool bResizeable)
-{
-    m_bResizeable = bResizeable;
-}
-
 bool CNativeEvent_Win::check(void *message, long *result)
 {
     auto msg = reinterpret_cast<MSG*>(message);
+#define PADDING 10
     const LONG borderWidth = PADDING;
     RECT winrect;
     GetWindowRect(msg->hwnd, &winrect);
@@ -121,7 +117,7 @@ bool CNativeEvent_Win::check(void *message, long *result)
     return false;
 }
 
-bool CNativeEvent_Win::_nativeEvent(const QByteArray &/*eventType*/, void *message, long *result, QWidget* widget)
+bool CNativeEvent_Win::nativeEvent(const QByteArray &/*eventType*/, void *message, long *result, QWidget* widget)
 {
 #ifdef Q_OS_WIN
     auto msg = reinterpret_cast<MSG*>(message);
@@ -129,7 +125,7 @@ bool CNativeEvent_Win::_nativeEvent(const QByteArray &/*eventType*/, void *messa
     case WM_NCHITTEST:
     {
         bool bCheck = false;
-        if(m_bResizeable && !widget->isMaximized() && !widget->isFullScreen())
+        if(m_bResizeabe && !widget->isMaximized() && !widget->isFullScreen())
         {
             bCheck = check(message, result);
         }

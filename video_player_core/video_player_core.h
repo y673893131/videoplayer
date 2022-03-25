@@ -85,6 +85,14 @@ struct subtitle_info
 
 struct subtitle_header
 {
+    subtitle_header()
+        : bInit(false)
+        , isASS(false)
+    {
+    }
+    bool bInit;
+    bool isASS;
+    std::string sHeader;
     std::vector<subtitle_info> infos;
 };
 
@@ -95,6 +103,7 @@ public:
     virtual void supportHWDecoder(const std::map<int, std::string>&) = 0;
     virtual void totalTime(const int64_t t, const char*) = 0;
     virtual void posChange(const int64_t t) = 0;
+    virtual void bitRate(const int64_t size) = 0;
     virtual void setVideoSize(int width, int hight) = 0;
     virtual void displayStreamChannelInfo(enum_stream_channel channel, const std::vector<_stream_channel_info_*>&, int defalut) = 0;
     virtual void displayCall(void* data, int width, int height) = 0;
@@ -143,6 +152,7 @@ public:
     bool _cov(void *indata, void* outdata, int w, int h, int outsize);
     int _setCapture(int,bool);
     enum_state _getState(int);
+    void* _frame(int index);
 private:
     core_media* m_media;
 };

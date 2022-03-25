@@ -19,14 +19,15 @@
 #endif
 
 QFileListView::QFileListView(QWidget* parent)
-    :QListView(parent)
+    : QListView(parent)
+    , m_menu(nullptr)
 {
     setObjectName("list_file");
     verticalScrollBar()->setObjectName("scroll1");
     horizontalScrollBar()->setObjectName("scroll1");
     auto model = new QPlayFileListModel(this);
     auto delegate = new QFileListDelegate(this);
-    m_menu = new QFileListMenu(this);
+
     setModel(model);
     delegate->setModel(model);
     setItemDelegate(delegate);
@@ -43,13 +44,7 @@ QFileListView::QFileListView(QWidget* parent)
     connect(this, &QFileListView::remove, model, &QPlayFileListModel::removeIndex);
     connect(model, &QPlayFileListModel::removeUrl, DATA(), &QDataModel::removeUrl);
     connect(this, &QFileListView::rightClick, this, &QFileListView::onPopMenu);
-    connect(m_menu->actions()[QFileListMenu::action_open_dir], &QAction::triggered, this, &QFileListView::onBrowerFile);
-    connect(m_menu->actions()[QFileListMenu::action_load_file], &QAction::triggered, this, &QFileListView::loadFile);
-    connect(m_menu->actions()[QFileListMenu::action_clean_file_lsit], &QAction::triggered, model, &QPlayFileListModel::onClean);
-    connect(m_menu->actions()[QFileListMenu::action_clean_file_lsit], &QAction::triggered, DATA(), &QDataModel::onClean);
-    connect(m_menu->actions()[QFileListMenu::action_delete], &QAction::triggered, this, &QFileListView::onDeleteFile);
     connect(control, &QVideoControl::total, this, [=](int times){DATA()->onUpdateTimees(model->current(), times);});
-
     connect(this, &QFileListView::inputUrlFile, model, &QPlayFileListModel::onInputUrlFile);
     connect(this, &QFileListView::filter, model, &QPlayFileListModel::onFilter);
 }
@@ -73,6 +68,16 @@ void QFileListView::onAddUrlSuccessed(const QString &url)
 
 void QFileListView::onPopMenu(const QPoint &point)
 {
+    if(!m_menu)
+    {
+        m_menu = new QFileListMenu(this);
+        connect(m_menu->actions()[QFileListMenu::action_open_dir], &QAction::triggered, this, &QFileListView::onBrowerFile);
+        connect(m_menu->actions()[QFileListMenu::action_load_file], &QAction::triggered, this, &QFileListView::loadFile);
+        connect(m_menu->actions()[QFileListMenu::action_clean_file_lsit], &QAction::triggered, static_cast<QPlayFileListModel*>(model()), &QPlayFileListModel::onClean);
+        connect(m_menu->actions()[QFileListMenu::action_clean_file_lsit], &QAction::triggered, DATA(), &QDataModel::onClean);
+        connect(m_menu->actions()[QFileListMenu::action_delete], &QAction::triggered, this, &QFileListView::onDeleteFile);
+    }
+
     auto index = indexAt(point);
     auto model = qobject_cast<QPlayFileListModel*>(this->model());
     auto isOnline = model->isOnline();

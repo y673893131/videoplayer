@@ -7,43 +7,60 @@
 #include "config/config.h"
 #include <QBoxLayout>
 
-QVolumeWidget::QVolumeWidget(QWidget *parent)
-    :QFrameLessWidget(parent), m_parent(parent)
+#include "framelesswidget/nativeevent_p.h"
+
+class QVolumeWidgetPrivate : public CNativeEvent_p
 {
+    VP_DECLARE_PUBLIC(QVolumeWidget)
+    inline QVolumeWidgetPrivate(QVolumeWidget* parent, QWidget* grand)
+        : CNativeEvent_p(parent)
+        , m_parent(grand)
+    {
+        setResizeable(false);
+    }
+
+    QWidget* m_parent;
+    QColumeSlider* m_volume;
+    QTimer* m_timerSetVol;
+    QTimer* m_timerHide;
+};
+
+QVolumeWidget::QVolumeWidget(QWidget *parent)
+    :QFrameLessWidget(new QVolumeWidgetPrivate(this, parent), parent)
+{
+    VP_D(QVolumeWidget);
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_ShowModal, false);
-#ifdef Q_OS_WIN
-    setResizeable(false);
-#endif
     setDragSelf(false);
     setObjectName("volume_widget");
-    m_volume = new QColumeSlider(Qt::Orientation::Vertical, this);
+    d->m_volume = new QColumeSlider(Qt::Orientation::Vertical, this);
 
-    m_timerSetVol = new QTimer(this);
-    m_timerSetVol->setInterval(500);
-    m_timerSetVol->setSingleShot(true);
+    d->m_timerSetVol = new QTimer(this);
+    d->m_timerSetVol->setInterval(500);
+    d->m_timerSetVol->setSingleShot(true);
 
-    m_timerHide = new QTimer(this);
-    m_timerHide->setInterval(200);
+    d->m_timerHide = new QTimer(this);
+    d->m_timerHide->setInterval(200);
 
     auto layout = new QHBoxLayout(this);
     layout->setMargin(0);
-    layout->addWidget(m_volume);
+    layout->addWidget(d->m_volume);
 
     CALC_WIDGET_SIZE(this, 30, 100);
 }
 
 void QVolumeWidget::initConnect()
 {
+    VP_D(QVolumeWidget);
     auto control = VIDEO_CONTROL;
-    auto playControl = m_parent->findChild<QPlayControl*>();
-    auto output = m_parent->findChild<QOutputWidget*>();
-    connect(m_volume, &QSlider::valueChanged, control, &QVideoControl::onSetVol);
-    connect(m_volume, &QSlider::valueChanged, this, &QVolumeWidget::onVolChanged);
-    connect(m_volume, &QColumeSlider::jumpStr, output, &QOutputWidget::onInfo);
-    connect(QInputFilter::instance(), &QInputFilter::volumeJump, m_volume, &QColumeSlider::onJump);
-    connect(m_timerSetVol, &QTimer::timeout, this, &QVolumeWidget::onSetVol);
-    connect(m_timerHide, &QTimer::timeout, this, &QVolumeWidget::onTimerHide);
+    auto playControl = d->m_parent->findChild<QPlayControl*>();
+    auto output = d->m_parent->findChild<QOutputWidget*>();
+    connect(d->m_volume, &QSlider::valueChanged, control, &QVideoControl::onSetVol);
+    connect(d->m_volume, &QSlider::valueChanged, this, &QVolumeWidget::onVolChanged);
+    connect(d->m_volume, &QColumeSlider::jumpStr, output, &QOutputWidget::onInfo);
+    connect(QInputFilter::instance(), &QInputFilter::volumeJump, d->m_volume, &QColumeSlider::onJump);
+    connect(d->m_timerSetVol, &QTimer::timeout, this, &QVolumeWidget::onSetVol);
+    connect(d->m_timerHide, &QTimer::timeout, this, &QVolumeWidget::onTimerHide);
     connect(playControl, &QPlayControl::showVolume, this, &QVolumeWidget::onShow);
 
     connect(Config::instance(), &Config::loadConfig, this, &QVolumeWidget::onLoadConfig);
@@ -51,38 +68,43 @@ void QVolumeWidget::initConnect()
 
 void QVolumeWidget::onLoadConfig()
 {
-    m_volume->setValue(GET_CONFIG_DATA(Config::Data_Vol).toInt());
+    VP_D(QVolumeWidget);
+    d->m_volume->setValue(GET_CONFIG_DATA(Config::Data_Vol).toInt());
 }
 
 void QVolumeWidget::onVolChanged()
 {
-    m_timerSetVol->stop();
-    m_timerSetVol->start();
+    VP_D(QVolumeWidget);
+    d->m_timerSetVol->stop();
+    d->m_timerSetVol->start();
 }
 
 void QVolumeWidget::onSetVol()
 {
-    SET_CONFIG_DATA(m_volume->value(), Config::Data_Vol);
+    VP_D(QVolumeWidget);
+    SET_CONFIG_DATA(d->m_volume->value(), Config::Data_Vol);
 }
 
 void QVolumeWidget::onShow(bool bVisable, const QPoint &pt, const QSize& size)
 {
+    VP_D(QVolumeWidget);
     auto pos = pt;
     pos.setX(pos.x() + (size.width() - width()) / 2);
     pos.setY(pos.y() - height());
     move(pos);
-    m_timerHide->stop();
+    d->m_timerHide->stop();
     if(bVisable)
         setVisible(bVisable);
     else
-        m_timerHide->start();
+        d->m_timerHide->start();
 }
 
 void QVolumeWidget::onTimerHide()
 {
+    VP_D(QVolumeWidget);
     if(!underMouse())
     {
         setVisible(false);
-        m_timerHide->stop();
+        d->m_timerHide->stop();
     }
 }

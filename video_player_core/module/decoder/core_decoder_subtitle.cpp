@@ -15,9 +15,12 @@ core_decoder_subtitle::~core_decoder_subtitle()
 bool core_decoder_subtitle::init(AVFormatContext *formatCtx, int index)
 {
     uninit();
-    core_decoder::init(formatCtx, index);
+    if(!core_decoder::init(formatCtx, index))
+        return false;
+
     INIT_NEW(&pSubtitle, AVSubtitle)
 
+    //AV_CODEC_ID_ASS
 //    auto subHeader = std::string(reinterpret_cast<char*>(pCodecContext->subtitle_header), static_cast<unsigned int>(pCodecContext->subtitle_header_size));
 //    Log(Log_Debug, subHeader.c_str());
 
@@ -64,9 +67,18 @@ void core_decoder_subtitle::subtitleHeader(video_interface *cb)
         analyzeAASHeader(header, sHeader);
         break;
     default:
-        return;
+    {
+        header.bInit = true;
+        subtitle_info info = {};
+        _snprintf(info.sFont, sizeof(info.sFont), "Arial");
+        info.pt = 18;
+        info.bold = 1;
+        info.color[0] = 0xFFFFFFFF;
+        header.infos.push_back(info);
+    }return;
     }
 
+    header.sHeader = sHeader;
     cb->subtitleHaderCall(header);
 }
 
@@ -89,7 +101,6 @@ void core_decoder_subtitle::displayFrame(video_interface *cb, int64_t startTime)
             break;
         }
 
-
         cb->displaySubTitleCall(subtitleString, i, rc->type, start, end);
     }
 
@@ -109,7 +120,7 @@ void core_decoder_subtitle::analyzeAASHeader(subtitle_header &header, const std:
         try {
             subtitle_info info;
             memset(&info, 0x00, sizeof(subtitle_info));
-            sscanf(line.c_str(), "Style: "
+            if(0 <= sscanf(line.c_str(), "Style: "
                                    "%[^,],"                  /* Name */
                                    "%[^,],%d,"               /* Font{name,size} */
                                    "&H%x,&H%x,&H%x,&H%x," /* {Primary,Secondary,Outline,Back}Colour */
@@ -127,8 +138,12 @@ void core_decoder_subtitle::analyzeAASHeader(subtitle_header &header, const std:
                     , &info.spacing, &info.angle
                     , &info.borderStyle, &info.outlinePix, &info.shadowPix
                     , &info.alignment, &info.marginLeft, &info.marginRight, &info.marginBottom
-                    , &info.encoding);
-            header.infos.push_back(info);
+                    , &info.encoding)
+            ){
+                header.bInit = true;
+                header.isASS = true;
+                header.infos.push_back(info);
+            }
 
         } catch (...) {
             Log(Log_Err, "parse aas error: %s", line.c_str());

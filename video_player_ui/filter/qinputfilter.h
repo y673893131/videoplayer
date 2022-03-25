@@ -5,6 +5,7 @@
 #include <QSet>
 
 #define APPEND_EXCEPT_FILTER(x) QInputFilter::instance()->appendExceptObj(x)
+#define G_EVENT_FILTER() QInputFilter::instance()
 
 class QInputFilter : public QObject
 {
@@ -23,7 +24,8 @@ signals:
     void space();
     void escap();
     void mouseMove();
-
+    void cap();
+    void error(const QString&);
 public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 private:

@@ -1,10 +1,20 @@
 CONFIG += c++11
 
+win32{
+QMAKE_LFLAGS_DEBUG += /MAP
+QMAKE_LFLAGS_DEBUG += /Zi
+QMAKE_LFLAGS_DEBUG += /debug /opt:ref
+QMAKE_LFLAGS_RELEASE += /MAP
+QMAKE_CFLAGS_RELEASE += /Zi
+QMAKE_LFLAGS_RELEASE += /debug /opt:ref
+}
+
 win32 {
 #    admintrator setting
 #    Tips: admin need administrator startup QtCreator
 #    QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"
 #    QMAKE_LFLAGS += /SUBSYSTEM:WINDOWS,\"5.01\"
+
 DEFINES += RENDER_DX11
 contains(DEFINES, RENDER_DX11) {
     INCLUDEPATH += $$(DXSDK_DIR)\Include
@@ -34,28 +44,57 @@ SOURCES += \
 
 DEFINES += THUMBNAIL
 contains(DEFINES, THUMBNAIL) {
+QT += winextras
     HEADERS += \
-        $$PWD/ui/thumb/qwinthumbnail.h
+        $$PWD/ui/thumb/qwinthumbnail_p.h \
+        $$PWD/ui/thumb/qwinthumbnail.h \
+        $$PWD/ui/thumb/qwintaskbarmenu.h
     SOURCES += \
-        $$PWD/ui/thumb/qwinthumbnail.cpp
+        $$PWD/ui/thumb/qwinthumbnail_p.cpp \
+        $$PWD/ui/thumb/qwinthumbnail.cpp \
+        $$PWD/ui/thumb/qwintaskbarmenu.cpp
 }
+}
+
+win32 {
+HEADERS += \
+    $$PWD/framelesswidget/nativeevent_win.h
+SOURCES += \
+    $$PWD/framelesswidget/nativeevent_win.cpp
+}
+linux {
+HEADERS += \
+    $$PWD/framelesswidget/nativeevent_uinx.h
+SOURCES += \
+    $$PWD/framelesswidget/nativeevent_uinx.cpp
 }
 
 # ui
 HEADERS += \
+    $$PWD/config/configDef.h \
     $$PWD/control/videocontrol.h \
     $$PWD/dump/mini_dump.hpp \
-    $$PWD/filter/qinputfilter.h \
-    $$PWD/framelesswidget/nativeevent_win.h \
+    $$PWD/filter/qinputfilter.h \\
+    $$PWD/framelesswidget/nativeevent_p.h \
+    $$PWD/framelesswidget/qframelesswidget_p.h \
     $$PWD/framelesswidget/util.h \
     $$PWD/render/native/qnativewidget.h \
+    $$PWD/render/native/qnativewidget_p.h \
     $$PWD/render/qrenderfactory.h \
     $$PWD/render/qglvideowidget.h \
     $$PWD/render/qlabelvideowidget.h \
+    $$PWD/render/qrenderprivate.h \
+    $$PWD/render/videoframe.h \
     $$PWD/ui/qtoolwidgets.h \
     $$PWD/ui/tool/base/qsubtitlelabel.h \
+    $$PWD/ui/tool/subtitle/engine/apidef.h \
+    $$PWD/ui/tool/subtitle/engine/libass/qlibassinterface.h \
+    $$PWD/ui/tool/subtitle/engine/qassengineer.h \
+    $$PWD/ui/tool/subtitle/engine/qplayerenginner.h \
+    $$PWD/ui/tool/subtitle/engine/qsubtitleengineer.h \
+    $$PWD/ui/tool/subtitle/engine/qsubtitlengine.h \
+    $$PWD/ui/tool/subtitle/engine/libass/libass.h \
     $$PWD/ui/widget.h \
-    $$PWD/ui/qinputurlwidget.h \
     $$PWD/ui/qvolumewidget.h \
     $$PWD/ui/tool/base/qtoolbase.h \
     $$PWD/ui/tool/fileview/qfileview.h \
@@ -76,18 +115,26 @@ HEADERS += \
 SOURCES += \
     $$PWD/control/videocontrol.cpp \
     $$PWD/filter/qinputfilter.cpp \
-    $$PWD/framelesswidget/nativeevent_win.cpp \
+    $$PWD/framelesswidget/nativeevent_p.cpp \
+    $$PWD/framelesswidget/qframelesswidget_p.cpp \
     $$PWD/framelesswidget/util.cpp \
     $$PWD/render/native/qnativewidget.cpp \
+    $$PWD/render/native/qnativewidget_p.cpp \
     $$PWD/render/qrenderfactory.cpp \
-    $$PWD/render/videoframe.h \
+    $$PWD/render/qrenderprivate.cpp \
+    $$PWD/render/videoframe.cpp \
     $$PWD/render/qglvideowidget.cpp \
     $$PWD/render/qlabelvideowidget.cpp \
     $$PWD/ui/qvolumewidget.cpp \
     $$PWD/ui/qtoolwidgets.cpp \
     $$PWD/ui/tool/base/qsubtitlelabel.cpp \
+    $$PWD/ui/tool/subtitle/engine/libass/qlibassinterface.cpp \
+    $$PWD/ui/tool/subtitle/engine/qassengineer.cpp \
+    $$PWD/ui/tool/subtitle/engine/qplayerenginner.cpp \
+    $$PWD/ui/tool/subtitle/engine/qsubtitleengineer.cpp \
+    $$PWD/ui/tool/subtitle/engine/qsubtitlengine.cpp \
+    $$PWD/ui/tool/subtitle/engine/libass/libass.cpp \
     $$PWD/ui/widget.cpp \
-    $$PWD/ui/qinputurlwidget.cpp \
     $$PWD/ui/tool/base/qtoolbase.cpp \
     $$PWD/ui/tool/fileview/qfileview.cpp \
     $$PWD/ui/tool/fileview/playlist/qfilelistdelegate.cpp \
@@ -108,14 +155,27 @@ SOURCES += \
     $$PWD/config/config.cpp \
     $$PWD/config/qdatamodel.cpp \
     $$PWD/main.cpp \
-    $$PWD/framelesswidget/framelesswidget.cpp \
-    $$PWD/framelesswidget/qdragborder.cpp
-
+    $$PWD/framelesswidget/framelesswidget.cpp
 HEADERS += \
     $$PWD/config/config.h \
     $$PWD/config/qdatamodel.h \
-    $$PWD/framelesswidget/framelesswidget.h \
-    $$PWD/framelesswidget/qdragborder.h
+    $$PWD/framelesswidget/framelesswidget.h
+
+#pop
+SOURCES += \
+    $$PWD/ui/pop/qpopwidget.cpp \
+    $$PWD/ui/pop/qinputurlwidget.cpp \
+    $$PWD/ui/pop/qmediainfowidget.cpp \
+    $$PWD/ui/pop/qbitratedisplay.cpp \
+    $$PWD/ui/pop/qcreateitem.cpp \
+    $$PWD/ui/pop/qpopwidgetprivate.cpp
+HEADERS += \
+    $$PWD/ui/pop/qpopwidget.h \
+    $$PWD/ui/pop/qinputurlwidget.h \
+    $$PWD/ui/pop/qmediainfowidget.h \
+    $$PWD/ui/pop/qbitratedisplay.h \
+    $$PWD/ui/pop/qcreateitem.h \
+    $$PWD/ui/pop/qpopwidgetprivate.h
 
 #business expansion
 #DEFINES += GAME_PLATFORM_LIVE
@@ -160,10 +220,24 @@ else
     message("no GAME_PLATFORM_LIVE business expansion")
 }
 
+#aas
+DEFINES += AAS_RENDER
+contains(DEFINES, AAS_RENDER) {
+INCLUDEPATH += \
+    $$PWD/ui/tool/subtitle/engine/libass/c/include
+
+#ASS_C_LOAD is loadlibrary
+DEFINES += ASS_C_LOAD
+!contains(DEFINES, ASS_C_LOAD) {
+LIBS += -L$$PWD/ui/tool/subtitle/engine/libass/c/lib/x86 -lass
+}
+}
+
 INCLUDEPATH += \
     $$PWD \
     $$PWD/../vidoe_player_log \
-    $$PWD/../video_player_core
+    $$PWD/../video_player_core \
+    $$PWD/../video_pimpl
 
 LIBS += -L$$PWD/../bin -lvidoe_player_log -lvideo_player_core
 
