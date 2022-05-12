@@ -13,3 +13,12 @@ A simple media player
 ![image](https://user-images.githubusercontent.com/18226546/160063659-37695525-2895-4ef1-84e0-cb548e5f5204.png)
 ![image](https://user-images.githubusercontent.com/18226546/160063682-a3d83c7f-3094-4d4b-a54e-9337ae465231.png)
 ![image](https://user-images.githubusercontent.com/18226546/160063980-13f2c144-eb52-4b3b-a76b-90ea2f561967.png)
+# note
+## 1.remove dx11
+DEFINES += RENDER_DX11-->//DEFINES += RENDER_DX11
+## 2.remove thumbnail
+DEFINES += THUMBNAIL-->//DEFINES += THUMBNAIL
+## 3.remove ass
+DEFINES += AAS_RENDER-->//DEFINES += AAS_RENDER
+## 4.remove audio wave display
+DEFINES += AUDIO_WAVE_DISPLAY-->//DEFINES += AUDIO_WAVE_DISPLAY
