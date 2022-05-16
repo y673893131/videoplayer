@@ -22,3 +22,7 @@ DEFINES += THUMBNAIL-->//DEFINES += THUMBNAIL
 DEFINES += AAS_RENDER-->//DEFINES += AAS_RENDER
 ## 4.remove audio wave display
 DEFINES += AUDIO_WAVE_DISPLAY-->//DEFINES += AUDIO_WAVE_DISPLAY
+## 5.remove audio filter
+#define AUDIO_FILTER-->//#define AUDIO_FILTER
+## 6.remove video filter
+#define VIDEO_FILTER-->//#define VIDEO_FILTER
