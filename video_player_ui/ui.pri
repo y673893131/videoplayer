@@ -15,6 +15,8 @@ win32 {
 #    QMAKE_LFLAGS += /MANIFESTUAC:\"level=\'requireAdministrator\' uiAccess=\'false\'\"
 #    QMAKE_LFLAGS += /SUBSYSTEM:WINDOWS,\"5.01\"
 
+    LIBS += -luser32 -lopengl32 -ldwmapi -lgdi32 -lole32
+
 DEFINES += RENDER_DX11
 contains(DEFINES, RENDER_DX11) {
     INCLUDEPATH += $$(DXSDK_DIR)\Include
