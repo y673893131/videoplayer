@@ -387,7 +387,7 @@ void core_sdl_op::closeSDL()
 
 void core_sdl_op::startSDL()
 {
-//    Log(Log_Debug, "start SDL");
+    Log(Log_Debug, "start SDL");
     SDL_LockAudio();
     SDL_PauseAudio(0);
     SDL_UnlockAudio();
@@ -401,7 +401,7 @@ void core_sdl_op::startSDL()
 
 void core_sdl_op::pauseSDL()
 {
-//    Log(Log_Debug, "pause SDL");
+    Log(Log_Debug, "pause SDL");
     SDL_LockAudio();
     SDL_PauseAudio(1);
     SDL_UnlockAudio();

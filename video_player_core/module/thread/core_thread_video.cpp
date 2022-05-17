@@ -1,6 +1,7 @@
 #include "core_thread_video.h"
 #include "../media/core_media.h"
 #include "../util/core_util.h"
+#include "../dev/core_dev.h"
 
 core_thread_video::core_thread_video()
 {
@@ -235,7 +236,7 @@ void core_thread_video::threadCall()
         av_packet_unref(&pk);
     }
 
-    audio.sdl()->pauseSDL();
+    audio.dev()->pause();
     tryStop(flag_bit_tvideo_finish);
     Log(Log_Info, "finished.");
 }

@@ -7,7 +7,6 @@
 QCreateItem::QCreateItem()
     : m_title(nullptr)
 {
-    qDebug() << __FUNCTION__ << __LINE__ << this;
 }
 
 QWidget *QCreateItem::createTitle(const QString & sText, QWidget *parent)

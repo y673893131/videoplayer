@@ -99,16 +99,16 @@ AVFrame *core_filter_private::mix(AVFrame *in)
     if(!inFilterCtx || !outFilterCtx)
         return nullptr;
     int ret = av_buffersrc_add_frame(inFilterCtx, in);
-    if(ret)
+    if(ret < 0)
     {
-//        Log(Log_Err, "av_buffersrc_add_frame failed[%d]", ret);
+        Log(Log_Err, "av_buffersrc_add_frame failed[%d]", ret);
         return nullptr;
     }
 
     ret = av_buffersink_get_frame(outFilterCtx, m_frame);
-    if(ret)
+    if(ret < 0)
     {
-//        Log(Log_Err, "av_buffersink_get_frame failed[%d]", ret);
+        Log(Log_Err, "av_buffersink_get_frame failed[%d]", ret);
         return nullptr;
     }
 

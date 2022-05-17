@@ -48,6 +48,7 @@
 
 #include "framelesswidget/nativeevent_p.h"
 
+#include "ui/pop/qopenlocalfilewidget.h"
 #include "ui/pop/qinputurlwidget.h"
 #include "ui/pop/qmediainfowidget.h"
 
@@ -57,6 +58,7 @@ class QToolWidgetsPrivate : public CNativeEvent_p
 
     enum pop
     {
+        pop_local_file,
         pop_url_input,
         pop_media_info,
 
@@ -102,6 +104,9 @@ QPopWidget *QToolWidgetsPrivate::pop(int index)
     if(!m_pops[index])
     {
         switch (index) {
+        case pop_local_file:
+            m_pops[index] = new QOpenLocalFileWidget(q);
+            break;
         case pop_url_input:
             m_pops[index] = new QInputUrlWidget(q);
             break;
@@ -320,7 +325,7 @@ void QToolWidgets::onLoadFile()
                 this,
                 QString(),
                 QString(),
-                "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls);;mp3 (*.mp3);;wav (*.wav);;wav (*.m4a)");
+                "All Files (*.*);;mp4 (*.mp4);;flv (*.flv);;avi (*.avi);;mkv (*.mkv);;rmvb (*.rmvb);;url (*.urls);;mp3 (*.mp3);;wav (*.wav);;m4a (*.m4a);;flac (*.flac)");
 
     if(!fileNames.isEmpty())
     {

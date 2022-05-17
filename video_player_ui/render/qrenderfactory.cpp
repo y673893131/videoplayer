@@ -49,17 +49,7 @@ void QRenderFactory::onCap()
         std::thread([=]{
             auto sFile = QString("vPlay_") + QDateTime::currentDateTime().toString("yyyy-MM-dd_HH_mm_ss") + ".jpg";
             auto path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/" + sFile;
-            auto frame = VIDEO_CONTROL->frame();
-            auto w = frame->W();
-            auto h = frame->H();
-#ifdef FRAME_RGB
-            QImage img(frame->Y(), static_cast<int>(w), static_cast<int>(h), QImage::Format_RGB888);
-#else
-            auto rgb = new unsigned char[w * h * 3];
-            memset(rgb, 0x00, w * h * 3);
-            yuv420p_to_rgb24(frame->Y(), rgb, static_cast<int>(w), static_cast<int>(h));
-            QImage img(rgb, static_cast<int>(w), static_cast<int>(h), QImage::Format_RGB888);
-#endif
+            auto img = VIDEO_CONTROL->frame()->toImage();
             auto bOk = img.save(path, "jpg");
 #if WIN32
             auto error = GetLastError();

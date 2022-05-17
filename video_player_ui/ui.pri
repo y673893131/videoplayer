@@ -164,6 +164,7 @@ HEADERS += \
 #pop
 SOURCES += \
     $$PWD/ui/pop/qpopwidget.cpp \
+    $$PWD/ui/pop/qopenlocalfilewidget.cpp \
     $$PWD/ui/pop/qinputurlwidget.cpp \
     $$PWD/ui/pop/qmediainfowidget.cpp \
     $$PWD/ui/pop/qbitratedisplay.cpp \
@@ -171,6 +172,7 @@ SOURCES += \
     $$PWD/ui/pop/qpopwidgetprivate.cpp
 HEADERS += \
     $$PWD/ui/pop/qpopwidget.h \
+    $$PWD/ui/pop/qopenlocalfilewidget.h \
     $$PWD/ui/pop/qinputurlwidget.h \
     $$PWD/ui/pop/qmediainfowidget.h \
     $$PWD/ui/pop/qbitratedisplay.h \

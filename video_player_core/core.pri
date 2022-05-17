@@ -10,17 +10,23 @@ QMAKE_LFLAGS_RELEASE += /debug /opt:ref
 }
 
 INCLUDEPATH += $$PWD/../vidoe_player_log \
-    $$PWD/module/third
+    $$PWD/module/third \
+    $$PWD/../video_pimpl
 
 LIBS += -L$$PWD/../bin -lvidoe_player_log
 
 SOURCES += \
-    $$PWD/module/convert/core_frame_convert.cpp \
+    $$PWD/module/convert/core_convert.cpp \
+    $$PWD/module/convert/core_convert_audio.cpp \
+    $$PWD/module/convert/core_convert_p.cpp \
+    $$PWD/module/convert/core_convert_video.cpp \
     $$PWD/module/decoder/core_decoder.cpp \
     $$PWD/module/decoder/core_decoder_audio.cpp \
     $$PWD/module/decoder/core_decoder_hardware.cpp \
     $$PWD/module/decoder/core_decoder_subtitle.cpp \
     $$PWD/module/decoder/core_decoder_video.cpp \
+    $$PWD/module/dev/core_dev.cpp \
+    $$PWD/module/dev/core_dev_sdl.cpp \
     $$PWD/module/filter/core_filter.cpp \
     $$PWD/module/filter/core_filter_audio.cpp \
     $$PWD/module/filter/core_filter_base.cpp \
@@ -35,7 +41,7 @@ SOURCES += \
     $$PWD/module/save/core_save_audio.cpp \
     $$PWD/module/save/core_save_base.cpp \
     $$PWD/module/save/core_save_video.cpp \
-    $$PWD/module/sdl/core_sdl_op.cpp \
+#    $$PWD/module/sdl/core_sdl_op.cpp \
     $$PWD/module/thread/core_thread.cpp \
     $$PWD/module/thread/core_thread_audio.cpp \
     $$PWD/module/thread/core_thread_demux.cpp \
@@ -46,12 +52,18 @@ SOURCES += \
 
 HEADERS += \
     $$PWD/module/common.h \
-    $$PWD/module/convert/core_frame_convert.h \
+    $$PWD/module/convert/core_convert.h \
+    $$PWD/module/convert/core_convert_audio.h \
+    $$PWD/module/convert/core_convert_define.h \
+    $$PWD/module/convert/core_convert_p.h \
+    $$PWD/module/convert/core_convert_video.h \
     $$PWD/module/decoder/core_decoder.h \
     $$PWD/module/decoder/core_decoder_audio.h \
     $$PWD/module/decoder/core_decoder_hardware.h \
     $$PWD/module/decoder/core_decoder_subtitle.h \
     $$PWD/module/decoder/core_decoder_video.h \
+    $$PWD/module/dev/core_dev.h \
+    $$PWD/module/dev/core_dev_sdl.h \
     $$PWD/module/filter/core_filter.h \
     $$PWD/module/filter/core_filter_audio.h \
     $$PWD/module/filter/core_filter_base.h \
@@ -66,7 +78,7 @@ HEADERS += \
     $$PWD/module/save/core_save_audio.h \
     $$PWD/module/save/core_save_base.h \
     $$PWD/module/save/core_save_video.h \
-    $$PWD/module/sdl/core_sdl_op.h \
+#    $$PWD/module/sdl/core_sdl_op.h \
     $$PWD/module/thread/core_thread.h \
     $$PWD/module/thread/core_thread_audio.h \
     $$PWD/module/thread/core_thread_demux.h \
@@ -121,4 +133,30 @@ contains(DEFINES, AUDIO_WAVE_DISPLAY) {
 else
 {
     message("no AUDIO_WAVE_DISPLAY business expansion");
+}
+
+win32{
+    DEFINES += AUDIO_DEV_SELECT
+    contains(DEFINES, AUDIO_DEV_SELECT) {
+    SOURCES += \
+        $$PWD/module/dev/MMNotificationClient.cpp \
+        $$PWD/module/dev/core_dev_dsound.cpp \
+        $$PWD/module/dev/core_dev_p.cpp \
+        $$PWD/module/dev/core_dev_waveout.cpp \
+        $$PWD/module/dev/core_dev_xaudio2.cpp
+
+    HEADERS += \
+        $$PWD/module/dev/MMNotificationClient.h \
+        $$PWD/module/dev/core_dev_dsound.h \
+        $$PWD/module/dev/core_dev_p.h \
+        $$PWD/module/dev/core_dev_waveout.h \
+        $$PWD/module/dev/core_dev_xaudio2.h \
+
+        LIBS += -lwinmm -lole32
+        LIBS += -ldsound -ldxguid -luser32 -lxaudio2 -lavrt
+    }
+    else
+    {
+        message("no AUDIO_DEV_SELECT business expansion");
+    }
 }

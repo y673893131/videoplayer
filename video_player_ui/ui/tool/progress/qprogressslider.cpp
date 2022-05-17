@@ -32,6 +32,7 @@ QProgressSlider::QProgressSlider(Qt::Orientation orientation, QWidget* parent, Q
     m_timePt.setY(size.height());
     m_preview = new QLabel(grandParent);
     m_preview->setWindowFlags(Qt::FramelessWindowHint | Qt::ToolTip);
+    m_preview->setAlignment(Qt::AlignCenter);
     CALC_WIDGET_SIZE(m_preview, 200, 150);
 #ifdef Q_OS_WIN
     auto margin = CALC_WIDGET_WIDTH(nullptr, 5);
@@ -69,21 +70,7 @@ void QProgressSlider::onPreview(void *data, int width, int height)
 {
     if(underMouse())
     {
-//        unsigned int w = static_cast<unsigned int>(width);
-//        unsigned int h = static_cast<unsigned int>(height);
-//        auto _data = reinterpret_cast<unsigned char*>(data);
-//        char* rgb = new char[w * h * 3];
-//        auto _rgb = reinterpret_cast<unsigned char*>(rgb);
-//        auto _rgb0 = reinterpret_cast<uchar*>(rgb);
-//        memset(rgb, 0x00, w * h * 3);
-//        yuv420p_to_rgb24(_data, _rgb, width, height);
-//        QImage img(_rgb0, width, height, QImage::Format_RGB888);
-//        auto pixmap = QPixmap::fromImage(img).scaled(m_preview->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-//        m_preview->setPixmap(pixmap);
-//        delete[] rgb;
-
-        auto _data = reinterpret_cast<unsigned char*>(data);
-        QImage img(_data, width, height, QImage::Format_RGB888);
+        auto img = _video_frame_::toImage(data, width, height);
         auto pixmap = QPixmap::fromImage(img).scaled(m_preview->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
         m_preview->setPixmap(pixmap);
         m_preview->show();

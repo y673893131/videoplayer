@@ -1,47 +1,68 @@
 #include "core_preview.h"
 #include "../util/core_util.h"
+#include "../decoder/core_decoder_video.h"
+#include "../decoder/core_decoder_subtitle.h"
+#include "../convert/core_convert_video.h"
 
-core_preview::core_preview()
+class core_previewPrivate : public VP_Data<core_preview>
 {
-    flag = 0;
-    ms = 0;
-    dstms = 0;
+    VP_DECLARE_PUBLIC(core_preview)
+    inline core_previewPrivate(core_preview* parent)
+        : VP_Data(parent)
+    {
+        init();
+    }
 
-    bFlag = false;
-    bEnd = false;
-    cb = nullptr;
-    start_time = 0;
-    sFile.clear();
-    nIndex = -1;
-    stream = nullptr;
-    frame = nullptr;
-    pFormatCtx = nullptr;
-    ctx = nullptr;
-    outFrame = nullptr;
+    void init()
+    {
+        flag        = 0;
+        ms          = 0;
+        dstms       = 0;
+        bFlag       = false;
+        bEnd        = false;
+        cb          = nullptr;
+        start_time  = 0;
+        nIndex      = -1;
+        stream      = nullptr;
+        frame       = nullptr;
+        pFormatCtx  = nullptr;
+        ctx         = nullptr;
+        m_convert   = nullptr;
+        sFile.clear();
+        std::thread([=]{ threadCall(); }).detach();
+    }
 
-    std::thread([=]{ threadCall(); }).detach();
-}
+    bool isOk();
+    void init(const std::string& file);
+    void clear();
+    void threadCall();
 
-core_preview::~core_preview()
-{
-    bEnd = true;
-    msleep(10);
-    clear();
-}
+    int flag;
+    std::string src;
+    int64_t ms;
+    int64_t dstms;
+    bool bFlag;
+    bool bEnd;
 
-void core_preview::setCallBack(video_interface *cb)
-{
-    this->cb = cb;
-}
+    video_interface* cb;
+    int64_t start_time;
+    std::string sFile;
+    int nIndex;
+    AVStream* stream;
+    AVFrame* frame;
+    AVFormatContext* pFormatCtx;
+    AVCodecContext* ctx;
+    core_convert* m_convert;
+};
 
-bool core_preview::isOk()
+bool core_previewPrivate::isOk()
 {
     return ctx != nullptr;
 }
 
-void core_preview::init(const std::string& file)
+void core_previewPrivate::init(const std::string& file)
 {
-    if(file == sFile)
+    if(bEnd || file == sFile)
         return;
 
     clear();
@@ -65,19 +86,12 @@ void core_preview::init(const std::string& file)
         ctx = pFormatCtx->streams[nIndex]->codec;
         auto pCodec = avcodec_find_decoder(ctx->codec_id);
         avcodec_open2(ctx, pCodec, nullptr);
-        outFrame = new core_frame_convert(ctx, AV_PIX_FMT_RGB24);
+        INIT_NEW(&m_convert, core_convert_video)
+        m_convert->setContext(ctx);
     }
 }
 
-void core_preview::preview(const std::string& src, int64_t ms, int flag)
-{
-    this->flag = flag;
-    this->src = src;
-    this->ms = ms;
-    bFlag = true;
-}
-
-void core_preview::clear()
+void core_previewPrivate::clear()
 {
     sFile.clear();
     nIndex = -1;
@@ -101,10 +115,10 @@ void core_preview::clear()
         pFormatCtx = nullptr;
     }
 
-    SAFE_RELEASE_PTR(&outFrame)
+    SAFE_RELEASE_PTR(&m_convert)
 }
 
-void core_preview::threadCall()
+void core_previewPrivate::threadCall()
 {
     AVRational aVRational = {1, AV_TIME_BASE};
     AVRational aVRationalMs = {1, AV_TIME_BASE / 1000};
@@ -206,11 +220,45 @@ seek_begin:
             }
 
             av_packet_unref(&pk);
-            outFrame->scalePreview(frame, cb);
-//            Log(Log_Debug, "preview:[frames=%d]", count);
+            if(m_convert->convert(frame))
+            {
+                auto buffer = m_convert->buffer();
+                auto ctx    = m_convert->getContext();
+                cb->previewDisplayCall(buffer, ctx->width, ctx->height);
+            }
+//            Log(Log_Debug, "preview!");
 //            count = 0;
         }while(0);
 
         bFlag = false;
     }
 }
+
+core_preview::core_preview()
+    : VP_INIT(new core_previewPrivate(this))
+{
+}
+
+core_preview::~core_preview()
+{
+    VP_D(core_preview);
+    d->bEnd = true;
+    msleep(10);
+    d->clear();
+}
+
+void core_preview::setCallBack(video_interface *cb)
+{
+    VP_D(core_preview);
+    d->cb = cb;
+}
+
+void core_preview::preview(const std::string& src, int64_t ms, int flag)
+{
+    VP_D(core_preview);
+    d->flag     = flag;
+    d->src      = src;
+    d->ms       = ms;
+    d->bFlag    = true;
+}
+

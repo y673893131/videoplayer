@@ -3,6 +3,7 @@
 #include <memory>
 #include <iostream>
 #include "video_player_core.h"
+#include <QImage>
 
 #ifdef FRAME_RGB
 #define FRAME_LENGTH(x, y) x*y*4
@@ -31,6 +32,9 @@ public:
     unsigned int size(int index);
     unsigned char* data(int index, unsigned int& width, unsigned int& height);
 
+    QImage toImage();
+    static QImage toImage(void *data, int width, int height);
+    static void yuv420p_to_rgb24(unsigned char* yuvbuffer,unsigned char* rgbbuffer, int width,int height);
 private:
     void release();
 

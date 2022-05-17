@@ -60,7 +60,7 @@ bool core_thread::tryPause()
         m_media->_pause_time = av_gettime();
         setFlag(flag_bit_pause, true);
         setFlag(flag_bit_need_pause, false);
-        m_media->_audio->sdl()->pauseSDL();
+        m_media->_audio->pause();
         m_media->setState(video_player_core::state_paused);
         return true;
     }

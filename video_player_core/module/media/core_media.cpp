@@ -1,6 +1,7 @@
 #include "core_media.h"
 #include "../util/core_util.h"
 #include "../filter/core_filter_audio.h"
+#include "../dev/core_dev.h"
 
 core_media::core_media()
     :_cb(nullptr)
@@ -122,17 +123,12 @@ void core_media::setSrc(const std::string &src)
     _src = src;
 }
 
-void core_media::setSize(int width, int height)
-{
-    _video->setSize(width, height);
-}
-
 void core_media::play()
 {
     setFlag(flag_bit_Stop, false);
     setFlag(flag_bit_pause, false);
     setFlag(flag_bit_need_pause, false);
-    _audio->sdl()->startSDL();
+    _audio->start();
 }
 
 void core_media::setPause()
@@ -143,6 +139,7 @@ void core_media::setPause()
 //        setFlag(flag_bit_need_pause);
         setFlag(flag_bit_pause, true);
         setState(video_player_core::state_paused);
+//        if(_audio->dev()) _audio->dev()->pause();
     }
 }
 
@@ -160,14 +157,14 @@ void core_media::continuePlay()
 //        Log(Log_Info, "continue: start_time(%.2f -> %.2f)", t/1000000, _pause_time/1000000);
 
         setFlag(flag_bit_pause, false);
-        _audio->sdl()->startSDL();
+        _audio->start();
         setState(video_player_core::state_running);
     }
 }
 
 void core_media::stop()
 {
-    _audio->sdl()->pauseSDL();
+    _audio->pause();
     setFlag(flag_bit_Stop);
 }
 
@@ -497,6 +494,8 @@ bool core_media::open(int index)
     {
         _save->stop();
     }
+    if(_audio->isValid())
+        _audio->pause();
     Log(Log_Info, "down.");
     return true;
 media_start_end:
@@ -781,7 +780,8 @@ bool core_media::checkSeekPkt(core_decoder* decoder, AVPacket *pk)
     {
         setFlag(flag_bit_pause, false);
         setFlag(flag_bit_need_pause);
-        _audio->sdl()->startSDL();
+        if(_audio->dev()) _audio->dev()->reset();
+        _audio->start();
         _pause_time = av_gettime();
     }
 

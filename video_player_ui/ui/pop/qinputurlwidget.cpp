@@ -18,7 +18,6 @@ class QInputUrlWidgetPrivate : public QPopWidgetPrivate
         , cancel(nullptr)
     {
         setKey("url");
-        qDebug() << __FUNCTION__ << __LINE__ << this;
     }
 
     void init();
@@ -64,7 +63,6 @@ void QInputUrlWidgetPrivate::init()
     CALC_WIDGET_SIZE(q, 280, 150);
     CALC_WIDGET_SIZE(sure, 100, 30);
     CALC_WIDGET_SIZE(cancel, 100, 30);
-    qDebug() << __FUNCTION__ << __LINE__;
 }
 
 void QInputUrlWidgetPrivate::onSure()

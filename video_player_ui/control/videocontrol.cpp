@@ -47,7 +47,6 @@ QVideoControl::QVideoControl(QObject* parent)
 
     m_frameRateTimer = new QTimer;
     m_frameRateTimer->setInterval(1000);
-    m_frameRateTimer->start();
     connect(m_frameRateTimer, &QTimer::timeout, this, &QVideoControl::onStatFrameRate, Qt::QueuedConnection);
     connect(this, &QVideoControl::start, m_frameRateTimer, static_cast<void(QTimer::*)()>(&QTimer::start), Qt::QueuedConnection);
     connect(this, &QVideoControl::end, m_frameRateTimer, &QTimer::stop, Qt::QueuedConnection);

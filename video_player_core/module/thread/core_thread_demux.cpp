@@ -1,6 +1,7 @@
 #include "core_thread_demux.h"
 #include "Log/Log.h"
 #include <video_player_core.h>
+#include "module/filter/core_filter_video.h"
 #include <thread>
 #include <memory>
 #ifdef unix
@@ -60,11 +61,6 @@ core_thread_demux *core_thread_demux::index(size_t index)
         return m_threads[index];
 //    Log(Log_Warning, "index %d is not exist. size is %d", index, m_threads.size());
     return nullptr;
-}
-
-void core_thread_demux::setSize(int w, int h)
-{
-    m_media->setSize(w, h);
 }
 
 void core_thread_demux::play()
@@ -157,7 +153,7 @@ int core_thread_demux::setCapture(bool bCap)
 {
     return m_media->setCapture(bCap);
 }
-#include "module/filter/core_filter_video.h"
+
 void *core_thread_demux::frame()
 {
     auto filter = reinterpret_cast<core_filter_video*>(m_media->_video->m_filter);

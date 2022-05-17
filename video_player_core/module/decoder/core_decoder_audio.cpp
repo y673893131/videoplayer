@@ -2,8 +2,10 @@
 #include "../thread/core_thread_audio.h"
 #include "../util/core_util.h"
 #include "../filter/core_filter_audio.h"
+#include "../convert/core_convert_audio.h"
+#include "../dev/core_dev.h"
 
-core_sdl_op* core_decoder_audio::s_sdl = nullptr;
+//core_sdl_op* core_decoder_audio::s_sdl = nullptr;
 
 core_decoder_audio::core_decoder_audio()
     :nTempIndex(-1)
@@ -11,10 +13,11 @@ core_decoder_audio::core_decoder_audio()
 #ifdef AUDIO_FILTER
     INIT_NEW(&m_filter, core_filter_audio)
 #endif
-    if(!s_sdl)
-    {
-        s_sdl = new core_sdl_op;
-    }
+    INIT_NEW(&m_convert, core_convert_audio)
+//    if(!s_sdl)
+//    {
+//        s_sdl = new core_sdl_op;
+//    }
 }
 
 core_decoder_audio::~core_decoder_audio()
@@ -24,6 +27,7 @@ core_decoder_audio::~core_decoder_audio()
 #ifdef AUDIO_FILTER
     SAFE_RELEASE_PTR(&m_filter)
 #endif
+    SAFE_RELEASE_PTR(&m_convert)
 }
 
 bool core_decoder_audio::init(AVFormatContext* formatCtx, int index)
@@ -32,16 +36,17 @@ bool core_decoder_audio::init(AVFormatContext* formatCtx, int index)
     if(!core_decoder::init(formatCtx, index))
         return false;
     auto audio = core_thread_audio::instance();
-    s_sdl->setCodecContext(pCodecContext);
-    s_sdl->init(audio->sdl_audio_call, audio);
-    s_sdl->resetSpec();
+    m_convert->dev()->setCallBack(audio->audio_callback, audio);
+    m_convert->setContext(pCodecContext);
 #ifdef AUDIO_FILTER
     if(!m_filter->init(formatCtx->streams[index], pCodecContext))
         return false;
 #else
-    if(!s_sdl->initResample())
+    if(!m_convert->initResample())
         return false;
 #endif
+
+    m_convert->reset();
     return true;
 }
 
@@ -54,7 +59,8 @@ void core_decoder_audio::setIndex(int index)
 
 void core_decoder_audio::setVol(int vol)
 {
-    s_sdl->setVol(vol);
+    m_convert->setVolume(vol);
+//    s_sdl->setVol(vol);
 #ifdef AUDIO_FILTER
     reinterpret_cast<core_filter_audio*>(m_filter)->setVol(vol);
 #endif
@@ -62,22 +68,29 @@ void core_decoder_audio::setVol(int vol)
 
 int core_decoder_audio::getVol()
 {
-    return s_sdl->getVol();
+    return m_convert->getVolume();
+//    return s_sdl->getVol();
 }
 
 void core_decoder_audio::setAudioChannel(int type)
 {
-    s_sdl->setChannelType(type);
+    m_convert->setChannelType(type);
+    //    s_sdl->setChannelType(type);
 }
 
-core_sdl_op *core_decoder_audio::sdl()
+core_dev *core_decoder_audio::dev()
 {
-    return s_sdl;
+    return m_convert->dev();
 }
 
 void core_decoder_audio::start()
 {
-    s_sdl->startSDL();
+    m_convert->start();
+}
+
+void core_decoder_audio::pause()
+{
+    m_convert->pause();
 }
 
 bool core_decoder_audio::decode(AVPacket *pk, bool& /*bTryAgain*/)
@@ -126,18 +139,26 @@ bool core_decoder_audio::decode(AVPacket *pk, bool& /*bTryAgain*/)
     return false;
 }
 
-void core_decoder_audio::play(unsigned int& bufferSize)
+bool core_decoder_audio::change(unsigned int& bufferSize)
 {
 #ifdef AUDIO_FILTER
     auto _frame = m_filter->mix(frame);
     if(_frame)
     {
-        sdl()->resampleFrame(_frame, bufferSize);
+        m_convert->convert(_frame);
+        bufferSize = m_convert->size();
         av_frame_unref(_frame);
     }
     else
+    {
+        bufferSize = 0;
         av_frame_unref(frame);
+        return false;
+    }
 #else
-    sdl()->resampleFrame(frame, bufferSize);
+    m_convert->convert(frame);
+    bufferSize = m_convert->size();
 #endif
+
+    return true;
 }

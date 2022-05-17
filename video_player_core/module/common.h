@@ -64,7 +64,15 @@ static std::map<void*, std::string> leakMap;
 #define _snprintf snprintf
 #elif(WIN32)
 #include <Windows.h>
+//#define msleep(x) {Log(Log_Debug, "");Sleep(static_cast<unsigned long>(x));}
 #define msleep(x) Sleep(static_cast<unsigned long>(x))
+
+#define SAFE_RELEASE(punk)  \
+    if ((punk) != NULL)  \
+    { (punk)->Release(); (punk) = NULL; }
+#define CLOSE_HANDLE(handle) \
+    if(handle){ CloseHandle(handle); }
+
 #endif
 
 #endif // COMMON_H

@@ -10,6 +10,7 @@ core_decoder::core_decoder()
     ,stream(nullptr)
     ,pts(0)
     ,m_filter(nullptr)
+    ,m_convert(nullptr)
 {
 }
 
@@ -197,4 +198,9 @@ int64_t core_decoder::getDisplayPts(int64_t pos)
     {
         return pos / 1000;
     }
+}
+
+core_convert *core_decoder::convert()
+{
+    return m_convert;
 }

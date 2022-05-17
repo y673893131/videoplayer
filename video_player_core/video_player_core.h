@@ -144,7 +144,6 @@ public:
     int _setVol(int, int);
     int _setMute(int, bool bMute);
     int _setAudioChannel(int, audio_channel_type type);
-    int _setsize(int index, int w, int h);
     int _setStreamChannel(int index, int channel, int sel);
     int _setDecodeType(int index, int type);
     int _setSpeedType(int index, int type);

@@ -104,7 +104,7 @@ void Widget::initResource()
 
     d->m_control = new QVideoControl(this);
     d->m_render = new QRenderFactory(this);
-    d->m_toolbar = new QToolWidgets(d->m_render->renderWidget());   
+    d->m_toolbar = new QToolWidgets(d->m_render->renderWidget());
     d->m_control->setToolBar(d->m_toolbar);
     auto layout = new QVBoxLayout(this);
     layout->setMargin(0);
@@ -249,7 +249,7 @@ void Widget::dragEnterEvent(QDragEnterEvent *event)
     {
         auto file = urls.begin()->toLocalFile();
         QStringList types;
-        types << ".mp4" << ".m4a" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".wav" << ".aac"<< ".h264";
+        types << ".mp4" << ".m4a" << ".flv" << ".avi" << ".mkv" << ".rmvb" << ".urls" << ".mp3" << ".wav" << ".aac"<< ".h264" << ".flac";
         if(checkFile(file, types))
             event->accept();
     }

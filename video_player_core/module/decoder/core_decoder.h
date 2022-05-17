@@ -12,6 +12,7 @@ class core_media;
 class core_save;
 class core_save_base;
 class core_filter_base;
+class core_convert;
 class core_decoder
 {
 public:
@@ -40,6 +41,8 @@ public:
     virtual void checkQSVClock(AVPacket* pk, int64_t& pts);
     int64_t getInteralPts(int64_t pos);
     int64_t getDisplayPts(int64_t pos);
+
+    core_convert *convert();
 protected:
     int nStreamIndex;
     std::set<unsigned int> nStreamIndexs;
@@ -51,6 +54,7 @@ protected:
     core_packets pks;
     int64_t pts;
     core_filter_base* m_filter;
+    core_convert* m_convert;
 
     friend class core_thread_video;
     friend class core_thread_demux;

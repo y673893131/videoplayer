@@ -25,7 +25,8 @@ int main(int argc, char *argv[])
 //    qInstallMessageHandler(myMessageOutput);
 #ifdef Q_OS_WIN
     win32::debug::mini_dump dump;
-    QThread::currentThread()->setPriority(QThread::HighPriority);
+//    QThread::currentThread()->setPriority(QThread::HighPriority);
+//    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 //    SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 //    ::SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 #endif

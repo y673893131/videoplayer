@@ -2,8 +2,9 @@
 #define CORE_DECODER_AUDIO_H
 
 #include "core_decoder.h"
-#include "../sdl/core_sdl_op.h"
+//#include "../sdl/core_sdl_op.h"
 
+class core_dev;
 class core_decoder_audio : public core_decoder
 {
 public:
@@ -16,14 +17,16 @@ public:
     int getVol();
     void setAudioChannel(int type);
 
-    core_sdl_op* sdl();
+//    core_sdl_op* sdl();
+    core_dev *dev();
 
     void start();
+    void pause();
     bool decode(AVPacket* pk, bool& bTryAgain) override;
-    void play(unsigned int& bufferSize);
+    bool change(unsigned int& bufferSize);
 
 private:
-    static core_sdl_op* s_sdl;
+//    static core_sdl_op* s_sdl;
 
     // change channel temp
     int nTempIndex;

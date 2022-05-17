@@ -11,7 +11,6 @@ public:
     virtual ~core_thread_demux();
     static void start(const core_media&);
     static core_thread_demux* index(size_t);
-    void setSize(int w, int h);
     void play();
     void setPause();
     bool getPause();

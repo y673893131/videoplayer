@@ -5,6 +5,7 @@
     <action type="0x00000100"/>
     <action type="0x00000100"/>
     <menu name="pop" type="0x00001000" description="打开">
+        <action name="local_file" type="0x00000000" description="文件"/>
         <action name="url" type="0x00000000" description="直播流"/>
         <action name="media_info" type="0x00000000" description="媒体信息"/>
     </menu>

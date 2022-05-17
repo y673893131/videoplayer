@@ -25,7 +25,6 @@ public:
     // out call
     void setCallback(video_interface* cb);
     void setSrc(const std::string&);
-    void setSize(int,int);
     void play();
     void setPause();
     bool isPause();

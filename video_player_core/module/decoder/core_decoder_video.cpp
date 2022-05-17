@@ -1,9 +1,9 @@
 #include "core_decoder_video.h"
 #include "../util/core_util.h"
 #include "../filter/core_filter_video.h"
+#include "../convert/core_convert_video.h"
 
 core_decoder_video::core_decoder_video()
-    :m_convert(nullptr)
 {
 }
 
@@ -52,8 +52,8 @@ decoder_check:
     INIT_NEW(&m_filter, core_filter_video)
     m_filter->init(format->streams[index], pCodecContext);
 #else
-    INIT_NEW(&m_convert, core_frame_convert)
-    m_convert->setsrcCodec(pCodecContext);
+    INIT_NEW(&m_convert, core_convert_video)
+    m_convert->setContext(pCodecContext);
 #endif
     Log(Log_Info, "thread_id:%u", core_util::getThreadId());
     Log(Log_Info, "video src size (%d,%d) bit_rate[%lld]!", pCodecContext->width, pCodecContext->height, pCodecContext->bit_rate);
@@ -145,23 +145,16 @@ int core_decoder_video::getDecodeType()
     return m_decodeType;
 }
 
-void core_decoder_video::setSize(int width, int height)
-{
-#ifdef VIDEO_FILTER
-    dynamic_cast<core_filter_video*>(m_filter)->setScale(width, height);
-#else
-    if(m_convert)
-        m_convert->setSize(width, height);
-#endif
-}
-
 int core_decoder_video::width()
 {
 #ifdef VIDEO_FILTER
     return dynamic_cast<core_filter_video*>(m_filter)->width();
 #else
     if(m_convert)
-        return m_convert->width();
+    {
+        auto ctx = m_convert->getContext();
+        return ctx->width;
+    }
 #endif
     return 0;
 }
@@ -172,7 +165,10 @@ int core_decoder_video::height()
     return dynamic_cast<core_filter_video*>(m_filter)->height();
 #else
     if(m_convert)
-        return m_convert->height();
+    {
+        auto ctx = m_convert->getContext();
+        return ctx->height;
+    }
 #endif
     return 0;
 }
@@ -192,9 +188,11 @@ void core_decoder_video::displayFrame(video_interface *cb)
 
     av_frame_unref(_frame);
 #else
-    if(m_convert)
+    if(m_convert && m_convert->convert(frame))
     {
-        m_convert->scale(frame, cb);
+        auto buffer = m_convert->buffer();
+        auto context= m_convert->getContext();
+        cb->displayCall(buffer, context->width, context->height);
     }
 #endif
 }

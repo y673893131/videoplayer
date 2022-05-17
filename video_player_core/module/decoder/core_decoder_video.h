@@ -3,7 +3,6 @@
 
 #include "core_decoder_hardware.h"
 #include "../packet/core_packets.h"
-#include "../convert/core_frame_convert.h"
 #include "../filter/core_filter.h"
 
 class core_decoder_video : public core_decoder_hardware
@@ -21,14 +20,11 @@ public:
     bool setDecodeType(int);
     int getDecodeType();
 
-    void setSize(int,int);
     int width();
     int height();
 
     void displayFrame(video_interface* cb);
     bool changeDecodeType(AVPacket *pk,int);
-private:
-    core_frame_convert* m_convert;
 };
 
 #endif // CORE_DECODER_VIDEO_H

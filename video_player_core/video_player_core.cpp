@@ -146,17 +146,6 @@ int video_player_core::_setAudioChannel(int index, audio_channel_type type)
     return 0;
 }
 
-int video_player_core::_setsize(int index, int w, int h)
-{
-    Log(Log_Opt, "(%d,%d)", w, h);
-    auto pIndex = core_thread_demux::index(index);
-    if(pIndex)
-    {
-        pIndex->setSize(w, h);
-    }
-    return 0;
-}
-
 int video_player_core::_setStreamChannel(int index, int channel, int sel)
 {
     Log(Log_Opt, " select (%d,%d)", channel, sel);

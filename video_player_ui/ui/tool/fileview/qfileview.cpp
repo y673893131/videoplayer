@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QTime>
 #include <QFile>
+#include <random>
 #include "playlist/qplayfilelistmodel.h"
 #include "playlist/qfilelistview.h"
 #include "ui/qtoolwidgets.h"
@@ -113,7 +114,12 @@ void QFileView::onAutoShow()
 void QFileView::onAutoVisable(bool bHide)
 {
     if(underMouse())
-        QToolBase::onAutoVisable(bHide);
+    {
+        if(!bHide)
+        {
+            QToolBase::onAutoVisable(bHide);
+        }
+    }
     else if(bHide)
     {
         setVisible(false);
@@ -283,10 +289,18 @@ void QFileView::playRandom()
 {
     auto model = qobject_cast<QPlayFileListModel*>(m_filelist->model());
     auto rowCount = model->rowCount();
-    auto time = QTime::currentTime();
-    auto sr = static_cast<uint>(time.msec());
-    qsrand(sr);
-    auto row = qrand() % rowCount;
+    if(!rowCount)
+        return;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, rowCount - 1);
+
+    auto row = dis(gen);
+//    auto time = QTime::currentTime();
+//    auto sr = static_cast<uint>(time.msec());
+//    qsrand(sr);
+//    auto row = qrand() % rowCount;
 
     auto cur = m_filelist->currentIndex().row();
     row = row == cur ? 1 : row - cur;
