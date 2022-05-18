@@ -81,7 +81,7 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
         if(!buff) return;
 
         if(stream) memset(stream, 0, lenTMP);
-        if(decodeSize && (testFlag(flag_bit_pause) || testFlag(flag_bit_need_pause) || testFlag(flag_bit_seek)))
+        if(lenTMP && (testFlag(flag_bit_pause) || testFlag(flag_bit_need_pause) || testFlag(flag_bit_seek)))
         {
             memset(buff + index, 0, lenTMP);
         }

@@ -120,15 +120,14 @@ class core_dev_xaudio2Private : public core_devPrivate
         m_voiceBuf.AudioBytes = m_frameSize;
         auto hr = m_voiceSrc->SubmitSourceBuffer(&m_voiceBuf);
 //        XAUDIO2_MAX_QUEUED_BUFFERS
-
         if(FAILED(hr))
         {
+            Log(Log_Debug, "m_read=%-7d len=%-7d index=%-7d hr=%p", m_read, m_frameSize, m_pos, hr);
             return;
         }
         m_read -= m_frameSize;
         m_pos += m_frameSize;
         m_pos %= m_frameSize * m_frameCount;
-//        Log(Log_Debug, "m_read=%-7d len=%-7d index=%-7d hr=%p queued=%-7d", m_read, m_frameSize, m_pos, hr, m_state.BuffersQueued);
     }
 
     bool waitPlay() override
