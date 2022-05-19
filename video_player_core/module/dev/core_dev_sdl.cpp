@@ -19,9 +19,9 @@ class core_dev_sdlPrivate : public core_devPrivate
         {
             return true;
         }
-
+#ifdef WIN32
         SetEnvironmentVariable(L"SDL_AUDIODRIVER", L"directsound");
-
+#endif
         if((nRet = initSDL()))
         {
             Log(Log_Warning, "sdl init failed, %d", nRet);
