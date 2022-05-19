@@ -273,7 +273,7 @@ void WINAPI core_dev_waveoutPrivate::win_callback(void*, UINT uMsg, DWORD dwInst
         Log(Log_Info, "open waveout.");
         break;
     case WOM_CLOSE://设备关闭
-        pData->stop();
+//        pData->stop();
         Log(Log_Info, "close waveout.");
         break;
     case WOM_DONE://一块数据播放完毕
