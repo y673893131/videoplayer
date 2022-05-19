@@ -1,5 +1,6 @@
 #include "core_dev_p.h"
 #include <thread>
+#include "../util/core_util.h"
 
 #ifdef WIN32
 #include <avrt.h>
@@ -39,12 +40,16 @@ unsigned int core_devPrivate::sample()
 
 void core_devPrivate::start()
 {
-    m_state = audio_running;
+    if(m_state != audio_reset)
+        m_state = audio_running;
 }
 
 void core_devPrivate::stop()
 {
+    m_bQuitPlay = false;
+    m_bQuitDecode = false;
     m_state = audio_stop;
+    while(m_bQuitPlay && m_bQuitDecode) msleep(1);
 }
 
 void core_devPrivate::pause()
@@ -66,7 +71,8 @@ bool core_devPrivate::waitPlay()
 {
     if(m_read < m_frameSize)
     {
-        msleep(10);
+        Log(Log_Debug, "play continue.");
+        msleep(1);
         return false;
     }
 
@@ -104,31 +110,46 @@ void core_devPrivate::initThread()
 
 void core_devPrivate::decodeEntry()
 {
-    Log(Log_Debug, "enter.[%d]", ::GetCurrentThreadId());
+    Log(Log_Debug, "enter.[%d]", core_util::getThreadId());
 #ifdef WIN32
     HANDLE task = nullptr;
     setHighPriority(task, true);
 #endif
+
+    cleanBuffer();
     for(;;)
     {
         if(m_state != audio_running)
         {
             if(m_state == audio_reset)
             {
+                LOCK(m_lock)
                 cleanBuffer();
+                while(m_read < m_frameSize)
+                {
+                    if(m_state == audio_stop)
+                        break;
+
+                    m_callback(m_userData, nullptr, static_cast<int>(m_frameSize));
+                }
+
+                if(m_state == audio_stop)
+                    break;
                 m_state = audio_running;
+                continue;
             }
             else if(m_state == audio_stop)
             {
-                cleanBuffer();
                 break;
             }
-            msleep(10);
+            msleep(1);
             continue;
         }
 
         if(!waitDecode())
+        {
             continue;
+        }
 
         m_callback(m_userData, nullptr, static_cast<int>(m_frameSize));
     }
@@ -137,32 +158,56 @@ void core_devPrivate::decodeEntry()
     setHighPriority(task, false);
 #endif
     Log(Log_Debug, "quit.");
+    m_bQuitDecode = true;
 }
 
 void core_devPrivate::playEntry()
 {
-    Log(Log_Debug, "enter.[%d]", ::GetCurrentThreadId());
+    Log(Log_Debug, "enter.[%d]", core_util::getThreadId());
 #ifdef WIN32
     HANDLE task = nullptr;
     setHighPriority(task, true);
 #endif
     for(;;)
     {
-        if(m_state == audio_stop)
+        if(m_state != audio_running)
         {
-            cleanBuffer();
-            break;
+            if(m_state == audio_stop)
+            {
+                break;
+            }
+            else if(m_state == audio_reset)
+            {
+                continue;
+            }
+
+            msleep(1);
+            continue;
         }
 
         if(!waitPlay())
+        {
             continue;
+        }
 
-        play();
+        if(m_state == audio_reset)
+        {
+            continue;
+        }
+        {
+            LOCK(m_lock)
+            if(m_read < m_frameSize)
+            {
+                continue;
+            }
+            play();
+        }
     }
 #ifdef WIN32
     setHighPriority(task, false);
 #endif
     Log(Log_Debug, "quit.");
+    m_bQuitPlay = true;
 }
 
 void core_devPrivate::cleanBuffer()

@@ -65,6 +65,8 @@ class core_dev_xaudio2Private : public core_devPrivate
 
     void uninitXAduio2()
     {
+        m_voiceMaster = nullptr;
+        m_voiceSrc = nullptr;
         SAFE_RELEASE(m_engine)
         CoUninitialize();
     }
@@ -92,6 +94,27 @@ class core_dev_xaudio2Private : public core_devPrivate
     {
         core_devPrivate::stop();
         uninitXAduio2();
+    }
+
+    void start() override
+    {
+        core_devPrivate::start();
+        Log(Log_Debug, "%d", m_state);
+        if(m_state == audio_running && m_voiceSrc) m_voiceSrc->Start(0, 0);
+    }
+
+    void pause() override
+    {
+        if(m_state == audio_pause)
+            return;
+        core_devPrivate::pause();
+        if(m_voiceSrc) m_voiceSrc->Stop();
+    }
+
+    void cleanBuffer() override
+    {
+        core_devPrivate::cleanBuffer();
+        if(m_voiceSrc) m_voiceSrc->FlushSourceBuffers();
     }
 
     bool init(AVCodecContext *ctx, const core_audio_sample &sample) override
@@ -125,6 +148,7 @@ class core_dev_xaudio2Private : public core_devPrivate
             Log(Log_Debug, "m_read=%-7d len=%-7d index=%-7d hr=%p", m_read, m_frameSize, m_pos, hr);
             return;
         }
+
         m_read -= m_frameSize;
         m_pos += m_frameSize;
         m_pos %= m_frameSize * m_frameCount;

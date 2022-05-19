@@ -780,8 +780,10 @@ bool core_media::checkSeekPkt(core_decoder* decoder, AVPacket *pk)
     {
         setFlag(flag_bit_pause, false);
         setFlag(flag_bit_need_pause);
-        if(_audio->dev()) _audio->dev()->reset();
-        _audio->start();
+        if(_audio->dev())
+        {
+            _audio->dev()->reset();
+        }
         _pause_time = av_gettime();
     }
 

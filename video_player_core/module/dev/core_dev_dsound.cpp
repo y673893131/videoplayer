@@ -131,9 +131,31 @@ class core_dev_dsoundPrivate : public core_devPrivate
         initThread();
 
         m_ds8Buffer->SetCurrentPosition(0);
-        auto code = m_ds8Buffer->Play(0, 0, DSBPLAY_LOOPING);
-        Log(Log_Debug, "!!!!!!!play[%p]", code);
+//        auto code = m_ds8Buffer->Play(0, 0, DSBPLAY_LOOPING);
+//        Log(Log_Debug, "!!!!!!!play[%p]", code);
         return true;
+    }
+
+    void start() override
+    {
+        core_devPrivate::start();
+        m_ds8Buffer->Play(0, 0, DSBPLAY_LOOPING);
+        DWORD dwPlay = 0;
+        DWORD dwWrite = 0;
+        auto hr = m_ds8Buffer->GetCurrentPosition(&dwPlay, &dwWrite);
+        Log(Log_Debug, " play=%d write=%d m_pos=%d m_write=%d", dwPlay, dwWrite, m_pos, m_write);
+    }
+
+    void pause() override
+    {
+        if(m_state == audio_pause)
+            return;
+        core_devPrivate::pause();
+        m_ds8Buffer->Stop();
+        DWORD dwPlay = 0;
+        DWORD dwWrite = 0;
+        auto hr = m_ds8Buffer->GetCurrentPosition(&dwPlay, &dwWrite);
+        Log(Log_Debug, " play=%d write=%d m_pos=%d m_write=%d", dwPlay, dwWrite, m_pos, m_write);
     }
 
     void stop() override
@@ -142,7 +164,6 @@ class core_dev_dsoundPrivate : public core_devPrivate
         SAFE_RELEASE(m_ds8Buffer)
         SAFE_RELEASE(m_dsSecondBuffer)
         SetEvent(m_event);
-        cleanBuffer();
     }
 
     bool waitPlay() override
@@ -199,6 +220,7 @@ class core_dev_dsoundPrivate : public core_devPrivate
         {
             Log(Log_Debug, "dsound diffrent play len[%-7d] data_len[%-7d]", len, data_len);
         }
+
         return data;
     }
 
@@ -232,8 +254,7 @@ class core_dev_dsoundPrivate : public core_devPrivate
         {
             return;
         }
-        auto data_len = len;
-
+        auto data_len = len;        
         if(!bZero)
         {
             memcpy(data, m_buffer + m_pos, data_len);

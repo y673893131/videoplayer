@@ -4,6 +4,7 @@
 #include <video_pimpl.h>
 #include "../convert/core_convert_define.h"
 #include "../sample/core_audio_sample.h"
+#include "../lock/core_graud_lock.h"
 #include "../common.h"
 #include <thread>
 
@@ -59,6 +60,9 @@ protected:
     unsigned int    m_samples;
     unsigned int    m_frameCount;
     unsigned int    m_frameSize;
+    bool            m_bQuitPlay;
+    bool            m_bQuitDecode;
+    core_graud_lock m_lock;
 };
 
 #endif // CORE_DEVPRIVATE_H

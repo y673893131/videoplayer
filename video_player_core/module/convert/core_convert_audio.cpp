@@ -141,10 +141,10 @@ class core_convert_audioPrivate : public core_convertPrivate
     static core_dev* dev_init()
     {
 #ifdef AUDIO_DEV_SELECT
-//        return new core_dev_sdl;
+        return new core_dev_sdl;
 //        return new core_dev_waveout;
 //        return new core_dev_dsound;
-        return new core_dev_xaudio2;
+//        return new core_dev_xaudio2;
 #else
         return new core_dev_sdl;
 #endif

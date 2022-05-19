@@ -44,7 +44,7 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
 {
     if(!m_media)
         return;
-    auto decoder = m_media->_audio;
+    auto& decoder = m_media->_audio;
     if(!decoder) return;
     auto convert = reinterpret_cast<core_convert_audio*>(decoder->convert());
     auto dev = decoder->dev();
@@ -57,7 +57,7 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
     {
         if(testFlag(flag_bit_Stop))
         {
-            dev->pause();
+            dev->stop();
             break;
         }
 
@@ -81,7 +81,12 @@ void core_thread_audio::audio_call(Uint8 *stream, unsigned int len)
         if(!buff) return;
 
         if(stream) memset(stream, 0, lenTMP);
-        if(lenTMP && (testFlag(flag_bit_pause) || testFlag(flag_bit_need_pause) || testFlag(flag_bit_seek)))
+
+        bool bPause = testFlag(flag_bit_pause) || testFlag(flag_bit_need_pause);
+        if(bPause)
+            dev->pause();
+
+        if(lenTMP && (/*bPause || */testFlag(flag_bit_seek)))
         {
             memset(buff + index, 0, lenTMP);
         }

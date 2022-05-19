@@ -23,6 +23,12 @@ class core_dev_waveoutPrivate : public core_devPrivate
         m_header = new WAVEHDR[m_frameCount];
         memset(m_header, 0x00, sizeof(WAVEHDR) * m_frameCount);
 
+        for (unsigned n = 0; n < m_frameCount; ++n)
+        {
+            m_header[n].lpData = reinterpret_cast<HPSTR>(m_pda + n * m_frameSize);
+            m_header[n].dwBufferLength = m_frameSize;
+        }
+
         m_notify = new CMMNotificationClient(parent);
     }
 
@@ -62,7 +68,13 @@ class core_dev_waveoutPrivate : public core_devPrivate
 
     void resetWaveout()
     {
-        waveOutReset(m_hWaveOut);
+        auto ret = waveOutReset(m_hWaveOut);
+        if(ret != MMSYSERR_NOERROR)
+        {
+            char msg[1024] = {};
+            waveOutGetErrorTextA(ret, msg, 1024);
+            Log(Log_Err, "waveOutReset failed![%d]%s", ret, msg);
+        }
         for (unsigned int n = 0; n < m_frameCount; ++n)
         {
             waveOutUnprepareHeader(m_hWaveOut, &m_header[n], sizeof(WAVEHDR));
@@ -100,15 +112,10 @@ class core_dev_waveoutPrivate : public core_devPrivate
                 Log(Log_Err, "open wave dev failed!%s", msg);
                 return false;
             }
-
         }
 
-//        memset(m_header, 0x00, sizeof(WAVEHDR) * m_frameCount);
         for (unsigned n = 0; n < m_frameCount; ++n)
         {
-            m_header[n].lpData = reinterpret_cast<HPSTR>(m_pda + n * m_frameSize);
-            m_header[n].dwBufferLength = m_frameSize;
-
             ret = waveOutPrepareHeader(m_hWaveOut, &m_header[n], sizeof(WAVEHDR));
             if (ret)
             {
@@ -119,19 +126,39 @@ class core_dev_waveoutPrivate : public core_devPrivate
             }
         }
 
-        return true;
-    }
+        for (unsigned n = 0; n < m_frameCount; ++n)
+        {
+            waveOutWrite(m_hWaveOut, &m_header[n], sizeof(WAVEHDR));
+        }
 
-    void cleanBuffer() override
-    {
-        core_devPrivate::cleanBuffer();
-        m_headers.clear();
+        return true;
     }
 
     void stop() override
     {
         core_devPrivate::stop();
         resetWaveout();
+    }
+
+    void start() override
+    {
+        core_devPrivate::start();
+        waveOutRestart(m_hWaveOut);
+        Log(Log_Debug, "");
+    }
+
+    void pause() override
+    {
+        if(m_state == audio_pause)
+            return;
+        core_devPrivate::pause();
+        waveOutPause(m_hWaveOut);
+    }
+
+    void cleanBuffer() override
+    {
+        core_devPrivate::cleanBuffer();
+        ReleaseSemaphore(m_semMonitor, 1, nullptr);
     }
 
     bool init(AVCodecContext* ctx, const core_audio_sample& sample) override
@@ -158,14 +185,6 @@ class core_dev_waveoutPrivate : public core_devPrivate
         if(!m_threadMonitor)
         {
             m_threadMonitor = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, monitor_entry, this, 0, nullptr));
-        }
-
-
-        Log(Log_Debug, "header size[%d]", m_headers.size());
-        for (unsigned n = 0; n < m_frameCount; ++n)
-        {
-            m_headers.push_back(&m_header[n]);
-            ReleaseSemaphore(m_sem, 1, nullptr);
         }
 
         return true;
@@ -199,13 +218,27 @@ class core_dev_waveoutPrivate : public core_devPrivate
         auto pHeader = m_headers.front();
         m_headers.pop_front();
         getBuffer(reinterpret_cast<uint8_t**>(&pHeader->lpData));
-        auto ret = waveOutWrite(m_hWaveOut, pHeader, sizeof(WAVEHDR));
-        if(ret)
+        for(;;)
         {
-            char buff[1024] = {};
-            waveInGetErrorTextA(ret, buff, 1024);
-            Log(Log_Err, "waveOutWrite %d error:%s", ret, buff);
+            auto ret = waveOutWrite(m_hWaveOut, pHeader, sizeof(WAVEHDR));
+            if(ret)
+            {
+                if(ret == WAVERR_UNPREPARED)
+                {
+                    msleep(1);
+                    continue;
+                }
+//                else
+//                {
+//                    char buff[1024] = {};
+//                    waveInGetErrorTextA(ret, buff, 1024);
+//                    Log(Log_Err, "waveOutWrite %d error:%s", ret, buff);
+//                }
+            }
+
+            break;
         }
+
     }
 
     bool waitPlay() override
